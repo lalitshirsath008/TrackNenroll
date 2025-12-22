@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -13,8 +12,9 @@
       }
     </style>
     <script>
-      // Runtime polyfill for libraries (like @google/genai) that expect process.env
-      window.process = { 
+      // Global polyfill for process.env to prevent ReferenceErrors in the browser
+      // This is especially important for the @google/genai SDK
+      window.process = window.process || { 
         env: { 
           API_KEY: "" 
         } 
@@ -38,7 +38,7 @@
 </head>
   <body class="bg-slate-50 text-slate-900">
     <div id="root"></div>
-    <!-- Vite entry point -->
-    <script type="module" src="./index.tsx"></script>
+    <!-- Vite will handle the bundling and transformation of this file -->
+    <script type="module" src="/index.tsx"></script>
   </body>
 </html>

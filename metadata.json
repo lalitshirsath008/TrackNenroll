@@ -1,0 +1,5 @@
+{
+  "name": "TrackNEnroll: Student Admission Categorization System",
+  "description": "A comprehensive educational management system with Node.js backend and SQLite local storage for student lead tracking and AI-driven categorization.",
+  "requestFramePermissions": []
+}

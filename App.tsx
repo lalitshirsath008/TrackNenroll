@@ -1,29 +1,26 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { User, UserRole, StudentLead, Department, LeadStage } from './types';
-import { useData } from './context/DataContext';
-import AuthHub from './pages/Login';
-import TeacherDashboard from './pages/TeacherDashboard';
-import UserManagement from './pages/UserManagement';
-import ApprovalCenter from './pages/ApprovalCenter';
-import ChatSystem from './components/ChatSystem';
-import Layout from './components/Layout';
-import AIChatbot from './components/AIChatbot';
-import { generateSummaryReport } from './services/geminiService';
+import { User, UserRole, StudentLead, Department, LeadStage } from './types.ts';
+import { useData } from './context/DataContext.tsx';
+import AuthHub from './pages/Login.tsx';
+import TeacherDashboard from './pages/TeacherDashboard.tsx';
+import UserManagement from './pages/UserManagement.tsx';
+import ApprovalCenter from './pages/ApprovalCenter.tsx';
+import ChatSystem from './components/ChatSystem.tsx';
+import Layout from './components/Layout.tsx';
+import AIChatbot from './components/AIChatbot.tsx';
+import { generateSummaryReport } from './services/geminiService.ts';
 import { jsPDF } from 'jspdf';
 import * as XLSX from 'xlsx';
 
 const App: React.FC = () => {
-  const { leads, users, loading, assignLeadsToHOD, assignLeadsToTeacher, addLead } = useData();
+  const { leads, users, loading, assignLeadsToHOD, assignLeadsToTeacher } = useData();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
-  const [assigneeId, setAssigneeId] = useState<string>('');
-  const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
-  const [analyzing, setAnalyzing] = useState(false);
-  const [reportDeptFilter, setReportDeptFilter] = useState<string>('All');
+  const [reportDeptFilter] = useState<string>('All');
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
 
   useEffect(() => {
     const savedUser = localStorage.getItem('tracknenroll_current_user');
@@ -45,14 +42,6 @@ const App: React.FC = () => {
     localStorage.removeItem('tracknenroll_current_user');
   };
 
-  const assignmentCandidates = useMemo(() => {
-    if (!currentUser) return [];
-    if (currentUser.role === UserRole.SUPER_ADMIN) return [];
-    if (currentUser.role === UserRole.ADMIN) return users.filter(u => u.role === UserRole.HOD && u.isApproved);
-    if (currentUser.role === UserRole.HOD) return users.filter(u => u.role === UserRole.TEACHER && u.department === currentUser.department && u.isApproved);
-    return [];
-  }, [currentUser, users]);
-
   const filteredLeads = useMemo(() => {
     let result = leads;
     if (currentUser?.role === UserRole.HOD) result = result.filter(l => l.department === currentUser.department);
@@ -64,19 +53,9 @@ const App: React.FC = () => {
     return result;
   }, [leads, currentUser, reportDeptFilter, searchTerm]);
 
-  const handleAssign = async () => {
-    if (!assigneeId || selectedLeads.length === 0) return;
-    if (currentUser?.role === UserRole.ADMIN) await assignLeadsToHOD(selectedLeads, assigneeId);
-    else if (currentUser?.role === UserRole.HOD) await assignLeadsToTeacher(selectedLeads, assigneeId);
-    setSelectedLeads([]);
-    setAssigneeId('');
-  };
-
   const generateAIReport = async () => {
-    setAnalyzing(true);
     const report = await generateSummaryReport(leads);
     setAiAnalysis(report);
-    setAnalyzing(false);
   };
 
   const executeExport = (format: 'pdf' | 'csv' | 'excel') => {
@@ -129,10 +108,10 @@ const App: React.FC = () => {
                </header>
                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   {[
-                    { label: 'Total Pool', value: leads.length, color: 'text-indigo-600', icon: '📥' },
-                    { label: 'Pipeline', value: leads.filter(l => l.stage === LeadStage.ASSIGNED).length, color: 'text-amber-500', icon: '⏳' },
-                    { label: 'Targets', value: leads.filter(l => l.stage === LeadStage.TARGETED).length, color: 'text-emerald-500', icon: '🎯' },
-                    { label: 'Discards', value: leads.filter(l => l.stage === LeadStage.DISCARDED).length, color: 'text-rose-500', icon: '🗑️' }
+                    { label: 'Total Pool', value: leads.length, color: 'text-indigo-600' },
+                    { label: 'Pipeline', value: leads.filter(l => l.stage === LeadStage.ASSIGNED).length, color: 'text-amber-500' },
+                    { label: 'Targets', value: leads.filter(l => l.stage === LeadStage.TARGETED).length, color: 'text-emerald-500' },
+                    { label: 'Discards', value: leads.filter(l => l.stage === LeadStage.DISCARDED).length, color: 'text-rose-500' }
                   ].map((stat, i) => (
                     <div key={i} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
                       <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">{stat.label}</p>

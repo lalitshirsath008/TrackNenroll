@@ -1,8 +1,8 @@
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App';
-import { DataProvider } from './context/DataContext';
+import App from './App.tsx';
+import { DataProvider } from './context/DataContext.tsx';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

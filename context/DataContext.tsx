@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { StudentLead, Message, User, LeadStage } from '../types';
-import { MOCK_LEADS, MOCK_USERS } from '../constants';
+import { StudentLead, Message, User, LeadStage } from '../types.ts';
+import { MOCK_LEADS, MOCK_USERS } from '../constants.tsx';
 
 interface DataContextType {
   leads: StudentLead[];

@@ -55,7 +55,8 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
     },
   ];
 
-  if (user.role !== UserRole.TEACHER) {
+  // Only Super Admin gets access to the Analytics suite
+  if (user.role === UserRole.SUPER_ADMIN) {
     menuItems.push({ 
       path: '/analytics', 
       label: 'Analytics', 
@@ -136,7 +137,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
 
         <div className="p-4 border-t border-white/10">
           <button onClick={onLogout} className="w-full py-4 text-[10px] font-black uppercase tracking-widest bg-white/5 hover:bg-white hover:text-indigo-900 rounded-2xl transition-all">
-            End Session
+            Logout
           </button>
         </div>
       </aside>

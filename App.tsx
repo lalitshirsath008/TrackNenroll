@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { User, UserRole, Department, LeadStage } from './types';
+import { User, UserRole, Department, LeadStage, StudentLead } from './types';
 import { useData } from './context/DataContext';
 import AuthHub from './pages/Login';
 import TeacherDashboard from './pages/TeacherDashboard';
@@ -14,11 +14,15 @@ import { jsPDF } from 'jspdf';
 import * as XLSX from 'xlsx';
 
 const App: React.FC = () => {
-  const { leads, users, loading } = useData();
+  const { leads, users, loading, assignLeadsToHOD, assignLeadsToTeacher } = useData();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
+  
+  // Lead Assignment State
+  const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
+  const [targetUserId, setTargetUserId] = useState<string>('');
 
   useEffect(() => {
     const savedUser = localStorage.getItem('tracknenroll_current_user');
@@ -42,8 +46,11 @@ const App: React.FC = () => {
 
   const filteredLeads = useMemo(() => {
     let result = leads;
-    if (currentUser?.role === UserRole.HOD) result = result.filter(l => l.department === currentUser.department);
-    if (currentUser?.role === UserRole.TEACHER) result = result.filter(l => l.assignedToTeacher === currentUser.id);
+    if (currentUser?.role === UserRole.HOD) {
+      result = result.filter(l => l.department === currentUser.department);
+    } else if (currentUser?.role === UserRole.TEACHER) {
+      result = result.filter(l => l.assignedToTeacher === currentUser.id);
+    }
     
     if (searchTerm) {
       const lowerSearch = searchTerm.toLowerCase();
@@ -52,6 +59,46 @@ const App: React.FC = () => {
     return result;
   }, [leads, currentUser, searchTerm]);
 
+  const toggleLeadSelection = (id: string) => {
+    setSelectedLeadIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedLeadIds.length === filteredLeads.length && filteredLeads.length > 0) {
+      setSelectedLeadIds([]);
+    } else {
+      setSelectedLeadIds(filteredLeads.map(l => l.id));
+    }
+  };
+
+  const handleAssignLeads = async () => {
+    if (!targetUserId || selectedLeadIds.length === 0) return;
+
+    try {
+      if (currentUser?.role === UserRole.ADMIN || currentUser?.role === UserRole.SUPER_ADMIN) {
+        await assignLeadsToHOD(selectedLeadIds, targetUserId);
+      } else if (currentUser?.role === UserRole.HOD) {
+        await assignLeadsToTeacher(selectedLeadIds, targetUserId);
+      }
+      setSelectedLeadIds([]);
+      setTargetUserId('');
+      alert("Institutional leads successfully reassigned.");
+    } catch (err) {
+      alert("Security protocol: Reassignment failed.");
+    }
+  };
+
+  const availableAssignees = useMemo(() => {
+    if (currentUser?.role === UserRole.ADMIN || currentUser?.role === UserRole.SUPER_ADMIN) {
+      return users.filter(u => u.role === UserRole.HOD && u.isApproved);
+    } else if (currentUser?.role === UserRole.HOD) {
+      return users.filter(u => u.role === UserRole.TEACHER && u.department === currentUser.department && u.isApproved);
+    }
+    return [];
+  }, [users, currentUser]);
+
   const generateAIReport = async () => {
     const report = await generateSummaryReport(leads);
     setAiAnalysis(report);
@@ -59,21 +106,157 @@ const App: React.FC = () => {
 
   const executeExport = (format: 'pdf' | 'csv' | 'excel') => {
     const dataToExport = filteredLeads;
-    if (dataToExport.length === 0) { alert("No data scope."); return; }
-    const fileName = `Audit_${new Date().toISOString().split('T')[0]}`;
+    if (dataToExport.length === 0) { alert("Data scope empty. Export aborted."); return; }
+    const fileName = `Institutional_Audit_${new Date().toISOString().split('T')[0]}`;
+
     if (format === 'csv') {
-      const data = dataToExport.map(l => `${l.name},${l.phone},${l.department},${l.stage}`).join("\n");
-      const blob = new Blob([data], { type: 'text/csv' });
+      const headers = "Name,Phone,Department,Stage,Verified,Call Duration(s)\n";
+      const rows = dataToExport.map(l => `"${l.name}","${l.phone}","${l.department}","${l.stage}",${l.callVerified},${l.callDuration || 0}`).join("\n");
+      const blob = new Blob([headers + rows], { type: 'text/csv' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a'); a.href = url; a.download = `${fileName}.csv`; a.click();
     } else if (format === 'pdf') {
       const doc = new jsPDF();
-      doc.setFontSize(20); doc.text("Institutional Audit", 10, 20);
-      dataToExport.forEach((l, i) => doc.text(`${l.name} | ${l.stage}`, 10, 30 + (i * 10)));
+      const margin = 15;
+      const primaryColor = [79, 70, 229]; // Indigo-600
+      const secondaryColor = [30, 41, 59]; // Slate-800
+      const accentColor = [16, 185, 129]; // Emerald-500
+      
+      // -- Page Header --
+      doc.setFillColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+      doc.rect(0, 0, 210, 50, 'F');
+      
+      doc.setTextColor(255, 255, 255);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(24);
+      doc.text("INSTITUTIONAL AUDIT", margin, 25);
+      
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.text("TRACKNENROLL INTELLIGENCE REPORT v4.0", margin, 32);
+      doc.text(`Generated: ${new Date().toLocaleString()}`, margin, 38);
+      doc.text(`Authorized by: ${currentUser?.name || 'System'}`, margin, 43);
+
+      // -- Executive Summary Section (Cards Design) --
+      let y = 65;
+      doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("EXECUTIVE METRICS", margin, y);
+      
+      y += 8;
+      const stats = [
+        { label: 'TOTAL LEADS', val: dataToExport.length },
+        { label: 'TARGETED', val: dataToExport.filter(l => l.stage === LeadStage.TARGETED).length },
+        { label: 'VERIFIED', val: dataToExport.filter(l => l.callVerified).length },
+        { label: 'DISCARDED', val: dataToExport.filter(l => l.stage === LeadStage.DISCARDED).length }
+      ];
+
+      const cardW = 42;
+      stats.forEach((s, i) => {
+        const x = margin + (i * (cardW + 4));
+        doc.setFillColor(248, 250, 252); // bg-slate-50
+        doc.rect(x, y, cardW, 25, 'F');
+        doc.setDrawColor(226, 232, 240); // border-slate-200
+        doc.rect(x, y, cardW, 25, 'S');
+        
+        doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+        doc.setFontSize(14);
+        doc.text(`${s.val}`, x + (cardW/2), y + 12, { align: 'center' });
+        
+        doc.setTextColor(100, 116, 139); // slate-500
+        doc.setFontSize(7);
+        doc.text(s.label, x + (cardW/2), y + 18, { align: 'center' });
+      });
+
+      // -- Data Grid Table --
+      y += 40;
+      doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text("OPERATIONAL DATA GRID", margin, y);
+      
+      y += 8;
+      // Header
+      doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+      doc.rect(margin, y, 180, 10, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(8);
+      doc.text("CANDIDATE NAME", margin + 4, y + 6.5);
+      doc.text("CONTACT", margin + 60, y + 6.5);
+      doc.text("DEPARTMENT", margin + 100, y + 6.5);
+      doc.text("PIPELINE STATUS", margin + 150, y + 6.5);
+
+      y += 10;
+      dataToExport.forEach((l, i) => {
+        if (y > 270) {
+          doc.addPage();
+          y = 20;
+          // Re-add header if needed, but for simplicity on audit:
+          doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+          doc.rect(margin, y, 180, 10, 'F');
+          doc.setTextColor(255, 255, 255);
+          doc.text("CANDIDATE NAME", margin + 4, y + 6.5);
+          doc.text("CONTACT", margin + 60, y + 6.5);
+          doc.text("DEPARTMENT", margin + 100, y + 6.5);
+          doc.text("PIPELINE STATUS", margin + 150, y + 6.5);
+          y += 10;
+        }
+
+        doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+        if (i % 2 === 0) {
+          doc.setFillColor(252, 252, 252);
+          doc.rect(margin, y, 180, 10, 'F');
+        }
+
+        doc.setFont("helvetica", "bold");
+        doc.text(l.name.toUpperCase(), margin + 4, y + 6.5);
+        doc.setFont("helvetica", "normal");
+        doc.text(l.phone, margin + 60, y + 6.5);
+        doc.text(l.department.length > 25 ? l.department.slice(0, 22) + '...' : l.department, margin + 100, y + 6.5);
+        
+        // Status color coding
+        if (l.stage === LeadStage.TARGETED) doc.setTextColor(accentColor[0], accentColor[1], accentColor[2]);
+        else if (l.stage === LeadStage.DISCARDED) doc.setTextColor(244, 63, 94);
+        else doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+        
+        doc.setFont("helvetica", "bold");
+        doc.text(l.stage.toUpperCase(), margin + 150, y + 6.5);
+        
+        y += 10;
+      });
+
+      // -- Footer --
+      const totalPages = doc.internal.pages.length - 1;
+      doc.setFontSize(7);
+      doc.setTextColor(150, 150, 150);
+      doc.setFont("helvetica", "italic");
+      doc.text(`CONFIDENTIAL AUDIT LOG • TrackNEnroll v4 • Page 1 of ${totalPages}`, 105, 285, { align: "center" });
+
       doc.save(`${fileName}.pdf`);
     } else {
-      const ws = XLSX.utils.json_to_sheet(dataToExport);
-      const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Audit");
+      // Professional Excel with better column sizing and headers
+      const sheetData = dataToExport.map(l => ({
+        "Candidate Name": l.name,
+        "Mobile Number": l.phone,
+        "Target Department": l.department,
+        "Current Status": l.stage,
+        "Verification Status": l.callVerified ? "VERIFIED" : "PENDING",
+        "Call Duration (sec)": l.callDuration || 0,
+        "Counselor Feedback": l.response || "No Action",
+        "Timestamp": l.callTimestamp || "N/A"
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(sheetData);
+      const wb = XLSX.utils.book_new();
+      
+      // Column Widths
+      const wscols = [
+        {wch: 25}, {wch: 15}, {wch: 30}, {wch: 15}, {wch: 15}, {wch: 15}, {wch: 30}, {wch: 20}
+      ];
+      ws['!cols'] = wscols;
+
+      XLSX.utils.book_append_sheet(wb, ws, "Institutional Audit");
       XLSX.writeFile(wb, `${fileName}.xlsx`);
     }
     setIsExportModalOpen(false);
@@ -87,71 +270,183 @@ const App: React.FC = () => {
     </Router>
   );
 
+  const canAssign = currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.HOD || currentUser.role === UserRole.SUPER_ADMIN;
+
   return (
     <Router>
       <Layout user={currentUser} onLogout={handleLogout}>
         {loading && <div className="fixed inset-0 bg-white/60 backdrop-blur-sm z-[1000] flex flex-col items-center justify-center"><div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div></div>}
 
         <Routes>
-          {/* TEACHER SPECIFIC ROUTE */}
           <Route path="/dashboard" element={
             currentUser.role === UserRole.TEACHER ? (
               <TeacherDashboard currentUser={currentUser} />
             ) : (
-              <div className="space-y-6">
+              <div className="space-y-6 relative pb-24">
                 <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                   <div>
                     <h1 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-1">Lead Management</h1>
                     <h2 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight uppercase">Operational Grid</h2>
                   </div>
                   <div className="flex w-full md:w-auto gap-2">
-                    <input type="text" placeholder="Search entries..." className="flex-1 md:w-64 px-5 py-3 bg-white border border-slate-200 rounded-xl text-sm outline-none" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
-                    <button onClick={() => setIsExportModalOpen(true)} className="p-3 bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-100"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg></button>
+                    <input 
+                      type="text" 
+                      placeholder="Search leads..." 
+                      className="flex-1 md:w-64 px-5 py-3 bg-white border border-slate-200 rounded-xl text-sm outline-none shadow-sm focus:ring-2 focus:ring-indigo-500 transition-all" 
+                      value={searchTerm} 
+                      onChange={e => setSearchTerm(e.target.value)} 
+                    />
+                    <button 
+                      onClick={() => setIsExportModalOpen(true)} 
+                      className="p-3 bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                    </button>
                   </div>
                 </header>
+
                 <div className="bg-white rounded-[1.5rem] md:rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
                   <div className="overflow-x-auto">
-                    <table className="w-full text-left min-w-[700px]">
+                    <table className="w-full text-left min-w-[850px]">
                       <thead className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b">
-                        <tr><th className="px-6 py-5">Candidate Name</th><th className="px-6 py-5">Phone</th><th className="px-6 py-5">Pipeline Status</th><th className="px-6 py-5 text-right">Action</th></tr>
+                        <tr>
+                          {canAssign && (
+                            <th className="px-6 py-5 w-12 text-center">
+                              <input 
+                                type="checkbox" 
+                                className="w-4 h-4 rounded cursor-pointer accent-indigo-600"
+                                checked={selectedLeadIds.length === filteredLeads.length && filteredLeads.length > 0}
+                                onChange={toggleSelectAll}
+                              />
+                            </th>
+                          )}
+                          <th className="px-6 py-5">Candidate Name</th>
+                          <th className="px-6 py-5">Phone</th>
+                          <th className="px-6 py-5">Department / Branch</th>
+                          <th className="px-6 py-5">Pipeline Status</th>
+                          <th className="px-6 py-5 text-right">Assignee</th>
+                        </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-50">
-                        {filteredLeads.map(l => (
-                          <tr key={l.id} className="hover:bg-indigo-50/20 transition-all">
-                            <td className="px-6 py-5 font-black text-slate-900 text-sm uppercase">{l.name}</td>
-                            <td className="px-6 py-5 text-[11px] font-bold text-slate-500">{l.phone}</td>
-                            <td className="px-6 py-5"><span className={`text-[9px] font-black uppercase px-2 py-1 rounded border ${l.stage === LeadStage.TARGETED ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-50 text-slate-400 border-slate-200'}`}>{l.stage}</span></td>
-                            <td className="px-6 py-5 text-right"><button className="text-[9px] font-black uppercase text-indigo-600">Full Record</button></td>
+                        {filteredLeads.map(l => {
+                          const assignee = users.find(u => u.id === (l.assignedToTeacher || l.assignedToHOD));
+                          return (
+                            <tr key={l.id} className={`hover:bg-indigo-50/20 transition-all ${selectedLeadIds.includes(l.id) ? 'bg-indigo-50/40' : ''}`}>
+                              {canAssign && (
+                                <td className="px-6 py-5 w-12 text-center">
+                                  <input 
+                                    type="checkbox" 
+                                    className="w-4 h-4 rounded cursor-pointer accent-indigo-600"
+                                    checked={selectedLeadIds.includes(l.id)}
+                                    onChange={() => toggleLeadSelection(l.id)}
+                                  />
+                                </td>
+                              )}
+                              <td className="px-6 py-5">
+                                <p className="font-black text-slate-900 text-sm uppercase">{l.name}</p>
+                                <p className="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-tighter">File: {l.sourceFile}</p>
+                              </td>
+                              <td className="px-6 py-5 text-[11px] font-bold text-slate-500">{l.phone}</td>
+                              <td className="px-6 py-5 text-[9px] font-black uppercase text-slate-400">{l.department}</td>
+                              <td className="px-6 py-5">
+                                <span className={`text-[9px] font-black uppercase px-2 py-1 rounded border ${
+                                  l.stage === LeadStage.TARGETED ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 
+                                  l.stage === LeadStage.ASSIGNED ? 'bg-indigo-50 text-indigo-600 border-indigo-100' : 
+                                  'bg-slate-50 text-slate-400 border-slate-200'}`}>
+                                  {l.stage}
+                                </span>
+                              </td>
+                              <td className="px-6 py-5 text-right">
+                                {assignee ? (
+                                  <div className="flex flex-col items-end">
+                                    <span className="text-[10px] font-black text-slate-900 uppercase truncate max-w-[150px]">{assignee.name}</span>
+                                    <span className="text-[8px] font-bold text-indigo-400 uppercase tracking-widest">{assignee.role}</span>
+                                  </div>
+                                ) : (
+                                  <span className="text-[9px] font-black text-rose-300 uppercase italic">Unassigned</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                        {filteredLeads.length === 0 && (
+                          <tr>
+                            <td colSpan={canAssign ? 6 : 5} className="py-24 text-center">
+                               <div className="text-slate-200 font-black text-4xl mb-2">∅</div>
+                               <p className="text-slate-300 font-black uppercase tracking-widest text-[10px]">Registry Empty</p>
+                            </td>
                           </tr>
-                        ))}
+                        )}
                       </tbody>
                     </table>
                   </div>
                 </div>
+
+                {/* Lead Assignment Command Bar */}
+                {canAssign && selectedLeadIds.length > 0 && (
+                  <div className="fixed bottom-8 left-1/2 -translate-x-1/2 w-full max-w-4xl px-4 z-[500] animate-in slide-in-from-bottom-5">
+                    <div className="bg-slate-900 text-white rounded-[2rem] p-4 md:p-6 shadow-2xl flex flex-col md:flex-row items-center gap-4 border border-white/10">
+                       <div className="flex items-center gap-4 flex-1">
+                          <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center font-black text-xl shadow-lg">
+                            {selectedLeadIds.length}
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400 leading-none mb-1">Batch Active</p>
+                            <h4 className="text-sm font-bold uppercase tracking-tight">Lead Delegation Pad</h4>
+                          </div>
+                       </div>
+                       <div className="flex w-full md:w-auto items-center gap-3">
+                         <select 
+                           value={targetUserId}
+                           onChange={(e) => setTargetUserId(e.target.value)}
+                           className="flex-1 md:w-64 bg-white/5 border border-white/10 rounded-xl px-5 py-3 text-[10px] font-black uppercase tracking-widest outline-none focus:ring-2 focus:ring-indigo-500 transition-all cursor-pointer"
+                         >
+                           <option value="" className="text-slate-900">Choose Personnel...</option>
+                           {availableAssignees.map(u => (
+                             <option key={u.id} value={u.id} className="text-slate-900">{u.name.toUpperCase()} ({u.role === UserRole.HOD ? 'HOD' : 'FACULTY'})</option>
+                           ))}
+                         </select>
+                         <button 
+                           onClick={handleAssignLeads}
+                           disabled={!targetUserId}
+                           className="px-8 py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-30 disabled:cursor-not-allowed text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg"
+                         >
+                           Delegate
+                         </button>
+                         <button 
+                           onClick={() => setSelectedLeadIds([])}
+                           className="p-3 text-white/30 hover:text-white transition-colors"
+                         >
+                           ✕
+                         </button>
+                       </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )
           } />
 
-          {/* ADMIN/HOD ANALYTICS ROUTE */}
-          {(currentUser.role !== UserRole.TEACHER) && (
+          {/* Exclusive Analytics Route for Super Admin */}
+          {(currentUser.role === UserRole.SUPER_ADMIN) && (
             <Route path="/analytics" element={
               <div className="space-y-6 md:space-y-10">
                  <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
                     <div>
                       <h1 className="text-[9px] font-black text-indigo-600 uppercase tracking-widest mb-2">Metrics Engine</h1>
-                      <h2 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight leading-none uppercase">Global Status</h2>
+                      <h2 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight leading-none uppercase">Institutional Health</h2>
                     </div>
                     <div className="flex w-full md:w-auto gap-2">
                       <button onClick={generateAIReport} className="flex-1 md:flex-none px-6 py-4 bg-slate-900 text-white rounded-2xl font-black text-[9px] uppercase tracking-widest shadow-xl">AI Sync</button>
-                      <button onClick={() => setIsExportModalOpen(true)} className="flex-1 md:flex-none px-6 py-4 bg-white border border-slate-200 text-slate-900 rounded-2xl font-black text-[9px] uppercase tracking-widest shadow-lg">Export</button>
+                      <button onClick={() => setIsExportModalOpen(true)} className="flex-1 md:flex-none px-6 py-4 bg-white border border-slate-200 text-slate-900 rounded-2xl font-black text-[9px] uppercase tracking-widest shadow-lg">Export Reports</button>
                     </div>
                  </header>
                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     {[
-                      { label: 'Total Pool', value: filteredLeads.length, color: 'text-indigo-600' },
-                      { label: 'Pipeline', value: filteredLeads.filter(l => l.stage === LeadStage.ASSIGNED).length, color: 'text-amber-500' },
-                      { label: 'Targets', value: filteredLeads.filter(l => l.stage === LeadStage.TARGETED).length, color: 'text-emerald-500' },
-                      { label: 'Discards', value: filteredLeads.filter(l => l.stage === LeadStage.DISCARDED).length, color: 'text-rose-500' }
+                      { label: 'Total Pool', value: leads.length, color: 'text-indigo-600' },
+                      { label: 'Pipeline', value: leads.filter(l => l.stage === LeadStage.ASSIGNED).length, color: 'text-amber-500' },
+                      { label: 'Targets', value: leads.filter(l => l.stage === LeadStage.TARGETED).length, color: 'text-emerald-500' },
+                      { label: 'Discards', value: leads.filter(l => l.stage === LeadStage.DISCARDED).length, color: 'text-rose-500' }
                     ].map((stat, i) => (
                       <div key={i} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
                         <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">{stat.label}</p>
@@ -164,8 +459,8 @@ const App: React.FC = () => {
                       <h3 className="text-xl font-black text-slate-900 uppercase mb-6">Branch Distribution</h3>
                       <div className="space-y-6">
                          {Object.values(Department).map(dept => {
-                           const count = filteredLeads.filter(l => l.department === dept).length;
-                           const percentage = filteredLeads.length > 0 ? (count / filteredLeads.length) * 100 : 0;
+                           const count = leads.filter(l => l.department === dept).length;
+                           const percentage = leads.length > 0 ? (count / leads.length) * 100 : 0;
                            return (
                              <div key={dept} className="space-y-2">
                                 <div className="flex justify-between text-[9px] font-black uppercase text-slate-500"><span>{dept}</span><span>{count}</span></div>
@@ -175,7 +470,7 @@ const App: React.FC = () => {
                          })}
                       </div>
                     </div>
-                    {aiAnalysis && <div className="bg-indigo-600 rounded-[2.5rem] p-10 text-white flex flex-col justify-center shadow-2xl"><h4 className="text-[9px] font-black uppercase tracking-widest opacity-50 mb-4">Strategic AI Intelligence</h4><p className="text-xl font-medium leading-relaxed italic">"{aiAnalysis}"</p></div>}
+                    {aiAnalysis && <div className="bg-indigo-600 rounded-[2.5rem] p-10 text-white flex flex-col justify-center shadow-2xl transition-all"><h4 className="text-[9px] font-black uppercase tracking-widest opacity-50 mb-4">Strategic AI Intelligence</h4><p className="text-xl font-medium leading-relaxed italic">"{aiAnalysis}"</p></div>}
                  </div>
               </div>
             } />
@@ -191,24 +486,15 @@ const App: React.FC = () => {
 
         {isExportModalOpen && (
           <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[2000] flex items-end md:items-center justify-center p-0 md:p-6">
-            <div className="bg-white w-full max-w-lg rounded-t-[2.5rem] md:rounded-[3rem] overflow-hidden animate-in slide-in-from-bottom-10 md:zoom-in-95 duration-500">
-               <div className="p-10 bg-indigo-600 text-white"><h3 className="text-3xl font-black uppercase leading-none">Audit<br/>Export</h3></div>
-               <div className="p-8 md:p-10 space-y-4">
-                  {['pdf', 'excel', 'csv'].map(fmt => (
-                    <button key={fmt} onClick={() => executeExport(fmt as any)} className="w-full p-6 bg-slate-50 hover:bg-indigo-600 hover:text-white rounded-[2rem] border border-slate-100 flex items-center justify-between group transition-all">
-                       <span className="font-black text-[10px] uppercase tracking-widest">Download {fmt} Report</span>
-                       <span className="opacity-0 group-hover:opacity-100 transition-opacity">→</span>
-                    </button>
-                  ))}
-                  <button onClick={() => setIsExportModalOpen(false)} className="w-full py-4 text-[9px] font-black uppercase text-slate-300">Discard Request</button>
+            <div className="bg-white w-full max-w-lg rounded-t-[2.5rem] md:rounded-[3rem] overflow-hidden animate-in slide-in-from-bottom-10 md:zoom-in-95 duration-500 shadow-2xl">
+               <div className="p-10 bg-indigo-600 text-white">
+                 <p className="text-[10px] font-black uppercase tracking-[0.3em] mb-2 opacity-70">Audit Engine</p>
+                 <h3 className="text-3xl font-black uppercase leading-none">Generate<br/>Institutional Report</h3>
                </div>
-            </div>
-          </div>
-        )}
-        <AIChatbot />
-      </Layout>
-    </Router>
-  );
-};
-
-export default App;
+               <div className="p-8 md:p-10 space-y-4">
+                  {[
+                    {id: 'pdf', icon: '📄', desc: 'High-Fidelity Branded Audit'},
+                    {id: 'excel', icon: '📊', desc: 'Comprehensive Operational Spreadsheet'},
+                    {id: 'csv', icon: '📎', desc: 'Raw Data Interoperability File'}
+                  ].map(fmt => (
+                    <button key={fmt.id} onClick

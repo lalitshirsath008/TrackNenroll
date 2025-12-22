@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { User, UserRole } from '../types';
@@ -10,11 +9,19 @@ interface LayoutProps {
   onLogout: () => void;
 }
 
+// Added MenuItem interface to resolve TypeScript property inference issues
+interface MenuItem {
+  path: string;
+  label: string;
+  icon: React.ReactNode;
+  badge?: number;
+}
+
 const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { messages, users } = useData();
+  const { messages } = useData();
 
   const getRoleLabel = (role: UserRole) => {
     if (role === UserRole.SUPER_ADMIN) return 'Principal';
@@ -26,14 +33,6 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
     return messages.filter(m => m.receiverId === user.id && m.status !== 'seen').length;
   }, [messages, user.id]);
 
-  const pendingApprovals = useMemo(() => {
-    return users.filter(u => {
-      if (user.role === UserRole.ADMIN) return u.role === UserRole.HOD && u.registrationStatus === 'pending';
-      if (user.role === UserRole.HOD) return u.role === UserRole.TEACHER && u.department === user.department && u.registrationStatus === 'pending';
-      return false;
-    }).length;
-  }, [users, user]);
-
   const getThemeColor = () => {
     switch (user.role) {
       case UserRole.SUPER_ADMIN: return 'bg-slate-900';
@@ -44,104 +43,107 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
     }
   };
 
-  const NavContent = () => (
-    <>
-      <div className="p-6 md:p-8">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center font-black text-xl shadow-xl">T</div>
-          <h1 className="text-xl font-black tracking-tighter leading-none uppercase">TrackNEnroll</h1>
-        </div>
-        <p className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em]">Institutional Command</p>
-      </div>
-      
-      <nav className="flex-1 px-4 space-y-2 py-4">
-        <div className="text-[9px] font-black text-white/30 uppercase tracking-[0.3em] mb-4 px-3">Identity: {getRoleLabel(user.role)}</div>
-        
-        <button 
-          onClick={() => { navigate('/dashboard'); setIsSidebarOpen(false); }}
-          className={`w-full text-left px-5 py-4 rounded-2xl flex items-center gap-4 transition-all ${
-            location.pathname === '/dashboard' ? 'bg-white text-indigo-950 shadow-xl' : 'text-white/70 hover:bg-white/10 hover:text-white'
-          }`}
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-          <span className="text-[11px] font-black uppercase tracking-widest">Dashboard</span>
-        </button>
+  // Dynamically build menu based on role
+  // Explicitly typed as MenuItem[] to support the 'badge' property added later
+  const menuItems: MenuItem[] = [
+    { 
+      path: '/dashboard', 
+      label: user.role === UserRole.TEACHER ? 'Counseling' : 'Dashboard', 
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+      )
+    },
+  ];
 
-        {user.role === UserRole.ADMIN && (
-          <button 
-            onClick={() => { navigate('/users'); setIsSidebarOpen(false); }}
-            className={`w-full text-left px-5 py-4 rounded-2xl flex items-center gap-4 transition-all ${
-              location.pathname === '/users' ? 'bg-white text-indigo-950 shadow-xl' : 'text-white/70 hover:bg-white/10 hover:text-white'
-            }`}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-            <span className="text-[11px] font-black uppercase tracking-widest">Faculty Roster</span>
-          </button>
-        )}
+  if (user.role !== UserRole.TEACHER) {
+    menuItems.push({ 
+      path: '/analytics', 
+      label: 'Analytics', 
+      icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg> 
+    });
+  }
 
-        {(user.role === UserRole.ADMIN || user.role === UserRole.HOD) && (
-          <button 
-            onClick={() => { navigate('/approvals'); setIsSidebarOpen(false); }}
-            className={`w-full text-left px-5 py-4 rounded-2xl flex items-center gap-4 transition-all relative ${
-              location.pathname === '/approvals' ? 'bg-white text-indigo-950 shadow-xl' : 'text-white/70 hover:bg-white/10 hover:text-white'
-            }`}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-            <span className="text-[11px] font-black uppercase tracking-widest">Verification</span>
-            {pendingApprovals > 0 && <span className="absolute right-4 top-4 w-5 h-5 bg-amber-500 text-white rounded-full flex items-center justify-center text-[10px] font-black">{pendingApprovals}</span>}
-          </button>
-        )}
+  menuItems.push({ 
+    path: '/chat', 
+    label: 'Messenger', 
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+    ), 
+    badge: unreadCount 
+  });
 
-        {user.role === UserRole.SUPER_ADMIN && (
-          <button 
-            onClick={() => { navigate('/analytics'); setIsSidebarOpen(false); }}
-            className={`w-full text-left px-5 py-4 rounded-2xl flex items-center gap-4 transition-all ${
-              location.pathname === '/analytics' ? 'bg-white text-indigo-950 shadow-xl' : 'text-white/70 hover:bg-white/10 hover:text-white'
-            }`}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-            <span className="text-[11px] font-black uppercase tracking-widest">Metrics</span>
-          </button>
-        )}
+  if (user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN) {
+    menuItems.push({ path: '/users', label: 'Faculty', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg> });
+  }
 
-        <button 
-          onClick={() => { navigate('/chat'); setIsSidebarOpen(false); }}
-          className={`w-full text-left px-5 py-4 rounded-2xl flex items-center gap-4 transition-all relative ${
-            location.pathname === '/chat' ? 'bg-white text-indigo-950 shadow-xl' : 'text-white/70 hover:bg-white/10 hover:text-white'
-          }`}
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
-          <span className="text-[11px] font-black uppercase tracking-widest">Messenger</span>
-          {unreadCount > 0 && <span className="absolute right-4 top-4 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-[10px] font-black animate-bounce">{unreadCount}</span>}
-        </button>
-      </nav>
-
-      <div className="p-4 border-t border-white/10 mt-auto">
-        <button onClick={onLogout} className="w-full py-4 text-[10px] font-black uppercase tracking-widest bg-white/5 border border-white/10 rounded-2xl text-white/50 hover:bg-white hover:text-indigo-900 transition-all">Terminate Session</button>
-      </div>
-    </>
-  );
+  if (user.role === UserRole.ADMIN || user.role === UserRole.HOD || user.role === UserRole.SUPER_ADMIN) {
+    menuItems.push({ path: '/approvals', label: 'Verify', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg> });
+  }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row overflow-x-hidden relative">
-      <header className={`md:hidden p-4 flex justify-between items-center sticky top-0 z-[60] shadow-xl ${getThemeColor()} text-white border-b border-white/10`}>
+    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
+      {/* Mobile Top Header */}
+      <header className={`md:hidden p-4 flex justify-between items-center sticky top-0 z-[100] shadow-md ${getThemeColor()} text-white`}>
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center font-black text-lg">T</div>
+          <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center font-black">T</div>
           <span className="font-black text-sm tracking-tighter uppercase">TrackNEnroll</span>
         </div>
-        <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-3 bg-white/10 rounded-xl transition-transform active:scale-90">
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d={isSidebarOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16m-7 6h7"}/></svg>
+        <button 
+          onClick={() => setIsSidebarOpen(true)}
+          className="p-3 bg-white/10 rounded-xl active:scale-95 transition-transform"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 6h16M4 12h16m-7 6h7"/></svg>
         </button>
       </header>
 
-      {isSidebarOpen && <div className="fixed inset-0 bg-slate-900/60 z-[70] md:hidden backdrop-blur-md" onClick={() => setIsSidebarOpen(false)} />}
+      {/* Sidebar Overlay */}
+      {isSidebarOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 z-[110] md:hidden backdrop-blur-sm" onClick={() => setIsSidebarOpen(false)} />
+      )}
 
-      <aside className={`fixed inset-y-0 left-0 w-72 ${getThemeColor()} text-white flex flex-col z-[80] transform transition-transform duration-500 ease-[cubic-bezier(0.19,1,0.22,1)] md:translate-x-0 md:static md:h-screen sticky top-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <NavContent />
+      {/* Sidebar */}
+      <aside className={`fixed inset-y-0 left-0 w-72 ${getThemeColor()} text-white flex flex-col z-[120] transform transition-transform duration-300 ease-in-out md:translate-x-0 md:static md:h-screen ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="p-8 hidden md:block">
+           <div className="flex items-center gap-3 mb-2">
+             <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center font-black text-xl">T</div>
+             <h1 className="text-xl font-black tracking-tighter uppercase leading-none">TrackNEnroll</h1>
+           </div>
+           <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Enterprise Suite</p>
+        </div>
+        
+        <nav className="flex-1 px-4 py-6 space-y-2">
+          <div className="px-4 mb-4">
+             <p className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em]">{getRoleLabel(user.role)} terminal</p>
+          </div>
+          {menuItems.map((item) => (
+            <button 
+              key={item.path}
+              onClick={() => { navigate(item.path); setIsSidebarOpen(false); }}
+              className={`w-full text-left px-5 py-4 rounded-2xl flex items-center gap-4 transition-all relative ${
+                location.pathname === item.path ? 'bg-white text-slate-900 shadow-lg' : 'text-white/70 hover:bg-white/10 hover:text-white'
+              }`}
+            >
+              {item.icon}
+              <span className="text-[11px] font-black uppercase tracking-widest">{item.label}</span>
+              {item.badge ? (
+                <span className="absolute right-4 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] font-black animate-pulse">
+                  {item.badge}
+                </span>
+              ) : null}
+            </button>
+          ))}
+        </nav>
+
+        <div className="p-4 border-t border-white/10">
+          <button onClick={onLogout} className="w-full py-4 text-[10px] font-black uppercase tracking-widest bg-white/5 hover:bg-white hover:text-indigo-900 rounded-2xl transition-all">
+            End Session
+          </button>
+        </div>
       </aside>
 
-      <main className="flex-1 w-full min-h-screen p-4 md:p-10 max-w-full overflow-x-hidden">
-        <div className="max-w-7xl mx-auto w-full">
+      {/* Main Content */}
+      <main className="flex-1 w-full p-4 md:p-10 overflow-x-hidden">
+        <div className="max-w-7xl mx-auto">
           {children}
         </div>
       </main>

@@ -1,21 +1,21 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { User, UserRole, StudentLead, Department, LeadStage } from './types.ts';
-import { useData } from './context/DataContext.tsx';
-import AuthHub from './pages/Login.tsx';
-import TeacherDashboard from './pages/TeacherDashboard.tsx';
-import UserManagement from './pages/UserManagement.tsx';
-import ApprovalCenter from './pages/ApprovalCenter.tsx';
-import ChatSystem from './components/ChatSystem.tsx';
-import Layout from './components/Layout.tsx';
-import AIChatbot from './components/AIChatbot.tsx';
-import { generateSummaryReport } from './services/geminiService.ts';
+import { User, UserRole, Department, LeadStage } from './types';
+import { useData } from './context/DataContext';
+import AuthHub from './pages/Login';
+import TeacherDashboard from './pages/TeacherDashboard';
+import UserManagement from './pages/UserManagement';
+import ApprovalCenter from './pages/ApprovalCenter';
+import ChatSystem from './components/ChatSystem';
+import Layout from './components/Layout';
+import AIChatbot from './components/AIChatbot';
+import { generateSummaryReport } from './services/geminiService';
 import { jsPDF } from 'jspdf';
 import * as XLSX from 'xlsx';
 
 const App: React.FC = () => {
-  const { leads, users, loading, assignLeadsToHOD, assignLeadsToTeacher } = useData();
+  const { leads, users, loading } = useData();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [reportDeptFilter] = useState<string>('All');
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
@@ -95,7 +95,7 @@ const App: React.FC = () => {
 
         <Routes>
           <Route path="/analytics" element={
-            <div className="space-y-6 md:space-y-10 animate-in fade-in duration-700">
+            <div className="space-y-6 md:space-y-10">
                <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
                   <div>
                     <h1 className="text-[9px] font-black text-indigo-600 uppercase tracking-widest mb-2">Metrics Engine</h1>

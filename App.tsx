@@ -192,7 +192,6 @@ const App: React.FC = () => {
         if (y > 270) {
           doc.addPage();
           y = 20;
-          // Re-add header if needed, but for simplicity on audit:
           doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
           doc.rect(margin, y, 180, 10, 'F');
           doc.setTextColor(255, 255, 255);
@@ -215,18 +214,15 @@ const App: React.FC = () => {
         doc.text(l.phone, margin + 60, y + 6.5);
         doc.text(l.department.length > 25 ? l.department.slice(0, 22) + '...' : l.department, margin + 100, y + 6.5);
         
-        // Status color coding
         if (l.stage === LeadStage.TARGETED) doc.setTextColor(accentColor[0], accentColor[1], accentColor[2]);
         else if (l.stage === LeadStage.DISCARDED) doc.setTextColor(244, 63, 94);
         else doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
         
         doc.setFont("helvetica", "bold");
         doc.text(l.stage.toUpperCase(), margin + 150, y + 6.5);
-        
         y += 10;
       });
 
-      // -- Footer --
       const totalPages = doc.internal.pages.length - 1;
       doc.setFontSize(7);
       doc.setTextColor(150, 150, 150);
@@ -235,7 +231,6 @@ const App: React.FC = () => {
 
       doc.save(`${fileName}.pdf`);
     } else {
-      // Professional Excel with better column sizing and headers
       const sheetData = dataToExport.map(l => ({
         "Candidate Name": l.name,
         "Mobile Number": l.phone,
@@ -249,13 +244,10 @@ const App: React.FC = () => {
 
       const ws = XLSX.utils.json_to_sheet(sheetData);
       const wb = XLSX.utils.book_new();
-      
-      // Column Widths
       const wscols = [
         {wch: 25}, {wch: 15}, {wch: 30}, {wch: 15}, {wch: 15}, {wch: 15}, {wch: 30}, {wch: 20}
       ];
       ws['!cols'] = wscols;
-
       XLSX.utils.book_append_sheet(wb, ws, "Institutional Audit");
       XLSX.writeFile(wb, `${fileName}.xlsx`);
     }
@@ -369,20 +361,11 @@ const App: React.FC = () => {
                             </tr>
                           );
                         })}
-                        {filteredLeads.length === 0 && (
-                          <tr>
-                            <td colSpan={canAssign ? 6 : 5} className="py-24 text-center">
-                               <div className="text-slate-200 font-black text-4xl mb-2">∅</div>
-                               <p className="text-slate-300 font-black uppercase tracking-widest text-[10px]">Registry Empty</p>
-                            </td>
-                          </tr>
-                        )}
                       </tbody>
                     </table>
                   </div>
                 </div>
 
-                {/* Lead Assignment Command Bar */}
                 {canAssign && selectedLeadIds.length > 0 && (
                   <div className="fixed bottom-8 left-1/2 -translate-x-1/2 w-full max-w-4xl px-4 z-[500] animate-in slide-in-from-bottom-5">
                     <div className="bg-slate-900 text-white rounded-[2rem] p-4 md:p-6 shadow-2xl flex flex-col md:flex-row items-center gap-4 border border-white/10">
@@ -413,12 +396,7 @@ const App: React.FC = () => {
                          >
                            Delegate
                          </button>
-                         <button 
-                           onClick={() => setSelectedLeadIds([])}
-                           className="p-3 text-white/30 hover:text-white transition-colors"
-                         >
-                           ✕
-                         </button>
+                         <button onClick={() => setSelectedLeadIds([])} className="p-3 text-white/30 hover:text-white transition-colors">✕</button>
                        </div>
                     </div>
                   </div>
@@ -427,7 +405,6 @@ const App: React.FC = () => {
             )
           } />
 
-          {/* Exclusive Analytics Route for Super Admin */}
           {(currentUser.role === UserRole.SUPER_ADMIN) && (
             <Route path="/analytics" element={
               <div className="space-y-6 md:space-y-10">
@@ -479,7 +456,6 @@ const App: React.FC = () => {
           <Route path="/users" element={<UserManagement currentUser={currentUser} />} />
           <Route path="/approvals" element={<ApprovalCenter currentUser={currentUser} />} />
           <Route path="/chat" element={<ChatSystem currentUser={currentUser} />} />
-          
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
@@ -497,4 +473,24 @@ const App: React.FC = () => {
                     {id: 'excel', icon: '📊', desc: 'Comprehensive Operational Spreadsheet'},
                     {id: 'csv', icon: '📎', desc: 'Raw Data Interoperability File'}
                   ].map(fmt => (
-                    <button key={fmt.id} onClick
+                    <button key={fmt.id} onClick={() => executeExport(fmt.id as any)} className="w-full p-6 bg-slate-50 hover:bg-indigo-600 hover:text-white rounded-[2rem] border border-slate-100 flex items-center gap-4 group transition-all">
+                       <span className="text-2xl">{fmt.icon}</span>
+                       <div className="text-left flex-1">
+                          <p className="font-black text-[10px] uppercase tracking-widest">Download {fmt.id}</p>
+                          <p className="text-[9px] opacity-50 uppercase font-bold group-hover:text-white transition-colors">{fmt.desc}</p>
+                       </div>
+                       <span className="opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+                    </button>
+                  ))}
+                  <button onClick={() => setIsExportModalOpen(false)} className="w-full py-4 text-[9px] font-black uppercase text-slate-300 hover:text-slate-500 transition-colors">Discard Request</button>
+               </div>
+            </div>
+          </div>
+        )}
+        <AIChatbot />
+      </Layout>
+    </Router>
+  );
+};
+
+export default App;

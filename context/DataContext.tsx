@@ -1,5 +1,4 @@
-
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { StudentLead, Message, User, LeadStage } from '../types.ts';
 import { MOCK_LEADS, MOCK_USERS } from '../constants.tsx';
 
@@ -9,6 +8,7 @@ interface DataContextType {
   users: User[];
   loading: boolean;
   addLead: (lead: StudentLead) => void;
+  batchAddLeads: (newLeads: StudentLead[], replace: boolean) => void;
   updateLead: (id: string, updates: Partial<StudentLead>) => Promise<void>;
   assignLeadsToHOD: (leadIds: string[], hodId: string) => Promise<void>;
   assignLeadsToTeacher: (leadIds: string[], teacherId: string) => Promise<void>;
@@ -25,6 +25,8 @@ interface DataContextType {
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const syncChannel = useRef<BroadcastChannel | null>(null);
+
   const [users, setUsers] = useState<User[]>(() => {
     const saved = localStorage.getItem('tracknenroll_users');
     return saved ? JSON.parse(saved) : MOCK_USERS;
@@ -43,18 +45,51 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    syncChannel.current = new BroadcastChannel('tracknenroll_sync_v1');
+    
+    const handleSync = (event: MessageEvent) => {
+      const { type, payload } = event.data;
+      switch (type) {
+        case 'UPDATE_USERS': setUsers(payload); break;
+        case 'UPDATE_LEADS': setLeads(payload); break;
+        case 'UPDATE_MESSAGES': setMessages(payload); break;
+      }
+    };
+
+    syncChannel.current.onmessage = handleSync;
+
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'tracknenroll_messages' && e.newValue) setMessages(JSON.parse(e.newValue));
       if (e.key === 'tracknenroll_leads' && e.newValue) setLeads(JSON.parse(e.newValue));
       if (e.key === 'tracknenroll_users' && e.newValue) setUsers(JSON.parse(e.newValue));
     };
+
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    
+    return () => {
+      syncChannel.current?.close();
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
-  useEffect(() => { localStorage.setItem('tracknenroll_users', JSON.stringify(users)); }, [users]);
-  useEffect(() => { localStorage.setItem('tracknenroll_leads', JSON.stringify(leads)); }, [leads]);
-  useEffect(() => { localStorage.setItem('tracknenroll_messages', JSON.stringify(messages)); }, [messages]);
+  const broadcast = (type: string, payload: any) => {
+    syncChannel.current?.postMessage({ type, payload });
+  };
+
+  useEffect(() => { 
+    localStorage.setItem('tracknenroll_users', JSON.stringify(users)); 
+    broadcast('UPDATE_USERS', users);
+  }, [users]);
+
+  useEffect(() => { 
+    localStorage.setItem('tracknenroll_leads', JSON.stringify(leads)); 
+    broadcast('UPDATE_LEADS', leads);
+  }, [leads]);
+
+  useEffect(() => { 
+    localStorage.setItem('tracknenroll_messages', JSON.stringify(messages)); 
+    broadcast('UPDATE_MESSAGES', messages);
+  }, [messages]);
 
   const refreshData = async () => {
     setLoading(true);
@@ -64,6 +99,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addLead = (lead: StudentLead) => {
     setLeads(prev => [lead, ...prev]);
+  };
+
+  const batchAddLeads = (newLeads: StudentLead[], replace: boolean) => {
+    setLeads(prev => replace ? newLeads : [...newLeads, ...prev]);
   };
 
   const updateLead = async (id: string, updates: Partial<StudentLead>) => {
@@ -124,17 +163,21 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const markMessagesAsSeen = useCallback((partnerId: string, currentUserId: string) => {
-    setMessages(prev => prev.map(m => 
-      (m.senderId === partnerId && m.receiverId === currentUserId && m.status !== 'seen')
-        ? { ...m, status: 'seen' as const }
-        : m
-    ));
+    setMessages(prev => {
+      const updated = prev.map(m => 
+        (m.senderId === partnerId && m.receiverId === currentUserId && m.status !== 'seen')
+          ? { ...m, status: 'seen' as const }
+          : m
+      );
+      const hasChanged = JSON.stringify(updated) !== JSON.stringify(prev);
+      return hasChanged ? updated : prev;
+    });
   }, []);
 
   return (
     <DataContext.Provider value={{ 
       leads, messages, users, loading,
-      addLead, updateLead, assignLeadsToHOD, assignLeadsToTeacher, 
+      addLead, batchAddLeads, updateLead, assignLeadsToHOD, assignLeadsToTeacher, 
       sendMessage, registerUser, addUser, updateUser, deleteUser, handleUserApproval,
       refreshData, markMessagesAsSeen
     }}>

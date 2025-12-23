@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { User, UserRole, Department, LeadStage, StudentLead } from './types';
 import { useData } from './context/DataContext';
@@ -14,11 +14,13 @@ import { jsPDF } from 'jspdf';
 import * as XLSX from 'xlsx';
 
 const App: React.FC = () => {
-  const { leads, users, loading, assignLeadsToHOD, assignLeadsToTeacher } = useData();
+  const { leads, users, loading, assignLeadsToHOD, assignLeadsToTeacher, batchAddLeads } = useData();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Lead Assignment State
   const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
@@ -104,6 +106,54 @@ const App: React.FC = () => {
     setAiAnalysis(report);
   };
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, replace: boolean) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = new Uint8Array(event.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+        const newLeads: StudentLead[] = jsonData.map((row: any, index) => {
+          // Normalize headers: Name, Phone, Department
+          const name = row.Name || row.name || row['Full Name'] || 'Unknown';
+          const phone = String(row.Phone || row.phone || row['Mobile'] || '').replace(/\D/g, '');
+          const deptRaw = row.Department || row.department || row['Branch'] || 'IT';
+          
+          // Map to enum
+          const department = Object.values(Department).find(d => 
+            d.toLowerCase().includes(String(deptRaw).toLowerCase())
+          ) || Department.IT;
+
+          return {
+            id: `imported-${Date.now()}-${index}`,
+            name,
+            phone: phone.startsWith('91') ? `+${phone}` : `+91${phone}`,
+            sourceFile: file.name,
+            department: department as Department,
+            stage: LeadStage.UNASSIGNED,
+            callVerified: false
+          };
+        }).filter(l => l.phone.length > 5);
+
+        if (newLeads.length === 0) throw new Error("File format invalid or no leads found.");
+
+        batchAddLeads(newLeads, replace);
+        setIsImportModalOpen(false);
+        alert(`${newLeads.length} leads successfully synchronized with registry.`);
+      } catch (err) {
+        alert(`Ingestion Error: ${err instanceof Error ? err.message : 'Unknown failure'}`);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+    e.target.value = ''; // Reset
+  };
+
   const executeExport = (format: 'pdf' | 'csv' | 'excel') => {
     const dataToExport = filteredLeads;
     if (dataToExport.length === 0) { alert("Data scope empty. Export aborted."); return; }
@@ -118,26 +168,22 @@ const App: React.FC = () => {
     } else if (format === 'pdf') {
       const doc = new jsPDF();
       const margin = 15;
-      const primaryColor = [79, 70, 229]; // Indigo-600
-      const secondaryColor = [30, 41, 59]; // Slate-800
-      const accentColor = [16, 185, 129]; // Emerald-500
+      const primaryColor = [79, 70, 229]; 
+      const secondaryColor = [30, 41, 59]; 
+      const accentColor = [16, 185, 129]; 
       
-      // -- Page Header --
       doc.setFillColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
       doc.rect(0, 0, 210, 50, 'F');
-      
       doc.setTextColor(255, 255, 255);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(24);
       doc.text("INSTITUTIONAL AUDIT", margin, 25);
-      
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
       doc.text("TRACKNENROLL INTELLIGENCE REPORT v4.0", margin, 32);
       doc.text(`Generated: ${new Date().toLocaleString()}`, margin, 38);
       doc.text(`Authorized by: ${currentUser?.name || 'System'}`, margin, 43);
 
-      // -- Executive Summary Section (Cards Design) --
       let y = 65;
       doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
       doc.setFontSize(14);
@@ -155,21 +201,18 @@ const App: React.FC = () => {
       const cardW = 42;
       stats.forEach((s, i) => {
         const x = margin + (i * (cardW + 4));
-        doc.setFillColor(248, 250, 252); // bg-slate-50
+        doc.setFillColor(248, 250, 252);
         doc.rect(x, y, cardW, 25, 'F');
-        doc.setDrawColor(226, 232, 240); // border-slate-200
+        doc.setDrawColor(226, 232, 240);
         doc.rect(x, y, cardW, 25, 'S');
-        
         doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
         doc.setFontSize(14);
         doc.text(`${s.val}`, x + (cardW/2), y + 12, { align: 'center' });
-        
-        doc.setTextColor(100, 116, 139); // slate-500
+        doc.setTextColor(100, 116, 139);
         doc.setFontSize(7);
         doc.text(s.label, x + (cardW/2), y + 18, { align: 'center' });
       });
 
-      // -- Data Grid Table --
       y += 40;
       doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
       doc.setFontSize(12);
@@ -177,7 +220,6 @@ const App: React.FC = () => {
       doc.text("OPERATIONAL DATA GRID", margin, y);
       
       y += 8;
-      // Header
       doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
       doc.rect(margin, y, 180, 10, 'F');
       doc.setTextColor(255, 255, 255);
@@ -228,7 +270,6 @@ const App: React.FC = () => {
       doc.setTextColor(150, 150, 150);
       doc.setFont("helvetica", "italic");
       doc.text(`CONFIDENTIAL AUDIT LOG • TrackNEnroll v4 • Page 1 of ${totalPages}`, 105, 285, { align: "center" });
-
       doc.save(`${fileName}.pdf`);
     } else {
       const sheetData = dataToExport.map(l => ({
@@ -262,7 +303,7 @@ const App: React.FC = () => {
     </Router>
   );
 
-  const canAssign = currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.HOD || currentUser.role === UserRole.SUPER_ADMIN;
+  const canAssign = currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.HOD;
 
   return (
     <Router>
@@ -273,6 +314,43 @@ const App: React.FC = () => {
           <Route path="/dashboard" element={
             currentUser.role === UserRole.TEACHER ? (
               <TeacherDashboard currentUser={currentUser} />
+            ) : currentUser.role === UserRole.SUPER_ADMIN ? (
+              <div className="space-y-8 animate-in fade-in duration-700">
+                <header>
+                  <h1 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-1">Executive Summary</h1>
+                  <h2 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight uppercase leading-none">Institutional Overview</h2>
+                </header>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                   {[
+                     { label: 'Global Registry', value: leads.length, icon: '📊', color: 'indigo' },
+                     { label: 'Active Pipeline', value: leads.filter(l => l.stage === LeadStage.ASSIGNED).length, icon: '⚡', color: 'amber' },
+                     { label: 'Targeted Pool', value: leads.filter(l => l.stage === LeadStage.TARGETED).length, icon: '🎯', color: 'emerald' },
+                     { label: 'Interactions', value: leads.filter(l => l.callVerified).length, icon: '📞', color: 'teal' }
+                   ].map((item, i) => (
+                     <div key={i} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden group hover:shadow-lg transition-all">
+                        <div className={`absolute top-0 right-0 w-24 h-24 bg-${item.color}-50 rounded-full -mr-8 -mt-8 transition-transform group-hover:scale-110`}></div>
+                        <div className="relative z-10">
+                          <span className="text-2xl mb-4 block">{item.icon}</span>
+                          <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-1">{item.label}</p>
+                          <p className={`text-4xl font-black text-${item.color}-600 tracking-tighter`}>{item.value}</p>
+                        </div>
+                     </div>
+                   ))}
+                </div>
+
+                <div className="bg-indigo-600 p-10 md:p-14 rounded-[3rem] text-white shadow-2xl relative overflow-hidden">
+                   <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
+                   <div className="relative z-10 max-w-2xl">
+                     <h3 className="text-sm font-black uppercase tracking-[0.3em] opacity-60 mb-4">Strategic Vision</h3>
+                     <p className="text-2xl md:text-4xl font-medium leading-tight italic">"Empowering institutional growth through high-precision data categorization and counselor accountability."</p>
+                     <div className="flex flex-wrap gap-4 mt-10">
+                        <button onClick={() => setIsExportModalOpen(true)} className="px-10 py-4 bg-white text-indigo-600 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl hover:scale-105 transition-all">Download Audit</button>
+                        <button onClick={() => setIsImportModalOpen(true)} className="px-10 py-4 bg-indigo-500 text-white border border-indigo-400 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl hover:scale-105 transition-all">Sync Real Data</button>
+                     </div>
+                   </div>
+                </div>
+              </div>
             ) : (
               <div className="space-y-6 relative pb-24">
                 <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -284,10 +362,19 @@ const App: React.FC = () => {
                     <input 
                       type="text" 
                       placeholder="Search leads..." 
-                      className="flex-1 md:w-64 px-5 py-3 bg-white border border-slate-200 rounded-xl text-sm outline-none shadow-sm focus:ring-2 focus:ring-indigo-500 transition-all" 
+                      className="flex-1 md:w-48 lg:w-64 px-5 py-3 bg-white border border-slate-200 rounded-xl text-sm outline-none shadow-sm focus:ring-2 focus:ring-indigo-500 transition-all" 
                       value={searchTerm} 
                       onChange={e => setSearchTerm(e.target.value)} 
                     />
+                    {currentUser.role === UserRole.ADMIN && (
+                      <button 
+                        onClick={() => setIsImportModalOpen(true)} 
+                        className="p-3 bg-white border border-slate-200 text-indigo-600 rounded-xl shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2"
+                        title="Import Leads"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+                      </button>
+                    )}
                     <button 
                       onClick={() => setIsExportModalOpen(true)} 
                       className="p-3 bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all"
@@ -459,6 +546,64 @@ const App: React.FC = () => {
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
+
+        {/* Hidden File Input */}
+        <input 
+          type="file" 
+          ref={fileInputRef} 
+          className="hidden" 
+          accept=".xlsx, .xls, .csv" 
+          onChange={(e) => handleFileUpload(e, true)} 
+        />
+        <input 
+          type="file" 
+          id="append-file"
+          className="hidden" 
+          accept=".xlsx, .xls, .csv" 
+          onChange={(e) => handleFileUpload(e, false)} 
+        />
+
+        {/* Import Modal */}
+        {isImportModalOpen && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[2000] flex items-end md:items-center justify-center p-0 md:p-6">
+            <div className="bg-white w-full max-w-lg rounded-t-[2.5rem] md:rounded-[3rem] overflow-hidden animate-in slide-in-from-bottom-10 md:zoom-in-95 duration-500 shadow-2xl">
+               <div className="p-10 bg-emerald-600 text-white">
+                 <p className="text-[10px] font-black uppercase tracking-[0.3em] mb-2 opacity-70">Ingestion Engine</p>
+                 <h3 className="text-3xl font-black uppercase leading-none">Import<br/>Registry Data</h3>
+               </div>
+               <div className="p-8 md:p-10 space-y-4">
+                  <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100 mb-4">
+                    <p className="text-[10px] font-black text-slate-400 uppercase mb-2">Standard Template</p>
+                    <p className="text-[9px] font-bold text-slate-600 uppercase leading-relaxed">Ensure your file contains headers: <span className="text-indigo-600">Name, Phone, Department</span></p>
+                  </div>
+                  
+                  <button 
+                    onClick={() => fileInputRef.current?.click()} 
+                    className="w-full p-6 bg-white hover:bg-emerald-600 hover:text-white rounded-[2rem] border-2 border-dashed border-slate-200 hover:border-emerald-600 flex items-center gap-4 group transition-all"
+                  >
+                     <span className="text-2xl">⚡</span>
+                     <div className="text-left flex-1">
+                        <p className="font-black text-[10px] uppercase tracking-widest">Flush & Replace</p>
+                        <p className="text-[9px] opacity-50 uppercase font-bold">Wipes current registry with file data</p>
+                     </div>
+                  </button>
+
+                  <button 
+                    onClick={() => document.getElementById('append-file')?.click()} 
+                    className="w-full p-6 bg-slate-50 hover:bg-indigo-600 hover:text-white rounded-[2rem] border border-slate-100 flex items-center gap-4 group transition-all"
+                  >
+                     <span className="text-2xl">➕</span>
+                     <div className="text-left flex-1">
+                        <p className="font-black text-[10px] uppercase tracking-widest">Append Leads</p>
+                        <p className="text-[9px] opacity-50 uppercase font-bold">Adds data to current registry</p>
+                     </div>
+                  </button>
+                  
+                  <button onClick={() => setIsImportModalOpen(false)} className="w-full py-4 text-[9px] font-black uppercase text-slate-300 hover:text-slate-500 transition-colors">Discard Request</button>
+               </div>
+            </div>
+          </div>
+        )}
 
         {isExportModalOpen && (
           <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[2000] flex items-end md:items-center justify-center p-0 md:p-6">

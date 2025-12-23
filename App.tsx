@@ -14,14 +14,22 @@ import { jsPDF } from 'jspdf';
 import * as XLSX from 'xlsx';
 
 const App: React.FC = () => {
-  const { leads, users, loading, assignLeadsToHOD, assignLeadsToTeacher, batchAddLeads } = useData();
+  const { leads, users, loading, assignLeadsToHOD, assignLeadsToTeacher, batchAddLeads, addLead } = useData();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isManualLeadModalOpen, setIsManualLeadModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
+  // Manual Lead Form State
+  const [manualLead, setManualLead] = useState({
+    name: '',
+    phone: '',
+    department: Department.IT
+  });
+
   // Lead Assignment State
   const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
   const [targetUserId, setTargetUserId] = useState<string>('');
@@ -92,6 +100,26 @@ const App: React.FC = () => {
     }
   };
 
+  const handleAddManualLead = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!manualLead.name || !manualLead.phone) return;
+
+    const newLead: StudentLead = {
+      id: `manual-${Date.now()}`,
+      name: manualLead.name,
+      phone: manualLead.phone.startsWith('+') ? manualLead.phone : `+91${manualLead.phone.replace(/\D/g, '')}`,
+      sourceFile: 'MANUAL_ENTRY',
+      department: manualLead.department,
+      stage: LeadStage.UNASSIGNED,
+      callVerified: false
+    };
+
+    addLead(newLead);
+    setManualLead({ name: '', phone: '', department: Department.IT });
+    setIsManualLeadModalOpen(false);
+    alert("New candidate lead registered in registry.");
+  };
+
   const availableAssignees = useMemo(() => {
     if (currentUser?.role === UserRole.ADMIN || currentUser?.role === UserRole.SUPER_ADMIN) {
       return users.filter(u => u.role === UserRole.HOD && u.isApproved);
@@ -120,12 +148,10 @@ const App: React.FC = () => {
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
         const newLeads: StudentLead[] = jsonData.map((row: any, index) => {
-          // Normalize headers: Name, Phone, Department
           const name = row.Name || row.name || row['Full Name'] || 'Unknown';
           const phone = String(row.Phone || row.phone || row['Mobile'] || '').replace(/\D/g, '');
           const deptRaw = row.Department || row.department || row['Branch'] || 'IT';
           
-          // Map to enum
           const department = Object.values(Department).find(d => 
             d.toLowerCase().includes(String(deptRaw).toLowerCase())
           ) || Department.IT;
@@ -151,7 +177,7 @@ const App: React.FC = () => {
       }
     };
     reader.readAsArrayBuffer(file);
-    e.target.value = ''; // Reset
+    e.target.value = ''; 
   };
 
   const executeExport = (format: 'pdf' | 'csv' | 'excel') => {
@@ -370,9 +396,18 @@ const App: React.FC = () => {
                       <button 
                         onClick={() => setIsImportModalOpen(true)} 
                         className="p-3 bg-white border border-slate-200 text-indigo-600 rounded-xl shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2"
-                        title="Import Leads"
+                        title="Import Batch"
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+                      </button>
+                    )}
+                    {canAssign && (
+                       <button 
+                        onClick={() => setIsManualLeadModalOpen(true)} 
+                        className="px-5 py-3 bg-white border border-indigo-200 text-indigo-600 rounded-xl shadow-sm hover:bg-indigo-50 transition-all flex items-center gap-2 font-black text-[10px] uppercase tracking-widest"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4"/></svg>
+                        Add Lead
                       </button>
                     )}
                     <button 
@@ -562,6 +597,56 @@ const App: React.FC = () => {
           accept=".xlsx, .xls, .csv" 
           onChange={(e) => handleFileUpload(e, false)} 
         />
+
+        {/* Manual Lead Modal */}
+        {isManualLeadModalOpen && (
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[2000] flex items-center justify-center p-4">
+            <div className="bg-white w-full max-w-lg rounded-[2.5rem] overflow-hidden animate-in zoom-in-95 duration-500 shadow-2xl">
+               <div className="p-8 bg-indigo-600 text-white">
+                 <p className="text-[10px] font-black uppercase tracking-[0.3em] mb-2 opacity-70">Entry Node</p>
+                 <h3 className="text-2xl font-black uppercase leading-none">Manual Registry</h3>
+               </div>
+               <form onSubmit={handleAddManualLead} className="p-8 space-y-5">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Candidate Name</label>
+                    <input 
+                      required 
+                      type="text" 
+                      className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold" 
+                      placeholder="e.g. John Doe"
+                      value={manualLead.name}
+                      onChange={e => setManualLead({...manualLead, name: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Mobile Contact</label>
+                    <input 
+                      required 
+                      type="tel" 
+                      className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold" 
+                      placeholder="+91 XXXXXXXXXX"
+                      value={manualLead.phone}
+                      onChange={e => setManualLead({...manualLead, phone: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Target Department</label>
+                    <select 
+                      className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold cursor-pointer"
+                      value={manualLead.department}
+                      onChange={e => setManualLead({...manualLead, department: e.target.value as Department})}
+                    >
+                      {Object.values(Department).map(d => <option key={d} value={d}>{d}</option>)}
+                    </select>
+                  </div>
+                  <div className="flex gap-3 pt-2">
+                    <button type="button" onClick={() => setIsManualLeadModalOpen(false)} className="flex-1 py-4 text-[10px] font-black uppercase text-slate-400 hover:text-slate-600 transition-colors">Cancel</button>
+                    <button type="submit" className="flex-[2] py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all">Submit Entry</button>
+                  </div>
+               </form>
+            </div>
+          </div>
+        )}
 
         {/* Import Modal */}
         {isImportModalOpen && (

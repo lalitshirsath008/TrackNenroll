@@ -1,4 +1,3 @@
-
 import { GoogleGenAI } from "@google/genai";
 import { StudentLead, LeadStage } from "../types";
 
@@ -28,20 +27,5 @@ export const generateSummaryReport = async (leads: StudentLead[]) => {
     return response.text || "Summary analysis unavailable.";
   } catch (error) {
     return "Error generating analysis.";
-  }
-};
-
-export const solveQuery = async (query: string) => {
-  try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: query,
-      config: {
-        systemInstruction: "You are the TrackNEnroll AI assistant. Help staff solve queries related to the student enrollment process, lead categorization, and college branches.",
-      }
-    });
-    return response.text;
-  } catch (error) {
-    return "I'm having trouble connecting to the brain. Try again later.";
   }
 };

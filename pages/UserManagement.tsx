@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useData } from '../context/DataContext';
 import { User, UserRole, Department } from '../types';
@@ -22,7 +21,11 @@ const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
     department: Department.IT
   });
 
+  // Validation State
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
   const handleOpenModal = (user?: User) => {
+    setErrors({});
     if (user) {
       setEditingUser(user);
       setFormData({
@@ -43,8 +46,23 @@ const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
     setIsModalOpen(true);
   };
 
+  const validateEmail = (email: string) => {
+    return /\S+@\S+\.\S+/.test(email);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setErrors({});
+
+    const newErrors: { [key: string]: string } = {};
+    if (formData.name.trim().length < 3) newErrors.name = 'Name must be at least 3 characters.';
+    if (!validateEmail(formData.email)) newErrors.email = 'Please enter a valid email address.';
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
     if (editingUser) {
       updateUser(editingUser.id, formData);
     } else {
@@ -147,11 +165,23 @@ const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
             <form onSubmit={handleSubmit} className="p-8 space-y-5">
               <div className="space-y-1">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Legal Name</label>
-                <input required type="text" className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                <input 
+                  type="text" 
+                  className={`w-full px-5 py-4 bg-slate-50 border ${errors.name ? 'border-rose-500' : 'border-slate-200'} rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold`} 
+                  value={formData.name} 
+                  onChange={e => setFormData({...formData, name: e.target.value})} 
+                />
+                {errors.name && <p className="text-rose-500 text-[10px] font-bold ml-1">{errors.name}</p>}
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Institutional Email</label>
-                <input required type="email" className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+                <input 
+                  type="email" 
+                  className={`w-full px-5 py-4 bg-slate-50 border ${errors.email ? 'border-rose-500' : 'border-slate-200'} rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold`} 
+                  value={formData.email} 
+                  onChange={e => setFormData({...formData, email: e.target.value})} 
+                />
+                {errors.email && <p className="text-rose-500 text-[10px] font-bold ml-1">{errors.email}</p>}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">

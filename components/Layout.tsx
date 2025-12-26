@@ -9,7 +9,6 @@ interface LayoutProps {
   onLogout: () => void;
 }
 
-// MenuItem interface to resolve TypeScript property inference issues
 interface MenuItem {
   path: string;
   label: string;
@@ -43,7 +42,6 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
     }
   };
 
-  // Dynamically build menu based on role
   const menuItems: MenuItem[] = [
     { 
       path: '/dashboard', 
@@ -54,7 +52,6 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
     },
   ];
 
-  // Exclusive Analytics suite for Super Admin
   if (user.role === UserRole.SUPER_ADMIN) {
     menuItems.push({ 
       path: '/analytics', 
@@ -65,38 +62,36 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
 
   menuItems.push({ 
     path: '/chat', 
-    label: 'Messenger', 
+    label: 'Chat', 
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
     ), 
     badge: unreadCount 
   });
 
-  // Role Protection: Super Admin (Principal) is now excluded from direct Faculty/Verification management per request
   if (user.role === UserRole.ADMIN) {
     menuItems.push({ 
       path: '/users', 
-      label: 'Faculty', 
+      label: 'Staff', 
       icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg> 
     });
   }
 
-  // Role Protection: Verify module is for Admin and HOD roles
   if (user.role === UserRole.ADMIN || user.role === UserRole.HOD) {
     menuItems.push({ 
       path: '/approvals', 
-      label: 'Verify', 
+      label: 'Verify Users', 
       icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg> 
     });
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
+    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-['Inter']">
       {/* Mobile Top Header */}
       <header className={`md:hidden p-4 flex justify-between items-center sticky top-0 z-[100] shadow-md ${getThemeColor()} text-white`}>
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center font-black">T</div>
-          <span className="font-black text-sm tracking-tighter uppercase">TrackNEnroll</span>
+          <span className="font-black text-lg tracking-tight">TrackNEnroll</span>
         </div>
         <button 
           onClick={() => setIsSidebarOpen(true)}
@@ -115,28 +110,25 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
       <aside className={`fixed inset-y-0 left-0 w-72 ${getThemeColor()} text-white flex flex-col z-[120] transform transition-transform duration-300 ease-in-out md:translate-x-0 md:static md:h-screen ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="p-8 hidden md:block">
            <div className="flex items-center gap-3 mb-2">
-             <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center font-black text-xl">T</div>
-             <h1 className="text-xl font-black tracking-tighter uppercase leading-none">TrackNEnroll</h1>
+             <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center font-black text-2xl">T</div>
+             <h1 className="text-2xl font-black tracking-tight leading-none">TrackNEnroll</h1>
            </div>
-           <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Enterprise Suite</p>
+           <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">v4.1.0 High Definition</p>
         </div>
         
         <nav className="flex-1 px-4 py-6 space-y-2">
-          <div className="px-4 mb-4">
-             <p className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em]">{getRoleLabel(user.role)} terminal</p>
-          </div>
           {menuItems.map((item) => (
             <button 
               key={item.path}
               onClick={() => { navigate(item.path); setIsSidebarOpen(false); }}
               className={`w-full text-left px-5 py-4 rounded-2xl flex items-center gap-4 transition-all relative ${
-                location.pathname === item.path ? 'bg-white text-slate-900 shadow-lg' : 'text-white/70 hover:bg-white/10 hover:text-white'
+                location.pathname === item.path ? 'bg-white text-slate-900 shadow-lg font-black' : 'text-white/70 hover:bg-white/10 hover:text-white'
               }`}
             >
               {item.icon}
-              <span className="text-[11px] font-black uppercase tracking-widest">{item.label}</span>
+              <span className="text-sm">{item.label}</span>
               {item.badge ? (
-                <span className="absolute right-4 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] font-black animate-pulse">
+                <span className="absolute right-4 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] font-black">
                   {item.badge}
                 </span>
               ) : null}
@@ -145,8 +137,8 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
         </nav>
 
         <div className="p-4 border-t border-white/10">
-          <button onClick={onLogout} className="w-full py-4 text-[10px] font-black uppercase tracking-widest bg-white/5 hover:bg-white hover:text-indigo-900 rounded-2xl transition-all">
-            Logout
+          <button onClick={onLogout} className="w-full py-4 text-sm font-bold bg-white/5 hover:bg-white hover:text-slate-900 rounded-2xl transition-all">
+            Log Out
           </button>
         </div>
       </aside>

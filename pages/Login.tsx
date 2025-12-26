@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { User, UserRole, Department } from '../types';
@@ -13,54 +12,84 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  const [isFlipped, setIsFlipped] = useState(location.pathname === '/register');
+  const [isRegistering, setIsRegistering] = useState(location.pathname === '/register');
+  
+  // Form States
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPass, setLoginPass] = useState('');
-  const [loginError, setLoginError] = useState('');
-
   const [regRole, setRegRole] = useState<UserRole>(UserRole.TEACHER);
   const [regName, setRegName] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regDept, setRegDept] = useState<Department>(Department.IT);
-  const [regPass, setRegPass] = useState('');
+
+  // Error States
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [generalError, setGeneralError] = useState('');
 
   useEffect(() => {
-    setIsFlipped(location.pathname === '/register');
+    setIsRegistering(location.pathname === '/register');
+    setErrors({});
+    setGeneralError('');
   }, [location.pathname]);
 
-  const toggleFlip = (e: React.MouseEvent) => {
+  const toggleMode = (e: React.MouseEvent) => {
     e.preventDefault();
-    e.stopPropagation();
-    const newFlipped = !isFlipped;
-    setIsFlipped(newFlipped);
-    setTimeout(() => {
-      navigate(newFlipped ? '/register' : '/login', { replace: true });
-    }, 100);
+    const newMode = !isRegistering;
+    setIsRegistering(newMode);
+    navigate(newMode ? '/register' : '/login', { replace: true });
+  };
+
+  const validateEmail = (email: string) => {
+    return /\S+@\S+\.\S+/.test(email);
   };
 
   const handleQuickLogin = (role: UserRole) => {
     const user = users.find(u => u.role === role && u.isApproved);
     if (user) onLogin(user);
-    else setLoginError(`No approved demo user found for role: ${role}`);
+    else setGeneralError(`No approved user found for: ${role}`);
   };
 
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setErrors({});
+    setGeneralError('');
+
+    const newErrors: { [key: string]: string } = {};
+    if (!validateEmail(loginEmail)) newErrors.loginEmail = 'Please enter a valid email address.';
+    if (loginPass.length < 6) newErrors.loginPass = 'Password must be at least 6 characters.';
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
     const user = users.find(u => u.email === loginEmail);
     if (user) {
       if (!user.isApproved) {
-        setLoginError('Account pending approval.');
+        setGeneralError('Your account is still waiting for approval.');
         return;
       }
       if (loginPass === 'admin123') onLogin(user);
-      else setLoginError('Invalid password. Use "admin123".');
+      else setGeneralError('Wrong password. Please use "admin123" for demo.');
     } else {
-      setLoginError('Identity not recognized.');
+      setGeneralError('We could not find an account with this email.');
     }
   };
 
   const handleRegisterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setErrors({});
+    setGeneralError('');
+
+    const newErrors: { [key: string]: string } = {};
+    if (regName.trim().length < 3) newErrors.regName = 'Name is too short.';
+    if (!validateEmail(regEmail)) newErrors.regEmail = 'Invalid email format.';
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
     const newUser: User = {
       id: 'u' + Date.now(),
       name: regName,
@@ -71,165 +100,160 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
       registrationStatus: 'pending'
     };
     registerUser(newUser);
-    alert('Registration transmitted. Awaiting HOD/Admin authorization.');
-    setIsFlipped(false);
+    alert('Request sent! Please wait for an admin to approve your profile.');
+    setIsRegistering(false);
     navigate('/login');
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#020617] p-4 relative overflow-x-hidden font-['Inter']">
-      <style>{`
-        .perspective-container {
-          perspective: 2500px;
-          width: 100%;
-          max-width: 1100px;
-          z-index: 10;
-        }
-        .flip-card-inner {
-          position: relative;
-          width: 100%;
-          height: 100%;
-          transition: transform 0.85s cubic-bezier(0.4, 0, 0.2, 1);
-          transform-style: preserve-3d;
-        }
-        .is-flipped {
-          transform: rotateY(180deg);
-        }
-        .flip-card-face {
-          position: absolute;
-          width: 100%;
-          height: 100%;
-          backface-visibility: hidden;
-          -webkit-backface-visibility: hidden;
-          display: flex;
-          flex-direction: column;
-          border-radius: 2rem;
-          overflow: hidden;
-          background: white;
-          box-shadow: 0 40px 80px -20px rgba(0,0,0,0.6);
-        }
-        @media (min-width: 768px) {
-          .flip-card-face {
-            flex-direction: row;
-            border-radius: 3.5rem;
-          }
-        }
-        .flip-card-front {
-          z-index: 10;
-          transform: rotateY(0deg) translateZ(5px);
-        }
-        .flip-card-back {
-          transform: rotateY(180deg) translateZ(5px);
-        }
-        .is-flipped .flip-card-back {
-          z-index: 100;
-          pointer-events: auto;
-        }
-        .is-flipped .flip-card-front {
-          z-index: 1;
-          pointer-events: none;
-        }
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-      `}</style>
+    <div className="min-h-screen flex items-center justify-center bg-[#020617] p-4 font-['Inter']">
+      <div className="w-full max-w-[950px] flex flex-col md:flex-row bg-[#0f172a] rounded-[1.5rem] md:rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/5 animate-in fade-in zoom-in-95 duration-500">
+        
+        {/* Branding Side */}
+        <div className="w-full md:w-[40%] bg-emerald-600 p-10 md:p-14 flex flex-col justify-between text-white border-r border-white/5 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32"></div>
+          <div>
+            <div className="w-14 h-14 bg-white text-emerald-600 rounded-2xl flex items-center justify-center font-black text-3xl shadow-md mb-10">T</div>
+            <h1 className="text-5xl font-black tracking-tight leading-tight">
+              TrackNEnroll
+            </h1>
+            <div className="h-1.5 w-16 bg-white/30 mt-6 rounded-full"></div>
+            <p className="text-white/90 text-base font-medium mt-8 leading-relaxed">
+              Managing student admissions is now easy and clean.
+            </p>
+          </div>
+          <div className="hidden md:block">
+            <p className="text-[10px] font-black uppercase tracking-widest opacity-60">High Pixel Definition v4.1</p>
+          </div>
+        </div>
 
-      {/* Dynamic Background Glow */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className={`absolute top-[-20%] left-[-20%] w-[80%] h-[80%] rounded-full blur-[120px] transition-all duration-1000 ${isFlipped ? 'bg-emerald-600/20' : 'bg-indigo-600/30'}`}></div>
-        <div className={`absolute bottom-[-20%] right-[-20%] w-[80%] h-[80%] rounded-full blur-[120px] transition-all duration-1000 ${isFlipped ? 'bg-indigo-600/10' : 'bg-emerald-600/10'}`}></div>
-      </div>
+        {/* Form Side */}
+        <div className="flex-1 p-8 md:p-14 bg-slate-900 flex flex-col justify-center overflow-y-auto">
+          {!isRegistering ? (
+            <div className="animate-in fade-in slide-in-from-right-4 duration-500">
+              <h2 className="text-4xl font-black text-white tracking-tight">Login</h2>
+              <p className="text-sm text-slate-400 mt-2 mb-10">Welcome back! Please sign in.</p>
 
-      <div className="perspective-container h-[85vh] md:h-[680px]">
-        <div className={`flip-card-inner h-full ${isFlipped ? 'is-flipped' : ''}`}>
-          
-          {/* FRONT SIDE: LOGIN */}
-          <div className="flip-card-face flip-card-front border border-white/5">
-            <div className="h-40 md:h-full md:w-[40%] bg-indigo-600 p-8 md:p-12 text-white flex flex-col justify-center md:justify-between relative overflow-hidden shrink-0">
-               <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-indigo-800 opacity-90"></div>
-               <div className="relative z-10">
-                 <div className="w-12 h-12 md:w-16 md:h-16 bg-white rounded-2xl flex items-center justify-center text-indigo-600 text-2xl md:text-3xl font-black mb-4 md:mb-8 shadow-2xl">T</div>
-                 <h1 className="text-2xl md:text-4xl font-black tracking-tighter leading-none uppercase">TrackNEnroll.</h1>
-               </div>
-               <p className="hidden md:block relative z-10 text-indigo-100/70 text-sm font-medium leading-relaxed">Secure terminal for high-precision student lead categorization and institutional growth metrics.</p>
-            </div>
-            <div className="flex-1 p-8 md:p-14 bg-white h-full overflow-y-auto custom-scrollbar">
-              <h2 className="text-2xl md:text-3xl font-black text-slate-900 mb-1 uppercase tracking-tight">Faculty Login</h2>
-              <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-8 md:mb-12">Institutional Portal v3.1</p>
-              
-              <form onSubmit={handleLoginSubmit} className="space-y-5 md:space-y-6">
-                {loginError && <div className="p-4 bg-rose-50 text-rose-600 text-[10px] rounded-xl border border-rose-100 font-black uppercase flex items-center gap-3">! {loginError}</div>}
-                <div className="space-y-1.5">
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Work Email</label>
-                  <input type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 text-sm" placeholder="faculty@college.edu" required />
+              <form onSubmit={handleLoginSubmit} className="space-y-6">
+                {generalError && (
+                  <div className="p-4 bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs font-bold rounded-xl">
+                    {generalError}
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Email</label>
+                  <input 
+                    type="email" 
+                    value={loginEmail} 
+                    onChange={e => setLoginEmail(e.target.value)}
+                    className={`w-full px-6 py-4 bg-white/[0.03] border ${errors.loginEmail ? 'border-rose-500' : 'border-white/10'} rounded-xl text-white outline-none focus:border-emerald-500 transition-all text-sm`}
+                    placeholder="you@college.com" 
+                  />
+                  {errors.loginEmail && <p className="text-rose-500 text-[10px] font-bold ml-1">{errors.loginEmail}</p>}
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Access Key</label>
-                  <input type="password" value={loginPass} onChange={e => setLoginPass(e.target.value)} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-700 focus:ring-2 focus:ring-indigo-500 text-sm" placeholder="••••••••" required />
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Password</label>
+                  <input 
+                    type="password" 
+                    value={loginPass} 
+                    onChange={e => setLoginPass(e.target.value)}
+                    className={`w-full px-6 py-4 bg-white/[0.03] border ${errors.loginPass ? 'border-rose-500' : 'border-white/10'} rounded-xl text-white outline-none focus:border-emerald-500 transition-all text-sm`}
+                    placeholder="Enter password" 
+                  />
+                  {errors.loginPass && <p className="text-rose-500 text-[10px] font-bold ml-1">{errors.loginPass}</p>}
                 </div>
-                <button type="submit" className="w-full py-5 bg-slate-900 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] shadow-xl hover:bg-indigo-600 transition-all active:scale-[0.98]">Authenticate</button>
+
+                <button type="submit" className="w-full py-5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg transition-all mt-4 active:scale-[0.98]">
+                  Sign In
+                </button>
               </form>
-              
-              <p className="mt-8 text-center text-xs font-bold text-slate-400 uppercase tracking-widest">
-                No ID? <button type="button" onClick={toggleFlip} className="text-indigo-600 font-black decoration-2">Register Now</button>
-              </p>
-              
-              <div className="mt-8 md:mt-12 pt-8 border-t border-slate-100 flex flex-wrap gap-2 justify-center">
-                {[UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.HOD, UserRole.TEACHER].map(r => (
-                  <button key={r} type="button" onClick={() => handleQuickLogin(r)} className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-[8px] font-black uppercase text-slate-400 hover:text-indigo-600 transition-all">{r.split(' ')[0]}</button>
-                ))}
+
+              <div className="mt-10 pt-10 border-t border-white/5 flex flex-col items-center">
+                <p className="text-xs font-medium text-slate-500">
+                  New here? <button onClick={toggleMode} className="text-emerald-500 font-bold hover:underline">Create an account</button>
+                </p>
+                <div className="mt-8 flex flex-wrap gap-2 justify-center opacity-30">
+                  {[UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.HOD, UserRole.TEACHER].map(r => (
+                    <button key={r} onClick={() => handleQuickLogin(r)} className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-[9px] font-bold text-white hover:border-emerald-500 transition-all">
+                      {r}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="animate-in fade-in slide-in-from-left-4 duration-500">
+              <h2 className="text-4xl font-black text-white tracking-tight">Register</h2>
+              <p className="text-sm text-slate-400 mt-2 mb-8">Join the TrackNEnroll team</p>
 
-          {/* BACK SIDE: REGISTER */}
-          <div className="flip-card-face flip-card-back border border-white/5">
-             <div className="h-40 md:h-full md:w-[40%] bg-emerald-600 p-8 md:p-12 text-white flex flex-col justify-center md:justify-between relative overflow-hidden shrink-0">
-               <div className="absolute inset-0 bg-gradient-to-br from-emerald-500 to-emerald-800 opacity-90"></div>
-               <div className="relative z-10">
-                 <div className="w-12 h-12 md:w-16 md:h-16 bg-white rounded-2xl flex items-center justify-center text-emerald-600 text-2xl md:text-3xl font-black mb-4 md:mb-8 shadow-2xl">R</div>
-                 <h1 className="text-2xl md:text-4xl font-black tracking-tighter leading-none uppercase">Registration.</h1>
-               </div>
-               <p className="hidden md:block relative z-10 text-emerald-100/70 text-sm font-medium leading-relaxed">Initialize your institutional identity within the TrackNEnroll ecosystem.</p>
-            </div>
-            <div className="flex-1 p-8 md:p-14 bg-white h-full overflow-y-auto custom-scrollbar">
-              <h2 className="text-2xl md:text-3xl font-black text-slate-900 mb-1 uppercase tracking-tight">New Profile</h2>
-              <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 md:mb-10">Identity Node Creation</p>
-              
-              <form onSubmit={handleRegisterSubmit} className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Designation</label>
+              <form onSubmit={handleRegisterSubmit} className="space-y-5">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Your Role</label>
                   <div className="grid grid-cols-3 gap-2">
                     {[UserRole.ADMIN, UserRole.HOD, UserRole.TEACHER].map(r => (
-                      <button key={r} type="button" onClick={() => setRegRole(r)} className={`py-3 text-[8px] md:text-[9px] font-black uppercase rounded-xl border-2 transition-all ${regRole === r ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-slate-50 border-slate-100 text-slate-400'}`}>{r.split(' ')[0]}</button>
+                      <button 
+                        key={r} 
+                        type="button" 
+                        onClick={() => setRegRole(r)}
+                        className={`py-4 text-[9px] font-black uppercase rounded-xl border transition-all ${regRole === r ? 'bg-emerald-500 border-emerald-500 text-slate-950' : 'bg-white/5 border-white/10 text-white/40'}`}
+                      >
+                        {r.split(' ')[0]}
+                      </button>
                     ))}
                   </div>
                 </div>
-                <div className="space-y-4">
-                  <div className="space-y-1.5">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Legal Name</label>
-                    <input type="text" value={regName} onChange={e => setRegName(e.target.value)} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-sm" placeholder="Dr. R. Mehta" required />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Work Email</label>
-                    <input type="email" value={regEmail} onChange={e => setRegEmail(e.target.value)} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-sm" placeholder="r@college.edu" required />
-                  </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Full Name</label>
+                  <input 
+                    type="text" 
+                    value={regName} 
+                    onChange={e => setRegName(e.target.value)}
+                    className={`w-full px-6 py-4 bg-white/[0.03] border ${errors.regName ? 'border-rose-500' : 'border-white/10'} rounded-xl text-white outline-none focus:border-emerald-500 text-sm`}
+                    placeholder="Enter your name" 
+                  />
+                  {errors.regName && <p className="text-rose-500 text-[10px] font-bold ml-1">{errors.regName}</p>}
                 </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Email</label>
+                  <input 
+                    type="email" 
+                    value={regEmail} 
+                    onChange={e => setRegEmail(e.target.value)}
+                    className={`w-full px-6 py-4 bg-white/[0.03] border ${errors.regEmail ? 'border-rose-500' : 'border-white/10'} rounded-xl text-white outline-none focus:border-emerald-500 text-sm`}
+                    placeholder="Enter email" 
+                  />
+                  {errors.regEmail && <p className="text-rose-500 text-[10px] font-bold ml-1">{errors.regEmail}</p>}
+                </div>
+
                 {(regRole === UserRole.HOD || regRole === UserRole.TEACHER) && (
-                  <div className="space-y-1.5">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Department Branch</label>
-                    <select value={regDept} onChange={e => setRegDept(e.target.value as Department)} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-black text-[10px] uppercase cursor-pointer">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Department</label>
+                    <select 
+                      value={regDept} 
+                      onChange={e => setRegDept(e.target.value as Department)}
+                      className="w-full px-6 py-4 bg-slate-900 border border-white/10 rounded-xl text-white outline-none focus:border-emerald-500 text-xs appearance-none cursor-pointer"
+                    >
                       {Object.values(Department).map(d => <option key={d} value={d}>{d}</option>)}
                     </select>
                   </div>
                 )}
-                <button type="submit" className="w-full py-5 bg-emerald-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] shadow-xl hover:bg-emerald-700 transition-all mt-4">Create Profile</button>
+
+                <button type="submit" className="w-full py-5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-xl font-black text-xs uppercase tracking-widest shadow-xl transition-all mt-4 active:scale-[0.98]">
+                  Register Profile
+                </button>
               </form>
-              
-              <p className="mt-8 text-center text-xs font-bold text-slate-400 uppercase tracking-widest">
-                Have Profile? <button type="button" onClick={toggleFlip} className="text-emerald-600 font-black decoration-2">Sign In</button>
-              </p>
+
+              <div className="mt-8 pt-8 border-t border-white/5 text-center">
+                <p className="text-xs font-medium text-slate-500">
+                  Already a member? <button onClick={toggleMode} className="text-emerald-500 font-bold hover:underline">Sign In</button>
+                </p>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

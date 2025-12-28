@@ -37,7 +37,6 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
     await new Promise(r => setTimeout(r, 600));
     const user = users.find(u => u.email.toLowerCase() === loginEmail.toLowerCase());
     
-    // Passwords are plain text for this simple demo implementation
     if (user && (loginPass === 'admin123' || loginPass === 'password' || loginPass === '123456')) {
       if (!user.isApproved) {
         setError('Your account is not approved by the admin yet.');
@@ -114,94 +113,94 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
     <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] p-6 font-['Inter']">
       <div className="w-full max-w-md">
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-slate-900 rounded-2xl text-white font-black text-2xl shadow-lg mb-4">T</div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight uppercase">TrackNEnroll</h1>
-          <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mt-1">Staff Access Hub</p>
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-slate-900 rounded-[2rem] text-white font-black text-3xl shadow-2xl mb-6">T</div>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase leading-none">TrackNEnroll</h1>
+          <p className="text-slate-500 text-[11px] font-black uppercase tracking-[0.4em] mt-2">Institutional Node Access</p>
         </div>
 
-        <div className="bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-slate-100 p-10">
+        <div className="bg-white rounded-[3rem] shadow-[0_30px_70px_-15px_rgba(0,0,0,0.1)] border border-slate-100 p-12">
           {authMode === 'login' ? (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="mb-8 text-center">
-                <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Sign In</h2>
-                <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-1">Enter your login details</p>
+              <div className="mb-10 text-center">
+                <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tight">Sign In</h2>
+                <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mt-2 italic">Institutional Clearance Required</p>
               </div>
 
-              <form onSubmit={handleLoginSubmit} className="space-y-5">
-                {error && <div className="p-4 bg-rose-50 text-rose-600 text-[10px] font-black uppercase rounded-xl border border-rose-100 text-center">{error}</div>}
+              <form onSubmit={handleLoginSubmit} className="space-y-6">
+                {error && <div className="p-5 bg-rose-50 text-rose-600 text-[10px] font-black uppercase tracking-widest rounded-2xl border border-rose-100 text-center">{error}</div>}
                 
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Work Email</label>
-                  <input type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-600 transition-all font-bold" placeholder="name@college.edu" required />
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] ml-1">Work Email</label>
+                  <input type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} className="w-full px-6 py-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-600 transition-all font-bold text-slate-900" placeholder="name@college.edu" required />
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Password</label>
-                  <input type="password" value={loginPass} onChange={e => setLoginPass(e.target.value)} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-600 transition-all font-bold" placeholder="••••••••" required />
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] ml-1">Secure Password</label>
+                  <input type="password" value={loginPass} onChange={e => setLoginPass(e.target.value)} className="w-full px-6 py-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-600 transition-all font-bold text-slate-900" placeholder="••••••••" required />
                 </div>
 
-                <button type="submit" disabled={loading} className="w-full py-5 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all shadow-xl active:scale-[0.98] mt-4">
-                  {loading ? 'Logging in...' : 'Login Now'}
+                <button type="submit" disabled={loading} className="w-full py-6 bg-slate-950 hover:bg-slate-800 text-white rounded-2xl font-black text-[12px] uppercase tracking-[0.3em] transition-all shadow-2xl active:scale-[0.98] mt-6">
+                  {loading ? 'Authenticating...' : 'Authorize Login'}
                 </button>
               </form>
 
-              <div className="mt-8 pt-8 border-t border-slate-50 text-center">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">New Staff? <button onClick={() => setAuthMode('register')} className="text-indigo-600 font-black hover:underline ml-1">Create Account</button></p>
+              <div className="mt-10 pt-10 border-t border-slate-50 text-center">
+                <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Unregistered Node? <button onClick={() => setAuthMode('register')} className="text-indigo-600 font-black hover:underline ml-1">Create Access Request</button></p>
               </div>
             </div>
           ) : (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="mb-8 text-center">
-                <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Join Staff</h2>
-                <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-1">Create your professional profile</p>
+              <div className="mb-10 text-center">
+                <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tight">Request Access</h2>
+                <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mt-2 italic">Provision Your Staff Profile</p>
               </div>
 
-              <form onSubmit={handleRegisterSubmit} className="space-y-4">
-                {success && <div className="p-4 bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase rounded-xl border border-emerald-100 text-center">{success}</div>}
-                {error && <div className="p-4 bg-rose-50 text-rose-600 text-[10px] font-black uppercase rounded-xl border border-rose-100 text-center">{error}</div>}
+              <form onSubmit={handleRegisterSubmit} className="space-y-5">
+                {success && <div className="p-5 bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest rounded-2xl border border-emerald-100 text-center">{success}</div>}
+                {error && <div className="p-5 bg-rose-50 text-rose-600 text-[10px] font-black uppercase tracking-widest rounded-2xl border border-rose-100 text-center">{error}</div>}
                 
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 gap-3">
                   {[UserRole.TEACHER, UserRole.HOD, UserRole.ADMIN].map(r => (
-                    <button key={r} type="button" onClick={() => setRegRole(r)} className={`py-3 text-[9px] font-black uppercase rounded-xl border transition-all ${regRole === r ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-slate-50 border-slate-200 text-slate-400'}`}>
+                    <button key={r} type="button" onClick={() => setRegRole(r)} className={`py-4 text-[9px] font-black uppercase rounded-2xl border transition-all ${regRole === r ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg' : 'bg-slate-50 border-slate-200 text-slate-400'}`}>
                       {r.split(' ')[0]}
                     </button>
                   ))}
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
-                  <input type="text" value={regName} onChange={e => setRegName(e.target.value)} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-600 font-bold" placeholder="Your Name" required />
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Identity Name</label>
+                  <input type="text" value={regName} onChange={e => setRegName(e.target.value)} className="w-full px-6 py-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-600 font-bold" placeholder="Your Name" required />
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Institutional Email</label>
-                  <input type="email" value={regEmail} onChange={e => setRegEmail(e.target.value)} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-600 font-bold" placeholder="name@college.edu" required />
+                  <input type="email" value={regEmail} onChange={e => setRegEmail(e.target.value)} className="w-full px-6 py-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-600 font-bold" placeholder="name@college.edu" required />
                 </div>
 
                 {(regRole === UserRole.HOD || regRole === UserRole.TEACHER) && (
-                  <div className="space-y-1.5">
+                  <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Branch (Department)</label>
-                    <select value={regDept} onChange={e => setRegDept(e.target.value as Department)} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-600 font-bold text-slate-700 appearance-none">
+                    <select value={regDept} onChange={e => setRegDept(e.target.value as Department)} className="w-full px-6 py-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-600 font-bold text-slate-700 appearance-none">
                       {Object.values(Department).map(d => <option key={d} value={d}>{d}</option>)}
                     </select>
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Password</label>
-                    <input type="password" value={regPass} onChange={e => setRegPass(e.target.value)} className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-600 font-bold" placeholder="••••••" required />
+                    <input type="password" value={regPass} onChange={e => setRegPass(e.target.value)} className="w-full px-5 py-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-600 font-bold" placeholder="••••••" required />
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Confirm</label>
-                    <input type="password" value={regConfirmPass} onChange={e => setRegConfirmPass(e.target.value)} className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-600 font-bold" placeholder="••••••" required />
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Verify</label>
+                    <input type="password" value={regConfirmPass} onChange={e => setRegConfirmPass(e.target.value)} className="w-full px-5 py-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-600 font-bold" placeholder="••••••" required />
                   </div>
                 </div>
 
-                <button type="submit" disabled={loading} className="w-full py-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all mt-4 active:scale-[0.98]">
+                <button type="submit" disabled={loading} className="w-full py-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-[12px] uppercase tracking-[0.3em] transition-all mt-6 shadow-2xl active:scale-[0.98]">
                   Submit Request
                 </button>
-                <button type="button" onClick={() => setAuthMode('login')} className="w-full text-center text-[10px] font-black uppercase text-slate-400 hover:text-slate-600 mt-4">Already have account? Login</button>
+                <button type="button" onClick={() => setAuthMode('login')} className="w-full text-center text-[10px] font-black uppercase text-slate-400 hover:text-slate-600 mt-6 tracking-widest">Already have an account? Login</button>
               </form>
             </div>
           )}

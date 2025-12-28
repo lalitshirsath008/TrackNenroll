@@ -124,9 +124,9 @@ const HODDashboard: React.FC<{ currentUser: User }> = ({ currentUser }) => {
           <p className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] mb-1">Departmental Controller</p>
           <h2 className="text-4xl font-black text-[#1e293b] tracking-tighter uppercase leading-none">{currentUser.department} Desk</h2>
         </div>
-        <div className="flex bg-slate-100 p-1 rounded-2xl">
-          <button onClick={() => setTab('leads')} className={`px-6 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${tab === 'leads' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}>Node Management</button>
-          <button onClick={() => setTab('teachers')} className={`px-6 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${tab === 'teachers' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}>Staff Performance</button>
+        <div className="flex bg-slate-100 p-1.5 rounded-[2rem] border border-slate-200 shadow-inner">
+          <button onClick={() => setTab('leads')} className={`px-8 py-3.5 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest transition-all ${tab === 'leads' ? 'bg-white text-indigo-600 shadow-xl' : 'text-slate-400'}`}>Node Management</button>
+          <button onClick={() => setTab('teachers')} className={`px-8 py-3.5 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest transition-all ${tab === 'teachers' ? 'bg-white text-indigo-600 shadow-xl' : 'text-slate-400'}`}>Staff Performance</button>
         </div>
       </header>
 
@@ -137,7 +137,7 @@ const HODDashboard: React.FC<{ currentUser: User }> = ({ currentUser }) => {
           { label: 'Faculty Active', value: stats.facultyActive },
           { label: 'Dept. Progress', value: stats.completedByDept }
         ].map((item, i) => (
-          <div key={i} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+          <div key={i} className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
             <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-2">{item.label}</p>
             <p className="text-4xl font-black text-[#1e293b] tracking-tighter">{item.value}</p>
           </div>
@@ -146,52 +146,54 @@ const HODDashboard: React.FC<{ currentUser: User }> = ({ currentUser }) => {
 
       {tab === 'leads' ? (
         <div className="space-y-6">
-          <div className="flex flex-col md:flex-row gap-4 items-center bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
-            <div className="relative flex-1">
-               <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-               <input type="text" placeholder="Search departmental pool..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-12 pr-5 py-3.5 bg-slate-50 border border-slate-100 rounded-xl text-[11px] font-bold outline-none focus:border-indigo-600" />
+          <div className="flex flex-col md:flex-row gap-6 items-center bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm">
+            <div className="relative flex-1 w-full">
+               <svg className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+               <input type="text" placeholder="Search departmental pool..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-14 pr-6 py-5 bg-slate-50 border border-slate-200 rounded-2xl text-[12px] font-bold outline-none focus:border-indigo-600" />
             </div>
-            <div className="flex gap-2">
-              <div className="flex bg-slate-100 rounded-xl p-1">
-                <button onClick={() => downloadDeptReport('pdf')} className="px-4 py-2.5 hover:bg-white rounded-lg text-[8px] font-black uppercase tracking-widest transition-all">PDF</button>
-                <button onClick={() => downloadDeptReport('excel')} className="px-4 py-2.5 hover:bg-white rounded-lg text-[8px] font-black uppercase tracking-widest transition-all">XLSX</button>
+            <div className="flex gap-3 w-full md:w-auto">
+              <div className="flex bg-slate-100 rounded-2xl p-1.5 border border-slate-200">
+                <button onClick={() => downloadDeptReport('pdf')} className="px-5 py-3.5 hover:bg-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all">PDF Report</button>
+                <button onClick={() => downloadDeptReport('excel')} className="px-5 py-3.5 hover:bg-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all">Excel</button>
               </div>
-              <button disabled={selectedLeadIds.length === 0} onClick={() => setIsAssignModalOpen(true)} className="px-10 py-3.5 bg-indigo-600 disabled:opacity-20 text-white rounded-xl text-[9px] font-black uppercase tracking-widest shadow-xl shadow-indigo-100 active:scale-95 transition-all">Delegate ({selectedLeadIds.length})</button>
+              <button disabled={selectedLeadIds.length === 0} onClick={() => setIsAssignModalOpen(true)} className="flex-1 md:flex-none px-12 py-5 bg-indigo-600 disabled:opacity-20 text-white rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-indigo-100 active:scale-95 transition-all">
+                Delegate ({selectedLeadIds.length})
+              </button>
             </div>
           </div>
 
-          <div className="bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden shadow-sm">
+          <div className="bg-white rounded-[3.5rem] border border-slate-100 overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead className="bg-[#fcfdfe] text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50">
                   <tr>
-                    <th className="px-10 py-6 w-12 text-center">
-                      <input type="checkbox" onChange={(e) => setSelectedLeadIds(e.target.checked ? unassignedToTeacher.map(l => l.id) : [])} className="w-4 h-4 rounded border-slate-200" />
+                    <th className="px-10 py-7 w-12 text-center">
+                      <input type="checkbox" onChange={(e) => setSelectedLeadIds(e.target.checked ? unassignedToTeacher.map(l => l.id) : [])} className="w-5 h-5 rounded border-slate-200" />
                     </th>
-                    <th className="px-10 py-6">Student Name</th>
-                    <th className="px-10 py-6">Contact Node</th>
-                    <th className="px-10 py-6">Faculty Allocation</th>
-                    <th className="px-10 py-6 text-right">Current State</th>
+                    <th className="px-10 py-7">Student Name</th>
+                    <th className="px-10 py-7">Contact Node</th>
+                    <th className="px-10 py-7">Faculty Allocation</th>
+                    <th className="px-10 py-7 text-right">Current State</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {myDeptLeads.filter(l => l.name.toLowerCase().includes(searchTerm.toLowerCase())).map(lead => (
                     <tr key={lead.id} className={`hover:bg-slate-50/50 transition-all ${selectedLeadIds.includes(lead.id) ? 'bg-indigo-50/30' : ''}`}>
-                      <td className="px-10 py-5 text-center">
-                        {!lead.assignedToTeacher && <input type="checkbox" checked={selectedLeadIds.includes(lead.id)} onChange={() => toggleLeadSelection(lead.id)} className="w-4 h-4 rounded border-slate-200" />}
+                      <td className="px-10 py-6 text-center">
+                        {!lead.assignedToTeacher && <input type="checkbox" checked={selectedLeadIds.includes(lead.id)} onChange={() => toggleLeadSelection(lead.id)} className="w-5 h-5 rounded border-slate-200" />}
                       </td>
-                      <td className="px-10 py-5 font-black text-xs uppercase text-[#1e293b]">{lead.name}</td>
-                      <td className="px-10 py-5 font-bold text-slate-400 text-[10px] tracking-widest">{lead.phone}</td>
-                      <td className="px-10 py-5">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-1.5 h-1.5 rounded-full ${lead.assignedToTeacher ? 'bg-emerald-500' : 'bg-slate-300'}`}></div>
-                          <span className="font-black text-[9px] uppercase text-slate-600">
+                      <td className="px-10 py-6 font-black text-sm uppercase text-[#1e293b]">{lead.name}</td>
+                      <td className="px-10 py-6 font-bold text-slate-400 text-[11px] tracking-[0.1em]">{lead.phone}</td>
+                      <td className="px-10 py-6">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-2.5 h-2.5 rounded-full ${lead.assignedToTeacher ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-300'}`}></div>
+                          <span className="font-black text-[10px] uppercase text-slate-600">
                             {myTeachers.find(t => t.id === lead.assignedToTeacher)?.name || 'UNALLOCATED'}
                           </span>
                         </div>
                       </td>
-                      <td className="px-10 py-5 text-right">
-                        <span className={`text-[8px] font-black uppercase px-2 py-1 rounded-lg border ${
+                      <td className="px-10 py-6 text-right">
+                        <span className={`text-[9px] font-black uppercase px-3 py-2 rounded-xl border ${
                           lead.stage === LeadStage.TARGETED ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
                           lead.stage === LeadStage.DISCARDED ? 'bg-rose-50 text-rose-600 border-rose-100' :
                           'bg-slate-50 text-slate-400 border-slate-100'
@@ -202,7 +204,7 @@ const HODDashboard: React.FC<{ currentUser: User }> = ({ currentUser }) => {
                     </tr>
                   ))}
                   {myDeptLeads.length === 0 && (
-                    <tr><td colSpan={5} className="py-20 text-center text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">No departmental data allocated yet</td></tr>
+                    <tr><td colSpan={5} className="py-20 text-center text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">No departmental data allocated yet</td></tr>
                   )}
                 </tbody>
               </table>
@@ -212,41 +214,41 @@ const HODDashboard: React.FC<{ currentUser: User }> = ({ currentUser }) => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {teacherStats.map(teacher => (
-            <div key={teacher.id} className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm relative overflow-hidden group hover:border-indigo-200 transition-all">
-              <div className="flex justify-between items-start mb-8">
-                <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center font-black text-indigo-600 border border-indigo-100 uppercase">{teacher.name.charAt(0)}</div>
+            <div key={teacher.id} className="bg-white p-12 rounded-[3.5rem] border border-slate-100 shadow-sm relative overflow-hidden group hover:border-indigo-200 transition-all">
+              <div className="flex justify-between items-start mb-10">
+                <div className="w-16 h-16 bg-indigo-50 rounded-[1.5rem] flex items-center justify-center font-black text-indigo-600 border border-indigo-100 text-2xl uppercase">{teacher.name.charAt(0)}</div>
                 <div className="text-right">
-                  <p className="text-2xl font-black text-[#1e293b] leading-none">{teacher.progress}%</p>
-                  <p className="text-[8px] font-black uppercase text-slate-400 tracking-widest mt-1">Resolution</p>
+                  <p className="text-3xl font-black text-[#1e293b] leading-none">{teacher.progress}%</p>
+                  <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mt-1">Resolution</p>
                 </div>
               </div>
-              <h4 className="text-xl font-black text-[#1e293b] uppercase tracking-tight">{teacher.name}</h4>
-              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Institutional Faculty Member</p>
+              <h4 className="text-2xl font-black text-[#1e293b] uppercase tracking-tight leading-tight">{teacher.name}</h4>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-2 italic">Institutional Faculty Member</p>
               
-              <div className="mt-8 space-y-4">
-                <div className="flex justify-between text-[9px] font-black uppercase tracking-widest">
-                  <span className="text-slate-400">Nodes Resolved</span>
+              <div className="mt-10 space-y-6">
+                <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
+                  <span className="text-slate-400">Interaction Nodes</span>
                   <span className="text-[#1e293b] font-bold">{teacher.completedCount} / {teacher.totalAssigned}</span>
                 </div>
-                <div className="w-full bg-slate-50 h-2 rounded-full overflow-hidden border border-slate-100">
-                  <div className="h-full bg-indigo-600 transition-all duration-1000" style={{ width: `${teacher.progress}%` }} />
+                <div className="w-full bg-slate-50 h-3 rounded-full overflow-hidden border border-slate-100 shadow-inner">
+                  <div className="h-full bg-indigo-600 shadow-[0_0_15px_rgba(79,70,229,0.5)] transition-all duration-1000" style={{ width: `${teacher.progress}%` }} />
                 </div>
-                <div className="flex gap-4 pt-2">
+                <div className="flex gap-6 pt-2">
                    <div className="flex-1">
-                      <p className="text-[8px] font-black text-slate-400 uppercase mb-1">Awaiting</p>
-                      <p className="text-xs font-black text-amber-500">{teacher.pendingCount}</p>
+                      <p className="text-[9px] font-black text-slate-400 uppercase mb-2">Awaiting</p>
+                      <p className="text-xl font-black text-amber-500">{teacher.pendingCount}</p>
                    </div>
-                   <div className="flex-1">
-                      <p className="text-[8px] font-black text-slate-400 uppercase mb-1">Completed</p>
-                      <p className="text-xs font-black text-emerald-500">{teacher.completedCount}</p>
+                   <div className="flex-1 border-l border-slate-50 pl-6">
+                      <p className="text-[9px] font-black text-slate-400 uppercase mb-2">Completed</p>
+                      <p className="text-xl font-black text-emerald-500">{teacher.completedCount}</p>
                    </div>
                 </div>
               </div>
             </div>
           ))}
           {myTeachers.length === 0 && (
-            <div className="col-span-full py-20 text-center bg-slate-50 rounded-[3rem] border border-dashed border-slate-200">
-               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">No faculty registered in this department</p>
+            <div className="col-span-full py-20 text-center bg-slate-50 rounded-[4rem] border-4 border-dashed border-slate-200">
+               <p className="text-[12px] font-black text-slate-400 uppercase tracking-[0.4em]">No faculty registered in this department</p>
             </div>
           )}
         </div>
@@ -254,28 +256,31 @@ const HODDashboard: React.FC<{ currentUser: User }> = ({ currentUser }) => {
 
       {isAssignModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[2000] flex items-center justify-center p-6">
-          <div className="bg-white w-full max-w-lg rounded-[2.5rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="p-8 bg-indigo-600 text-white text-center">
-              <h3 className="text-2xl font-black uppercase tracking-tighter">Delegate Staff</h3>
-              <p className="text-[9px] font-black text-indigo-200 uppercase tracking-[0.2em] mt-2">Provisioning {selectedLeadIds.length} Nodes</p>
+          <div className="bg-white w-full h-full md:h-auto md:max-w-xl md:rounded-[4rem] overflow-hidden shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] animate-in zoom-in-95 duration-200">
+            <div className="p-10 bg-[#0f172a] text-white text-center relative overflow-hidden">
+               <div className="absolute top-0 left-0 w-32 h-32 bg-white/5 rounded-full -ml-10 -mt-10 blur-2xl"></div>
+              <h3 className="text-3xl font-black uppercase tracking-tight relative z-10">Delegate Staff</h3>
+              <p className="text-[10px] font-black text-indigo-200 uppercase tracking-[0.3em] mt-3 relative z-10">Provisioning {selectedLeadIds.length} Nodes</p>
             </div>
-            <div className="p-8 space-y-3 max-h-[400px] overflow-y-auto custom-scroll">
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4">Select Target Faculty</p>
+            <div className="p-10 space-y-4 max-h-[500px] overflow-y-auto custom-scroll">
+              <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-6 border-b border-slate-50 pb-4">Target Faculty Identity</p>
               {myTeachers.map(teacher => (
-                <button key={teacher.id} onClick={() => handleAllocation(teacher.id)} className="w-full p-5 bg-slate-50 hover:bg-indigo-600 hover:text-white rounded-2xl flex items-center justify-between group transition-all border border-slate-100">
+                <button key={teacher.id} onClick={() => handleAllocation(teacher.id)} className="w-full p-6 bg-slate-50 hover:bg-indigo-600 hover:text-white rounded-[2rem] flex items-center justify-between group transition-all border border-slate-200 shadow-sm">
                   <div className="text-left">
-                    <p className="text-xs font-black uppercase tracking-tight">{teacher.name}</p>
-                    <p className="text-[9px] font-bold opacity-60 uppercase tracking-widest">Active Councilor</p>
+                    <p className="text-sm font-black uppercase tracking-tight leading-none mb-1 group-hover:text-white">{teacher.name}</p>
+                    <p className="text-[9px] font-bold opacity-60 uppercase tracking-[0.2em] group-hover:text-white/80">Active Councilor</p>
                   </div>
-                  <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7"/></svg>
+                  <div className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all border border-white/20">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M9 5l7 7-7 7"/></svg>
                   </div>
                 </button>
               ))}
               {myTeachers.length === 0 && (
-                <p className="py-10 text-center text-rose-500 font-black text-[10px] uppercase">No eligible faculty found</p>
+                <p className="py-20 text-center text-rose-500 font-black text-[11px] uppercase tracking-widest">No eligible faculty nodes found</p>
               )}
-              <button onClick={() => setIsAssignModalOpen(false)} className="w-full py-4 text-[9px] font-black uppercase text-slate-300 hover:text-slate-500 mt-2">Abort Operation</button>
+            </div>
+            <div className="p-8 bg-slate-50 border-t border-slate-100">
+               <button onClick={() => setIsAssignModalOpen(false)} className="w-full py-5 text-[11px] font-black uppercase text-slate-400 hover:text-slate-600 tracking-[0.4em] transition-all">Abort Delegation</button>
             </div>
           </div>
         </div>

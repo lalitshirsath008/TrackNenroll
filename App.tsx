@@ -217,59 +217,60 @@ const App: React.FC = () => {
               <HODDashboard currentUser={currentUser} />
             ) : (
               <div className="space-y-6 md:space-y-8 animate-in fade-in duration-500">
-                <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                   <div>
-                    <p className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] mb-1">
+                    <p className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] mb-2">
                       {currentUser.role === UserRole.SUPER_ADMIN ? 'Principal Console' : 'Admin Panel'}
                     </p>
-                    <h2 className="text-3xl font-black text-[#1e293b] tracking-tighter uppercase leading-none">Management Hub</h2>
+                    <h2 className="text-4xl font-black text-[#1e293b] tracking-tighter uppercase leading-none">Management Hub</h2>
                   </div>
                   {currentUser.role !== UserRole.SUPER_ADMIN && (
-                    <div className="flex p-1 bg-slate-100 rounded-xl overflow-x-auto max-w-full">
-                      <button onClick={() => setAdminTab('overview')} className={`whitespace-nowrap px-6 py-2.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${adminTab === 'overview' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}>Overview</button>
-                      <button onClick={() => setAdminTab('leads')} className={`whitespace-nowrap px-6 py-2.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${adminTab === 'leads' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}>Leads ({unassignedLeads.length})</button>
-                      <button onClick={() => setAdminTab('logs')} className={`whitespace-nowrap px-6 py-2.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${adminTab === 'logs' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'}`}>Logs</button>
+                    <div className="flex p-1.5 bg-slate-100 rounded-2xl border border-slate-200 shadow-inner overflow-x-auto max-w-full">
+                      <button onClick={() => setAdminTab('overview')} className={`whitespace-nowrap px-8 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${adminTab === 'overview' ? 'bg-white text-indigo-600 shadow-xl' : 'text-slate-400'}`}>Overview</button>
+                      <button onClick={() => setAdminTab('leads')} className={`whitespace-nowrap px-8 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${adminTab === 'leads' ? 'bg-white text-indigo-600 shadow-xl' : 'text-slate-400'}`}>Leads ({unassignedLeads.length})</button>
+                      <button onClick={() => setAdminTab('logs')} className={`whitespace-nowrap px-8 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${adminTab === 'logs' ? 'bg-white text-indigo-600 shadow-xl' : 'text-slate-400'}`}>System Logs</button>
                     </div>
                   )}
                 </header>
                 
                 {adminTab === 'overview' ? (
                   <div className="space-y-6 md:space-y-10">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                       <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
-                          <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-2">Total Leads</p>
-                          <p className="text-3xl font-black text-[#1e293b]">{stats.total}</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                       <div className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm">
+                          <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] mb-3">Total Leads</p>
+                          <p className="text-4xl font-black text-[#1e293b] tracking-tighter">{stats.total}</p>
                        </div>
-                       <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
-                          <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-2">Assigned</p>
-                          <p className="text-3xl font-black text-indigo-600">{stats.assigned}</p>
+                       <div className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm">
+                          <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] mb-3">Allocated</p>
+                          <p className="text-4xl font-black text-indigo-600 tracking-tighter">{stats.assigned}</p>
                        </div>
-                       <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
-                          <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-2">Interested</p>
-                          <p className="text-3xl font-black text-emerald-600">{stats.interested}</p>
+                       <div className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm">
+                          <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] mb-3">Interested</p>
+                          <p className="text-4xl font-black text-emerald-600 tracking-tighter">{stats.interested}</p>
                        </div>
-                       <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
-                          <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-2">Verified</p>
-                          <p className="text-3xl font-black text-amber-600">{stats.callsDone}</p>
+                       <div className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm">
+                          <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] mb-3">Verified</p>
+                          <p className="text-4xl font-black text-amber-600 tracking-tighter">{stats.callsDone}</p>
                        </div>
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                      <div className={`lg:col-span-2 ${currentUser.role === UserRole.SUPER_ADMIN ? 'bg-indigo-600' : 'bg-[#0f172a]'} p-8 md:p-12 rounded-[2.5rem] text-white shadow-xl`}>
-                        <p className="text-xl font-black uppercase tracking-tighter mb-4">
-                          {currentUser.role === UserRole.SUPER_ADMIN ? 'Principal Summary' : 'Student Data Portal'}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                      <div className={`lg:col-span-2 ${currentUser.role === UserRole.SUPER_ADMIN ? 'bg-indigo-600' : 'bg-[#0f172a]'} p-10 md:p-14 rounded-[4rem] text-white shadow-2xl relative overflow-hidden`}>
+                        <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full -mr-32 -mt-32 blur-[100px]"></div>
+                        <p className="text-2xl font-black uppercase tracking-tight mb-6 relative z-10">
+                          {currentUser.role === UserRole.SUPER_ADMIN ? 'Institutional Oversight' : 'Student Data Portal'}
                         </p>
-                        <p className="text-xs font-bold opacity-60 mb-8 max-w-md">
+                        <p className="text-xs font-bold opacity-70 mb-12 max-w-md leading-relaxed relative z-10">
                           {currentUser.role === UserRole.SUPER_ADMIN 
-                            ? 'As Principal, you have complete oversight of all departmental counseling activities and admission conversion metrics.' 
-                            : 'Upload new data files (Excel/CSV) or manually add individual student records to populate the admission list.'}
+                            ? 'Review global conversion metrics and departmental efficiency across all active counseling nodes.' 
+                            : 'Upload institutional dataset files or manually register new student identities into the counseling pipeline.'}
                         </p>
                         
-                        <div className="flex flex-wrap gap-4">
+                        <div className="flex flex-wrap gap-5 relative z-10">
                           {currentUser.role === UserRole.SUPER_ADMIN ? (
                             <>
-                              <button onClick={() => downloadInstitutionalReport('pdf')} className="px-8 py-4 bg-white/10 border border-white/20 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-white hover:text-indigo-600 transition-all">Download PDF Report</button>
-                              <button onClick={() => downloadInstitutionalReport('excel')} className="px-8 py-4 bg-white/10 border border-white/20 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-white hover:text-indigo-600 transition-all">Download Excel Report</button>
+                              <button onClick={() => downloadInstitutionalReport('pdf')} className="px-10 py-5 bg-white/10 border border-white/20 text-white rounded-[1.5rem] font-black text-[11px] uppercase tracking-[0.2em] hover:bg-white hover:text-indigo-600 transition-all shadow-xl">Global PDF Report</button>
+                              <button onClick={() => downloadInstitutionalReport('excel')} className="px-10 py-5 bg-white/10 border border-white/20 text-white rounded-[1.5rem] font-black text-[11px] uppercase tracking-[0.2em] hover:bg-white hover:text-indigo-600 transition-all shadow-xl">Export Excel</button>
                             </>
                           ) : (
                             <>
@@ -280,62 +281,72 @@ const App: React.FC = () => {
                                 ref={fileInputRef} 
                                 onChange={handleFileUpload} 
                               />
-                              <button onClick={() => fileInputRef.current?.click()} className="px-8 py-4 bg-indigo-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-700 transition-all">Import Data (Excel/CSV)</button>
-                              <button onClick={() => setIsManualLeadModalOpen(true)} className="px-8 py-4 bg-slate-800 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-700 transition-all">Add Student</button>
+                              <button onClick={() => fileInputRef.current?.click()} className="px-10 py-5 bg-indigo-600 text-white rounded-[1.5rem] font-black text-[11px] uppercase tracking-[0.2em] hover:bg-indigo-700 transition-all shadow-[0_20px_40px_rgba(79,70,229,0.4)]">Import Dataset</button>
+                              <button onClick={() => setIsManualLeadModalOpen(true)} className="px-10 py-5 bg-white/10 border border-white/10 text-white rounded-[1.5rem] font-black text-[11px] uppercase tracking-[0.2em] hover:bg-slate-800 transition-all backdrop-blur-md">Register Student</button>
                             </>
                           )}
                         </div>
                       </div>
 
-                      <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
-                        <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-6">Latest Updates</p>
-                        <div className="space-y-4">
+                      <div className="bg-white p-10 rounded-[4rem] border border-slate-100 shadow-sm">
+                        <p className="text-[11px] font-black uppercase text-slate-400 tracking-[0.3em] mb-8">Node Activity</p>
+                        <div className="space-y-5">
                           {recentLeads.map(l => (
-                            <div key={l.id} className="flex items-center justify-between border-b border-slate-50 pb-3">
-                              <div><p className="text-xs font-black uppercase text-slate-800 truncate max-w-[120px]">{l.name}</p></div>
-                              <div className="text-right"><span className="text-[8px] font-black text-indigo-600 uppercase bg-indigo-50 px-2 py-1 rounded-lg">{l.stage}</span></div>
+                            <div key={l.id} className="flex items-center justify-between border-b border-slate-50 pb-4">
+                              <div><p className="text-xs font-black uppercase text-slate-800 truncate max-w-[130px]">{l.name}</p></div>
+                              <div className="text-right"><span className="text-[9px] font-black text-indigo-600 uppercase bg-indigo-50 px-3 py-1.5 rounded-xl">{l.stage}</span></div>
                             </div>
                           ))}
-                          {leads.length === 0 && <p className="text-[9px] text-slate-300 font-bold uppercase py-10 text-center">No Records Found</p>}
+                          {leads.length === 0 && <p className="text-[10px] text-slate-300 font-bold uppercase py-14 text-center">Empty Records</p>}
                         </div>
                       </div>
                     </div>
                   </div>
                 ) : adminTab === 'leads' ? (
                   <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-                    <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
-                      <input type="text" placeholder="Search unassigned leads..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="flex-1 w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-3 text-xs font-bold outline-none" />
-                      <button disabled={selectedLeadIds.length === 0} onClick={() => setIsAssignModalOpen(true)} className="w-full md:w-auto px-10 py-3.5 bg-[#0f172a] disabled:opacity-20 text-white rounded-xl font-black text-[10px] uppercase tracking-widest">Assign to HOD ({selectedLeadIds.length})</button>
+                    <div className="flex flex-col md:flex-row gap-6 items-center bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm">
+                      <div className="relative flex-1 w-full">
+                        <svg className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                        <input type="text" placeholder="Search unassigned pool..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-14 pr-6 py-5 bg-slate-50 border border-slate-200 rounded-2xl text-[12px] font-bold outline-none focus:border-indigo-600 transition-all shadow-sm" />
+                      </div>
+                      <button disabled={selectedLeadIds.length === 0} onClick={() => setIsAssignModalOpen(true)} className="w-full md:w-auto px-12 py-5 bg-[#0f172a] disabled:opacity-30 text-white rounded-2xl font-black text-[12px] uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all">
+                        Delegate to HOD ({selectedLeadIds.length})
+                      </button>
                     </div>
-                    <div className="bg-white rounded-[2rem] border border-slate-100 overflow-hidden shadow-sm">
+                    <div className="bg-white rounded-[3.5rem] border border-slate-100 overflow-hidden shadow-sm">
                       <div className="overflow-x-auto">
                         <table className="w-full text-left">
-                          <thead className="bg-[#fcfdfe] text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50">
+                          <thead className="bg-[#fcfdfe] text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] border-b border-slate-50">
                             <tr>
-                              <th className="px-8 py-5 w-12 text-center">
-                                <input type="checkbox" onChange={(e) => setSelectedLeadIds(e.target.checked ? unassignedLeads.map(l => l.id) : [])} className="w-4 h-4 rounded" />
+                              <th className="px-10 py-7 w-12 text-center">
+                                <input type="checkbox" onChange={(e) => setSelectedLeadIds(e.target.checked ? unassignedLeads.map(l => l.id) : [])} className="w-5 h-5 rounded border-slate-300" />
                               </th>
-                              <th className="px-8 py-5">Student Identity</th>
-                              <th className="px-8 py-5">Phone</th>
-                              <th className="px-8 py-5">Source</th>
-                              <th className="px-8 py-5 text-right">Action</th>
+                              <th className="px-10 py-7">Student Identity</th>
+                              <th className="px-10 py-7">Contact Node</th>
+                              <th className="px-10 py-7">Source Origin</th>
+                              <th className="px-10 py-7 text-right">Status</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y">
+                          <tbody className="divide-y divide-slate-50">
                             {unassignedLeads.filter(l => l.name.toLowerCase().includes(searchTerm.toLowerCase())).map(lead => (
-                              <tr key={lead.id} className="hover:bg-slate-50">
-                                <td className="px-8 py-4 text-center">
-                                  <input type="checkbox" checked={selectedLeadIds.includes(lead.id)} onChange={() => setSelectedLeadIds(prev => prev.includes(lead.id) ? prev.filter(i => i !== lead.id) : [...prev, lead.id])} className="w-4 h-4 rounded" />
+                              <tr key={lead.id} className={`hover:bg-slate-50/50 transition-all ${selectedLeadIds.includes(lead.id) ? 'bg-indigo-50/20' : ''}`}>
+                                <td className="px-10 py-6 text-center">
+                                  <input type="checkbox" checked={selectedLeadIds.includes(lead.id)} onChange={() => setSelectedLeadIds(prev => prev.includes(lead.id) ? prev.filter(i => i !== lead.id) : [...prev, lead.id])} className="w-5 h-5 rounded border-slate-300" />
                                 </td>
-                                <td className="px-8 py-4 font-black text-[#1e293b] text-xs uppercase">{lead.name}</td>
-                                <td className="px-8 py-4 font-bold text-slate-500 text-[10px]">{lead.phone}</td>
-                                <td className="px-8 py-4 font-bold text-slate-400 text-[9px] uppercase">{lead.sourceFile}</td>
-                                <td className="px-8 py-4 text-right"><span className="text-[8px] font-black uppercase text-amber-500 bg-amber-50 px-2 py-1 rounded">Pending Allocation</span></td>
+                                <td className="px-10 py-6 font-black text-[#1e293b] text-sm uppercase tracking-tight">{lead.name}</td>
+                                <td className="px-10 py-6 font-bold text-slate-500 text-[11px] tracking-[0.1em]">{lead.phone}</td>
+                                <td className="px-10 py-6 font-black text-slate-300 text-[10px] uppercase tracking-widest">{lead.sourceFile}</td>
+                                <td className="px-10 py-6 text-right"><span className="text-[9px] font-black uppercase tracking-widest text-amber-500 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-100/50">Pool Pending</span></td>
                               </tr>
                             ))}
                             {unassignedLeads.length === 0 && (
                               <tr>
-                                <td colSpan={5} className="py-20 text-center text-[10px] font-black text-slate-300 uppercase tracking-widest">Pool is currently empty</td>
+                                <td colSpan={5} className="py-24 text-center">
+                                   <div className="w-16 h-16 bg-slate-50 rounded-[1.5rem] flex items-center justify-center mx-auto mb-6">
+                                      <svg className="w-6 h-6 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7"/></svg>
+                                   </div>
+                                   <p className="text-[11px] font-black text-slate-300 uppercase tracking-[0.4em]">Pool Empty: No Records Found</p>
+                                </td>
                               </tr>
                             )}
                           </tbody>
@@ -345,42 +356,42 @@ const App: React.FC = () => {
                   </div>
                 ) : (
                   <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-                    <div className="bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden shadow-sm">
-                      <div className="p-8 border-b border-slate-50 flex justify-between items-center">
-                        <h3 className="text-xl font-black uppercase tracking-tighter">System Activity Logs</h3>
-                        <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 px-4 py-2 rounded-xl">Audit Trail</p>
+                    <div className="bg-white rounded-[3.5rem] border border-slate-100 overflow-hidden shadow-sm min-h-[500px]">
+                      <div className="p-10 border-b border-slate-50 flex justify-between items-center bg-[#fcfdfe]">
+                        <h3 className="text-2xl font-black uppercase tracking-tighter">Institutional Logs</h3>
+                        <p className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] bg-indigo-50 px-5 py-2.5 rounded-2xl border border-indigo-100/50">Audit Trail Active</p>
                       </div>
                       <div className="overflow-x-auto">
                         <table className="w-full text-left">
-                          <thead className="bg-[#fcfdfe] text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50">
+                          <thead className="bg-[#fcfdfe] text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-50">
                             <tr>
-                              <th className="px-8 py-5">Timestamp</th>
-                              <th className="px-8 py-5">User</th>
-                              <th className="px-8 py-5">Action</th>
-                              <th className="px-8 py-5">Details</th>
+                              <th className="px-10 py-7">Timestamp</th>
+                              <th className="px-10 py-7">Staff Member</th>
+                              <th className="px-10 py-7">Operation</th>
+                              <th className="px-10 py-7">Assessment Details</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y">
+                          <tbody className="divide-y divide-slate-50">
                             {logs.map(log => (
-                              <tr key={log.id} className="hover:bg-slate-50">
-                                <td className="px-8 py-4 whitespace-nowrap text-[10px] font-bold text-slate-500">{log.timestamp}</td>
-                                <td className="px-8 py-4 whitespace-nowrap font-black text-[#1e293b] text-xs uppercase">{log.userName}</td>
-                                <td className="px-8 py-4 whitespace-nowrap">
-                                  <span className={`text-[8px] font-black uppercase px-2 py-1 rounded-lg border ${
+                              <tr key={log.id} className="hover:bg-slate-50/50 transition-all">
+                                <td className="px-10 py-6 whitespace-nowrap text-[10px] font-bold text-slate-500 uppercase">{log.timestamp}</td>
+                                <td className="px-10 py-6 whitespace-nowrap font-black text-[#1e293b] text-sm uppercase tracking-tight">{log.userName}</td>
+                                <td className="px-10 py-6 whitespace-nowrap">
+                                  <span className={`text-[8px] font-black uppercase px-3 py-1.5 rounded-xl border ${
                                     log.action === UserAction.IMPORT_LEADS ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
-                                    log.action === UserAction.LOGIN ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                                    log.action === UserAction.LOGIN ? 'bg-emerald-50 text-emerald-600 border-emerald-100 shadow-[0_0_8px_rgba(16,185,129,0.2)]' :
                                     log.action === UserAction.LOGOUT ? 'bg-rose-50 text-rose-600 border-rose-100' :
                                     'bg-slate-50 text-slate-400 border-slate-100'
                                   }`}>
                                     {log.action}
                                   </span>
                                 </td>
-                                <td className="px-8 py-4 text-[10px] font-bold text-slate-600 italic">{log.details}</td>
+                                <td className="px-10 py-6 text-[10px] font-bold text-slate-600 italic leading-relaxed">{log.details}</td>
                               </tr>
                             ))}
                             {logs.length === 0 && (
                               <tr>
-                                <td colSpan={4} className="py-20 text-center text-[10px] font-black text-slate-300 uppercase tracking-widest">No activities recorded</td>
+                                <td colSpan={4} className="py-24 text-center text-[11px] font-black text-slate-300 uppercase tracking-[0.4em]">No activity logs provisioned</td>
                               </tr>
                             )}
                           </tbody>
@@ -400,53 +411,68 @@ const App: React.FC = () => {
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Routes>
 
+        {/* Modal: Manual Student Input - Upgraded Buttons */}
         {isManualLeadModalOpen && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[2000] flex items-center justify-center p-6">
-            <div className="bg-white w-full max-w-md rounded-[2.5rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
-              <div className="p-8 bg-[#0f172a] text-white text-center">
-                <h3 className="text-2xl font-black uppercase tracking-tighter">Add Student</h3>
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Manual Input</p>
+          <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-xl z-[2000] flex items-center justify-center p-6">
+            <div className="bg-white w-full max-w-md rounded-[4rem] overflow-hidden shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] animate-in zoom-in-95 duration-300 border border-white/10">
+              <div className="p-10 bg-[#0f172a] text-white text-center relative">
+                <div className="absolute top-0 left-0 w-32 h-32 bg-white/5 rounded-full -ml-10 -mt-10 blur-2xl"></div>
+                <h3 className="text-3xl font-black uppercase tracking-tighter relative z-10">Register Student</h3>
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mt-3 relative z-10">Node Provisioning</p>
               </div>
-              <form onSubmit={handleAddManualLead} className="p-8 space-y-4">
-                <div className="space-y-1">
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
-                  <input type="text" value={manualLead.name} onChange={handleNameInput} className={`w-full px-5 py-3.5 bg-slate-50 border ${formErrors.name ? 'border-rose-500' : 'border-slate-100'} rounded-xl outline-none focus:border-indigo-600 font-bold text-sm`} placeholder="John Doe" required />
+              <form onSubmit={handleAddManualLead} className="p-10 space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Identity Name</label>
+                  <input type="text" value={manualLead.name} onChange={handleNameInput} className={`w-full px-6 py-5 bg-slate-50 border ${formErrors.name ? 'border-rose-500' : 'border-slate-200'} rounded-2xl outline-none focus:border-indigo-600 font-bold text-slate-900 shadow-sm`} placeholder="John Doe" required />
                 </div>
-                <div className="space-y-1">
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone Number</label>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Secure Contact Link</label>
                   <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">+91</span>
-                    <input type="text" value={manualLead.phone} onChange={handlePhoneInput} className={`w-full pl-12 pr-5 py-3.5 bg-slate-50 border ${formErrors.phone ? 'border-rose-500' : 'border-slate-100'} rounded-xl outline-none focus:border-indigo-600 font-bold text-sm`} placeholder="9876543210" required />
+                    <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-black">+91</span>
+                    <input type="text" value={manualLead.phone} onChange={handlePhoneInput} className={`w-full pl-14 pr-6 py-5 bg-slate-50 border ${formErrors.phone ? 'border-rose-500' : 'border-slate-200'} rounded-2xl outline-none focus:border-indigo-600 font-bold text-slate-900 shadow-sm`} placeholder="9876543210" required />
                   </div>
                 </div>
-                <div className="pt-4">
-                  <button type="submit" disabled={!manualLead.name || manualLead.phone.length !== 10} className="w-full py-4 bg-indigo-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-xl">Save Lead</button>
-                  <button type="button" onClick={() => setIsManualLeadModalOpen(false)} className="w-full py-3 text-[9px] font-black uppercase text-slate-300 mt-1">Cancel</button>
+                <div className="pt-6">
+                  <button type="submit" disabled={!manualLead.name || manualLead.phone.length !== 10} className="w-full py-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-[12px] uppercase tracking-[0.3em] shadow-2xl shadow-indigo-100 transition-all active:scale-[0.98]">
+                    Authorize Registration
+                  </button>
+                  <button type="button" onClick={() => setIsManualLeadModalOpen(false)} className="w-full py-5 text-[11px] font-black uppercase text-slate-300 mt-2 tracking-[0.2em] hover:text-slate-500 transition-all">Abort Action</button>
                 </div>
               </form>
             </div>
           </div>
         )}
 
+        {/* Modal: HOD Allocation - Upgraded Buttons */}
         {isAssignModalOpen && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[2000] flex items-center justify-center p-6">
-            <div className="bg-white w-full max-w-lg rounded-[2.5rem] overflow-hidden shadow-2xl">
-              <div className="p-8 bg-[#0f172a] text-white text-center">
-                <h3 className="text-2xl font-black uppercase tracking-tighter">Choose HOD</h3>
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Allocating {selectedLeadIds.length} Nodes</p>
+          <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-xl z-[2000] flex items-center justify-center p-6">
+            <div className="bg-white w-full max-w-xl rounded-[4rem] overflow-hidden shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] animate-in zoom-in-95 duration-300">
+              <div className="p-10 bg-[#0f172a] text-white text-center relative">
+                 <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-600/10 rounded-full -mr-10 -mt-10 blur-2xl"></div>
+                <h3 className="text-3xl font-black uppercase tracking-tight relative z-10">Allocation Node</h3>
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] mt-3 relative z-10">Provisioning {selectedLeadIds.length} Identity Blocks</p>
               </div>
-              <div className="p-8 space-y-3 max-h-[400px] overflow-y-auto">
+              <div className="p-10 space-y-4 max-h-[450px] overflow-y-auto custom-scroll">
+                <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-6 border-b border-slate-50 pb-4">Target HOD Unit</p>
                 {hodList.map(hod => (
-                  <button key={hod.id} onClick={async () => { await assignLeadsToHOD(selectedLeadIds, hod.id); setSelectedLeadIds([]); setIsAssignModalOpen(false); }} className="w-full p-5 bg-slate-50 hover:bg-indigo-600 hover:text-white rounded-2xl flex items-center justify-between group transition-all border border-slate-100">
+                  <button key={hod.id} onClick={async () => { await assignLeadsToHOD(selectedLeadIds, hod.id); setSelectedLeadIds([]); setIsAssignModalOpen(false); }} className="w-full p-7 bg-slate-50 hover:bg-indigo-600 hover:text-white rounded-[2rem] flex items-center justify-between group transition-all border border-slate-200 shadow-sm">
                     <div className="text-left">
-                      <p className="text-xs font-black uppercase tracking-tight">{hod.name}</p>
-                      <p className="text-[9px] font-bold opacity-60 uppercase">{hod.department}</p>
+                      <p className="text-sm font-black uppercase tracking-tight leading-none mb-1 group-hover:text-white">{hod.name}</p>
+                      <p className="text-[10px] font-bold opacity-60 uppercase tracking-[0.1em] group-hover:text-white/80">{hod.department}</p>
                     </div>
-                    <svg className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7"/></svg>
+                    <div className="w-10 h-10 rounded-2xl bg-indigo-600/5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all border border-white/20">
+                       <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M9 5l7 7-7 7"/></svg>
+                    </div>
                   </button>
                 ))}
-                {hodList.length === 0 && <p className="text-[10px] font-black text-slate-400 uppercase py-10 text-center">No authorized HOD nodes found</p>}
-                <button onClick={() => setIsAssignModalOpen(false)} className="w-full py-3 text-[9px] font-black uppercase text-slate-300 hover:text-slate-500 mt-2">Abort</button>
+                {hodList.length === 0 && (
+                  <div className="py-20 text-center">
+                    <p className="text-[12px] font-black text-rose-500 uppercase tracking-[0.4em]">No Authorized HOD Nodes Detected</p>
+                  </div>
+                )}
+              </div>
+              <div className="p-8 bg-slate-50 border-t border-slate-100 text-center">
+                <button onClick={() => setIsAssignModalOpen(false)} className="w-full py-5 text-[11px] font-black uppercase text-slate-400 hover:text-rose-500 tracking-[0.4em] transition-all">Abort Allocation</button>
               </div>
             </div>
           </div>

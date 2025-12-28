@@ -14,6 +14,15 @@ const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
     return role;
   };
 
+  const getRoleColor = (role: UserRole) => {
+    switch(role) {
+      case UserRole.SUPER_ADMIN: return 'bg-purple-50 text-purple-600 border-purple-100';
+      case UserRole.ADMIN: return 'bg-emerald-50 text-emerald-600 border-emerald-100';
+      case UserRole.HOD: return 'bg-indigo-50 text-indigo-600 border-indigo-100';
+      default: return 'bg-slate-50 text-slate-600 border-slate-100';
+    }
+  };
+
   // Form State
   const [formData, setFormData] = useState({
     name: '',
@@ -77,96 +86,96 @@ const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
     setIsModalOpen(false);
   };
 
-  // Sort: Super Admin (current) first, then admins, then others
   const sortedUsers = [...users].sort((a, b) => {
     if (a.role === UserRole.SUPER_ADMIN) return -1;
     if (b.role === UserRole.SUPER_ADMIN) return 1;
+    if (a.role === UserRole.ADMIN && b.role !== UserRole.ADMIN) return -1;
     return 0;
   });
 
   return (
-    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-full overflow-hidden">
       {/* Page Header */}
-      <header className="flex justify-between items-end">
+      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 px-2">
         <div>
-          <h1 className="text-[11px] font-black text-indigo-600 uppercase tracking-[0.2em] mb-2">Institutional Roster</h1>
-          <h2 className="text-5xl font-black text-[#1e293b] tracking-tighter uppercase">User Management</h2>
+          <h1 className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.3em] mb-2">Institutional Roster</h1>
+          <h2 className="text-3xl md:text-5xl font-black text-[#0f172a] tracking-tight uppercase">Staff Portal</h2>
         </div>
         <button 
           onClick={() => handleOpenModal()}
-          className="px-10 py-4 bg-[#0f172a] text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-[0_10px_30px_-10px_rgba(15,23,42,0.4)] hover:bg-slate-800 transition-all active:scale-95"
+          className="w-full sm:w-auto px-8 py-4 bg-[#0f172a] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-slate-200 hover:bg-slate-800 transition-all active:scale-95 flex items-center justify-center gap-2"
         >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4"/></svg>
           Add Faculty
         </button>
       </header>
 
-      {/* Roster Table */}
-      <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-[0_15px_60px_-15px_rgba(0,0,0,0.03)] overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left min-w-[900px]">
-            <thead className="bg-[#fcfdfe] text-[10px] font-black text-[#94a3b8] uppercase tracking-[0.15em] border-b border-slate-50">
+      {/* Roster Table Container */}
+      <div className="bg-white rounded-[2rem] border border-slate-100 shadow-[0_10px_40px_-15px_rgba(0,0,0,0.05)] overflow-hidden">
+        <div className="overflow-x-auto custom-scroll">
+          <table className="w-full text-left table-auto">
+            <thead className="bg-[#f8fafc] text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
               <tr>
-                <th className="px-10 py-8">Faculty Member</th>
-                <th className="px-10 py-8">Designation</th>
-                <th className="px-10 py-8">Department</th>
-                <th className="px-10 py-8 text-center">Status</th>
-                <th className="px-10 py-8 text-right">Operations</th>
+                <th className="px-8 py-6">Faculty Member</th>
+                <th className="px-8 py-6">Designation</th>
+                <th className="px-8 py-6">Department</th>
+                <th className="px-8 py-6 text-center">Security</th>
+                <th className="px-8 py-6 text-right">Operations</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {sortedUsers.map(u => (
                 <tr key={u.id} className="hover:bg-slate-50/50 transition-all group">
-                  <td className="px-10 py-7">
-                    <div className="flex items-center gap-5">
-                      <div className="w-12 h-12 rounded-2xl bg-emerald-600 flex items-center justify-center text-white font-black text-sm shadow-inner overflow-hidden">
+                  <td className="px-8 py-5">
+                    <div className="flex items-center gap-4">
+                      <div className="shrink-0 w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center text-white font-black text-xs shadow-inner overflow-hidden border border-slate-200">
                          <img 
-                          src={`https://ui-avatars.com/api/?name=${u.name}&background=${u.role === UserRole.ADMIN ? '059669' : '2563eb'}&color=fff&bold=true`} 
+                          src={`https://ui-avatars.com/api/?name=${u.name}&background=f1f5f9&color=64748b&bold=true`} 
                           alt="" 
                           className="w-full h-full object-cover"
                          />
                       </div>
-                      <div className="flex flex-col">
-                        <p className="font-black text-[#1e293b] text-sm uppercase tracking-tight leading-none mb-1">{u.name}</p>
-                        <p className="text-[10px] font-bold text-[#94a3b8] tracking-tight">{u.email}</p>
+                      <div className="flex flex-col min-w-[150px]">
+                        <p className="font-black text-[#1e293b] text-xs uppercase tracking-tight leading-tight mb-0.5">{u.name}</p>
+                        <p className="text-[9px] font-bold text-slate-400 tracking-tight lowercase">{u.email}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-10 py-7">
-                    <span className="text-[9px] font-black uppercase tracking-wider text-indigo-600 bg-indigo-50/60 px-4 py-2 rounded-xl border border-indigo-100/50">
+                  <td className="px-8 py-5">
+                    <span className={`inline-block whitespace-nowrap text-[8px] font-black uppercase tracking-wider px-3 py-1.5 rounded-lg border ${getRoleColor(u.role)}`}>
                       {getRoleLabel(u.role)}
                     </span>
                   </td>
-                  <td className="px-10 py-7">
-                    <p className="text-[11px] font-black text-[#94a3b8] uppercase tracking-widest">
-                      {u.department || 'OFFICE'}
+                  <td className="px-8 py-5">
+                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">
+                      {u.department || 'CENTRAL OFFICE'}
                     </p>
                   </td>
-                  <td className="px-10 py-7 text-center">
-                    <div className="inline-flex items-center gap-2.5">
-                      <div className={`w-2.5 h-2.5 rounded-full ${u.isApproved ? 'bg-[#10b981]' : 'bg-[#f59e0b] animate-pulse'}`}></div>
-                      <span className="text-[10px] font-black uppercase tracking-widest text-[#475569]">
-                        {u.registrationStatus === 'approved' ? 'Approved' : 'Pending'}
+                  <td className="px-8 py-5 text-center">
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-lg border border-slate-100">
+                      <div className={`w-2 h-2 rounded-full ${u.isApproved ? 'bg-emerald-500' : 'bg-amber-400 animate-pulse'}`}></div>
+                      <span className="text-[8px] font-black uppercase tracking-widest text-slate-600">
+                        {u.registrationStatus === 'approved' ? 'Verified' : 'Pending'}
                       </span>
                     </div>
                   </td>
-                  <td className="px-10 py-7 text-right">
-                    <div className="flex justify-end gap-6 items-center">
+                  <td className="px-8 py-5 text-right">
+                    <div className="flex justify-end gap-3 items-center">
                       <button 
                         onClick={() => handleOpenModal(u)}
-                        className="text-[10px] font-black uppercase tracking-[0.1em] text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1.5"
+                        className="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-600 hover:text-white transition-all border border-indigo-100"
+                        title="Edit Node"
                       >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
-                        Edit
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                       </button>
                       
-                      {/* Realtime Delete Action */}
                       {u.id !== currentUser.id && u.role !== UserRole.SUPER_ADMIN && (
                         <button 
-                          onClick={() => { if(window.confirm(`PERMANENTLY DELETE: Are you sure you want to remove ${u.name}? This cannot be undone.`)) deleteUser(u.id); }}
-                          className="text-[10px] font-black uppercase tracking-[0.1em] text-rose-500 hover:text-rose-700 transition-colors flex items-center gap-1.5 group"
+                          onClick={() => { if(window.confirm(`PERMANENTLY DELETE: ${u.name}?`)) deleteUser(u.id); }}
+                          className="p-2 bg-rose-50 text-rose-500 rounded-lg hover:bg-rose-600 hover:text-white transition-all border border-rose-100"
+                          title="Purge Node"
                         >
-                          <svg className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                          Delete
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                         </button>
                       )}
                     </div>
@@ -180,54 +189,51 @@ const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
 
       {/* User Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[2000] flex items-center justify-center p-6">
-          <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-xl overflow-hidden animate-in zoom-in-95 duration-300">
-            <div className="p-10 bg-[#0f172a] text-white flex justify-between items-center relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-10 -mt-10 blur-2xl"></div>
-              <div className="relative z-10">
-                <h3 className="text-3xl font-black uppercase tracking-tighter">
-                  {editingUser ? 'Edit Profile' : 'New Identity'}
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[2000] flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-8 bg-[#0f172a] text-white flex justify-between items-center">
+              <div>
+                <h3 className="text-2xl font-black uppercase tracking-tight">
+                  {editingUser ? 'Edit Node' : 'Add Node'}
                 </h3>
-                <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mt-2">Faculty Provisioning Node</p>
+                <p className="text-slate-500 text-[9px] font-black uppercase tracking-widest mt-1">Institutional Access Controller</p>
               </div>
               <button 
                 onClick={() => setIsModalOpen(false)} 
-                className="w-12 h-12 rounded-2xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all relative z-10"
+                className="w-10 h-10 rounded-xl bg-white/5 hover:bg-rose-500 flex items-center justify-center transition-all"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
               </button>
             </div>
             
-            <form onSubmit={handleSubmit} className="p-10 space-y-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Identity Name</label>
+            <form onSubmit={handleSubmit} className="p-8 space-y-4">
+              <div className="space-y-1">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Identity Name</label>
                 <input 
                   type="text" 
-                  placeholder="e.g. Prof. Arvind Kulkarni"
-                  className={`w-full px-6 py-4.5 bg-slate-50 border-2 ${errors.name ? 'border-rose-200 focus:border-rose-500' : 'border-slate-100 focus:border-indigo-600'} rounded-2xl outline-none transition-all font-bold text-[#1e293b]`} 
+                  className={`w-full px-5 py-4 bg-slate-50 border ${errors.name ? 'border-rose-300' : 'border-slate-100'} rounded-2xl outline-none focus:border-indigo-600 transition-all font-bold text-sm text-[#0f172a]`} 
                   value={formData.name} 
                   onChange={e => setFormData({...formData, name: e.target.value})} 
+                  placeholder="e.g. Dr. Rajesh Patil"
                 />
-                {errors.name && <p className="text-rose-500 text-[9px] font-black uppercase tracking-tighter ml-1">{errors.name}</p>}
               </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Institutional Work Email</label>
+              <div className="space-y-1">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Institutional Email</label>
                 <input 
                   type="email" 
-                  placeholder="name@college.edu"
-                  className={`w-full px-6 py-4.5 bg-slate-50 border-2 ${errors.email ? 'border-rose-200 focus:border-rose-500' : 'border-slate-100 focus:border-indigo-600'} rounded-2xl outline-none transition-all font-bold text-[#1e293b]`} 
+                  className={`w-full px-5 py-4 bg-slate-50 border ${errors.email ? 'border-rose-300' : 'border-slate-100'} rounded-2xl outline-none focus:border-indigo-600 transition-all font-bold text-sm text-[#0f172a]`} 
                   value={formData.email} 
                   onChange={e => setFormData({...formData, email: e.target.value})} 
+                  placeholder="name@college.edu"
                 />
-                {errors.email && <p className="text-rose-500 text-[9px] font-black uppercase tracking-tighter ml-1">{errors.email}</p>}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Access Designation</label>
+              <div className="grid grid-cols-1 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Designation</label>
                   <select 
-                    className="w-full px-6 py-4.5 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none focus:border-indigo-600 font-bold text-[#1e293b] appearance-none" 
+                    className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-indigo-600 font-bold text-sm text-[#0f172a] appearance-none" 
                     value={formData.role} 
                     onChange={e => setFormData({...formData, role: e.target.value as UserRole})}
                   >
@@ -236,10 +242,10 @@ const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
                     <option value={UserRole.TEACHER}>Faculty Staff</option>
                   </select>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Assigned Branch</label>
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Work Branch</label>
                   <select 
-                    className="w-full px-6 py-4.5 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none focus:border-indigo-600 font-bold text-[#1e293b] appearance-none" 
+                    className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-indigo-600 font-bold text-sm text-[#0f172a] appearance-none" 
                     value={formData.department} 
                     onChange={e => setFormData({...formData, department: e.target.value as Department})}
                   >
@@ -248,9 +254,9 @@ const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
                 </div>
               </div>
 
-              <div className="pt-6">
-                <button type="submit" className="w-full py-5 bg-[#0f172a] hover:bg-slate-800 text-white rounded-[1.5rem] font-black text-[11px] uppercase tracking-[0.2em] shadow-2xl shadow-slate-200 transition-all active:scale-95">
-                  {editingUser ? 'Save Roster Changes' : 'Initialize Profile'}
+              <div className="pt-4">
+                <button type="submit" className="w-full py-4.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-indigo-100 transition-all active:scale-[0.98]">
+                  {editingUser ? 'Update Profile' : 'Authorize Identity'}
                 </button>
               </div>
             </form>

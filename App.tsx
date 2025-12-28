@@ -5,6 +5,7 @@ import { User, UserRole, Department, LeadStage, StudentLead, UserAction } from '
 import { useData } from './context/DataContext';
 import AuthHub from './pages/Login';
 import TeacherDashboard from './pages/TeacherDashboard';
+import HODDashboard from './pages/HODDashboard';
 import UserManagement from './pages/UserManagement';
 import ApprovalCenter from './pages/ApprovalCenter';
 import GlobalAnalytics from './pages/GlobalAnalytics';
@@ -25,6 +26,11 @@ const App: React.FC = () => {
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Manual Lead Form State & Errors
+  const [manualLead, setManualLead] = useState({ name: '', phone: '' });
+  const [phoneError, setPhoneError] = useState('');
+  const [nameError, setNameError] = useState('');
 
   useEffect(() => {
     const saved = localStorage.getItem('ten_logged_in_user');
@@ -49,22 +55,49 @@ const App: React.FC = () => {
     setCurrentUser(null);
   };
 
-  const unassignedLeads = useMemo(() => 
-    leads.filter(l => l.stage === LeadStage.UNASSIGNED || !l.assignedToHOD), 
-  [leads]);
+  // Real-time Dashboard Stats for Admin
+  const stats = useMemo(() => ({
+    total: leads.length,
+    assigned: leads.filter(l => !!l.assignedToHOD).length,
+    targeted: leads.filter(l => l.stage === LeadStage.TARGETED).length,
+    verified: leads.filter(l => l.callVerified).length
+  }), [leads]);
 
-  const hodList = useMemo(() => 
-    users.filter(u => u.role === UserRole.HOD && u.isApproved), 
-  [users]);
+  const unassignedLeads = useMemo(() => leads.filter(l => !l.assignedToHOD), [leads]);
+  const hodList = useMemo(() => users.filter(u => u.role === UserRole.HOD && u.isApproved), [users]);
 
-  const [manualLead, setManualLead] = useState({ name: '', phone: '' });
+  // Validation Logic
+  const handlePhoneChange = (val: string) => {
+    const onlyNums = val.replace(/\D/g, ''); // Remove non-numbers
+    if (onlyNums.length <= 10) {
+      setManualLead(prev => ({ ...prev, phone: onlyNums }));
+      if (onlyNums.length < 10 && onlyNums.length > 0) setPhoneError('Pura 10 digit number likhein');
+      else setPhoneError('');
+    }
+  };
+
+  const handleNameChange = (val: string) => {
+    const onlyLetters = val.replace(/[^a-zA-Z\s]/g, '');
+    setManualLead(prev => ({ ...prev, name: onlyLetters }));
+    if (onlyLetters.length < 3 && onlyLetters.length > 0) setNameError('Naam thoda bada likhein');
+    else setNameError('');
+  };
 
   const handleAddManualLead = (e: React.FormEvent) => {
     e.preventDefault();
+    if (manualLead.phone.length !== 10) {
+      setPhoneError('Sahi 10 digit number chahiye');
+      return;
+    }
+    if (manualLead.name.length < 3) {
+      setNameError('Sahi naam likhein');
+      return;
+    }
+
     const newLead: StudentLead = {
       id: `manual-${Date.now()}`,
       name: manualLead.name,
-      phone: `+91${manualLead.phone.slice(-10)}`,
+      phone: `+91${manualLead.phone}`,
       sourceFile: 'MANUAL',
       department: Department.IT,
       stage: LeadStage.UNASSIGNED,
@@ -110,112 +143,6 @@ const App: React.FC = () => {
     setSelectedLeadIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
   };
 
-  const executeExport = (format: 'pdf' | 'csv' | 'excel') => {
-    const dataToExport = leads;
-    const dateStr = new Date().toLocaleDateString('en-GB');
-    const fileName = `Institutional_Report_${new Date().toISOString().split('T')[0]}`;
-    
-    if (format === 'pdf') {
-      const doc = new jsPDF();
-      
-      // Professional Header
-      doc.setFillColor(30, 41, 59); // Slate 800
-      doc.rect(0, 0, 210, 40, 'F');
-      
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(22);
-      doc.setFont('helvetica', 'bold');
-      doc.text("TRACKNENROLL", 20, 20);
-      
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      doc.text("INSTITUTIONAL ADMISSION STATUS REPORT", 20, 28);
-      doc.text(`DATE: ${dateStr}`, 160, 20);
-
-      // Stats Summary Section
-      doc.setTextColor(30, 41, 59);
-      doc.setFontSize(12);
-      doc.text("EXECUTIVE SUMMARY", 20, 55);
-      doc.line(20, 58, 190, 58);
-      
-      doc.setFontSize(10);
-      doc.text(`Total Leads: ${dataToExport.length}`, 20, 68);
-      doc.text(`Targeted Success: ${dataToExport.filter(l => l.stage === LeadStage.TARGETED).length}`, 70, 68);
-      doc.text(`Discarded: ${dataToExport.filter(l => l.stage === LeadStage.DISCARDED).length}`, 130, 68);
-      doc.text(`Verified Interactions: ${dataToExport.filter(l => l.callVerified).length}`, 20, 75);
-
-      // Table Header
-      const tableTop = 90;
-      doc.setFillColor(241, 245, 249); // Slate 100
-      doc.rect(15, tableTop - 5, 180, 10, 'F');
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8);
-      doc.text("SR", 20, tableTop + 1);
-      doc.text("STUDENT NAME", 35, tableTop + 1);
-      doc.text("CONTACT", 85, tableTop + 1);
-      doc.text("BRANCH", 125, tableTop + 1);
-      doc.text("STATUS", 165, tableTop + 1);
-
-      // Table Rows
-      doc.setFont('helvetica', 'normal');
-      let y = tableTop + 12;
-      dataToExport.forEach((lead, index) => {
-        if (y > 270) {
-          doc.addPage();
-          y = 30;
-        }
-        doc.text(`${index + 1}`, 20, y);
-        doc.text(lead.name.toUpperCase().substring(0, 25), 35, y);
-        doc.text(lead.phone, 85, y);
-        doc.text(lead.department.toUpperCase().substring(0, 15), 125, y);
-        
-        // Status Color Coding logic
-        if (lead.stage === LeadStage.TARGETED) doc.setTextColor(16, 185, 129); // Green
-        else if (lead.stage === LeadStage.DISCARDED) doc.setTextColor(225, 29, 72); // Red
-        else doc.setTextColor(100, 116, 139); // Gray
-        
-        doc.text(lead.stage.toUpperCase(), 165, y);
-        doc.setTextColor(30, 41, 59); // Reset
-        
-        doc.setDrawColor(241, 245, 249);
-        doc.line(15, y + 3, 195, y + 3);
-        y += 10;
-      });
-
-      doc.save(`${fileName}.pdf`);
-    } else if (format === 'excel' || format === 'csv') {
-      const worksheetData = dataToExport.map((l, i) => ({
-        "Serial No": i + 1,
-        "Student Name": l.name,
-        "Phone Number": l.phone,
-        "Branch/Department": l.department,
-        "Current Status": l.stage,
-        "Call Verified": l.callVerified ? "YES" : "NO",
-        "Last Interaction": l.callTimestamp || "N/A",
-        "Source File": l.sourceFile
-      }));
-
-      const ws = XLSX.utils.json_to_sheet(worksheetData);
-      
-      // Auto-size columns (rough approximation)
-      const colWidths = [
-        { wch: 10 }, { wch: 30 }, { wch: 20 }, { wch: 25 }, { wch: 20 }, { wch: 15 }, { wch: 25 }, { wch: 20 }
-      ];
-      ws['!cols'] = colWidths;
-
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Admission_Leads");
-      
-      if (format === 'excel') {
-        XLSX.writeFile(wb, `${fileName}.xlsx`);
-      } else {
-        XLSX.writeFile(wb, `${fileName}.csv`, { bookType: 'csv' });
-      }
-    }
-    
-    setIsExportModalOpen(false);
-  };
-
   if (!currentUser) return (
     <Router>
       <Routes>
@@ -233,6 +160,8 @@ const App: React.FC = () => {
           <Route path="/dashboard" element={
             currentUser.role === UserRole.TEACHER ? (
               <TeacherDashboard currentUser={currentUser} />
+            ) : currentUser.role === UserRole.HOD ? (
+              <HODDashboard currentUser={currentUser} />
             ) : (
               <div className="space-y-6 md:space-y-8 animate-in fade-in duration-500">
                 <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -250,10 +179,10 @@ const App: React.FC = () => {
                   <div className="space-y-6 md:space-y-10">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
                        {[
-                         { label: 'Total Leads', value: leads.length },
-                         { label: 'Assigned', value: leads.filter(l => l.stage === LeadStage.ASSIGNED).length },
-                         { label: 'Targeted', value: leads.filter(l => l.stage === LeadStage.TARGETED).length },
-                         { label: 'Verified', value: leads.filter(l => l.callVerified).length }
+                         { label: 'Kul Leads (Total)', value: stats.total },
+                         { label: 'Baante Gaye (Assigned)', value: stats.assigned },
+                         { label: 'Targeted Leads', value: stats.targeted },
+                         { label: 'Sahi Call (Verified)', value: stats.verified }
                        ].map((item, i) => (
                          <div key={i} className="bg-white p-6 md:p-8 rounded-[2rem] border border-slate-100 shadow-sm group hover:shadow-md transition-all">
                             <p className="text-[9px] font-black uppercase text-slate-400 tracking-[0.15em] mb-2">{item.label}</p>
@@ -266,25 +195,25 @@ const App: React.FC = () => {
                        <div className="relative z-10">
                          <p className="text-xl font-black uppercase tracking-tighter mb-8">System Management</p>
                          <div className="flex flex-wrap gap-4">
-                            <button onClick={() => setIsExportModalOpen(true)} className="px-8 py-4 bg-white text-[#0f172a] rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-all">Download Report</button>
-                            <button onClick={() => setIsImportModalOpen(true)} className="px-8 py-4 bg-indigo-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-700 transition-all">Import Dataset</button>
-                            <button onClick={() => setIsManualLeadModalOpen(true)} className="px-8 py-4 bg-slate-800 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-700 transition-all">Manual Entry</button>
+                            <button onClick={() => setIsImportModalOpen(true)} className="px-8 py-4 bg-indigo-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-700 transition-all">Naye Leads Dalein (Import)</button>
+                            <button onClick={() => setIsManualLeadModalOpen(true)} className="px-8 py-4 bg-slate-800 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-700 transition-all">Ek Lead Dalein (Manual)</button>
                          </div>
                        </div>
                     </div>
                   </div>
                 ) : (
                   <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+                    {/* Allocation List View */}
                     <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
                       <div className="flex-1 w-full">
-                        <input type="text" placeholder="Filter imported leads..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-3 text-xs font-bold outline-none focus:border-indigo-600" />
+                        <input type="text" placeholder="Naam se search karein..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-5 py-3 text-xs font-bold outline-none focus:border-indigo-600" />
                       </div>
                       <button 
                         disabled={selectedLeadIds.length === 0}
                         onClick={() => setIsAssignModalOpen(true)}
                         className="w-full md:w-auto px-10 py-3.5 bg-[#0f172a] disabled:opacity-20 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all"
                       >
-                        Allocate to HOD ({selectedLeadIds.length})
+                        HOD ko dein ({selectedLeadIds.length})
                       </button>
                     </div>
 
@@ -299,9 +228,8 @@ const App: React.FC = () => {
                                   else setSelectedLeadIds([]);
                                 }} className="w-4 h-4 rounded border-slate-200" />
                               </th>
-                              <th className="px-8 py-5">Candidate Name</th>
+                              <th className="px-8 py-5">Student Name</th>
                               <th className="px-8 py-5">Phone</th>
-                              <th className="px-8 py-5">Origin</th>
                               <th className="px-8 py-5 text-right">Status</th>
                             </tr>
                           </thead>
@@ -313,13 +241,9 @@ const App: React.FC = () => {
                                 </td>
                                 <td className="px-8 py-4 font-black text-[#1e293b] text-xs uppercase">{lead.name}</td>
                                 <td className="px-8 py-4 font-bold text-slate-500 text-[10px]">{lead.phone}</td>
-                                <td className="px-8 py-4"><span className="text-[8px] font-black uppercase px-2 py-1 rounded-lg bg-slate-100 text-slate-500 border border-slate-200">{lead.sourceFile}</span></td>
                                 <td className="px-8 py-4 text-right"><span className="text-[8px] font-black uppercase text-amber-500">Unallocated</span></td>
                               </tr>
                             ))}
-                            {unassignedLeads.length === 0 && (
-                              <tr><td colSpan={5} className="py-20 text-center text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">No unallocated nodes available</td></tr>
-                            )}
                           </tbody>
                         </table>
                       </div>
@@ -330,22 +254,66 @@ const App: React.FC = () => {
             )
           } />
 
+          <Route path="/chat" element={<ChatSystem currentUser={currentUser} />} />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
           {currentUser.role === UserRole.ADMIN && (
             <>
               <Route path="/users" element={<UserManagement currentUser={currentUser} />} />
               <Route path="/approvals" element={<ApprovalCenter currentUser={currentUser} />} />
             </>
           )}
-
-          {currentUser.role === UserRole.SUPER_ADMIN && (
-            <Route path="/analytics" element={<GlobalAnalytics />} />
-          )}
-
-          <Route path="/chat" element={<ChatSystem currentUser={currentUser} />} />
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Routes>
 
-        <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx, .xls, .csv" onChange={(e) => handleFileUpload(e, true)} />
+        {/* Manual Lead Modal with Strict Validation */}
+        {isManualLeadModalOpen && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[2000] flex items-center justify-center p-6">
+            <div className="bg-white w-full max-w-md rounded-[2.5rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+              <div className="p-8 bg-[#0f172a] text-white text-center">
+                <h3 className="text-2xl font-black uppercase tracking-tighter leading-none">Manual Entry</h3>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mt-2">Ek Naya Lead Register Karein</p>
+              </div>
+              <form onSubmit={handleAddManualLead} className="p-8 space-y-4">
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Student Full Name</label>
+                  <input 
+                    type="text" 
+                    value={manualLead.name} 
+                    onChange={e => handleNameChange(e.target.value)} 
+                    className={`w-full px-5 py-3.5 bg-slate-50 border ${nameError ? 'border-rose-500' : 'border-slate-100'} rounded-xl outline-none focus:border-indigo-600 font-bold text-sm text-[#1e293b]`} 
+                    placeholder="Poora naam likhein" 
+                    required 
+                  />
+                  {nameError && <p className="text-rose-500 text-[8px] font-black uppercase tracking-widest mt-1 ml-1">{nameError}</p>}
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Contact Number</label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">+91</span>
+                    <input 
+                      type="text" 
+                      value={manualLead.phone} 
+                      onChange={e => handlePhoneChange(e.target.value)} 
+                      className={`w-full pl-12 pr-5 py-3.5 bg-slate-50 border ${phoneError ? 'border-rose-500' : 'border-slate-100'} rounded-xl outline-none focus:border-indigo-600 font-bold text-sm text-[#1e293b]`} 
+                      placeholder="10 Digits ka number" 
+                      required 
+                    />
+                  </div>
+                  {phoneError && <p className="text-rose-500 text-[8px] font-black uppercase tracking-widest mt-1 ml-1">{phoneError}</p>}
+                </div>
+                <div className="pt-4">
+                  <button 
+                    type="submit" 
+                    disabled={!!phoneError || !!nameError || !manualLead.phone || !manualLead.name}
+                    className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-30 text-white rounded-xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-indigo-100 transition-all active:scale-[0.98]"
+                  >
+                    Lead Save Karein
+                  </button>
+                  <button type="button" onClick={() => { setIsManualLeadModalOpen(false); setPhoneError(''); setNameError(''); }} className="w-full py-3 text-[9px] font-black uppercase text-slate-300 hover:text-slate-500 mt-1 transition-colors">Cancel</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
 
         {/* Allocate to HOD Modal */}
         {isAssignModalOpen && (
@@ -353,10 +321,9 @@ const App: React.FC = () => {
             <div className="bg-white w-full max-w-lg rounded-[2.5rem] overflow-hidden shadow-2xl">
               <div className="p-8 bg-[#0f172a] text-white text-center">
                 <h3 className="text-2xl font-black uppercase tracking-tighter">Allocate Leads</h3>
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mt-2">To Department Head (HOD)</p>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mt-2">Kis HOD ko dena hai?</p>
               </div>
-              <div className="p-8 space-y-3 max-h-[400px] overflow-y-auto">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4">Target Institutional HOD</p>
+              <div className="p-8 space-y-3 max-h-[400px] overflow-y-auto custom-scroll">
                 {hodList.map(hod => (
                   <button key={hod.id} onClick={() => executeAllocation(hod.id)} className="w-full p-5 bg-slate-50 hover:bg-indigo-600 hover:text-white rounded-2xl flex items-center justify-between group transition-all border border-slate-100">
                     <div className="text-left">
@@ -366,68 +333,12 @@ const App: React.FC = () => {
                     <svg className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7"/></svg>
                   </button>
                 ))}
-                {hodList.length === 0 && (
-                  <p className="text-center py-10 text-[10px] font-black text-rose-400 uppercase">No approved HODs found in roster</p>
-                )}
-                <button onClick={() => setIsAssignModalOpen(false)} className="w-full py-3 text-[9px] font-black uppercase text-slate-300 hover:text-slate-500 mt-2">Close</button>
+                <button onClick={() => setIsAssignModalOpen(false)} className="w-full py-3 text-[9px] font-black uppercase text-slate-300 hover:text-slate-500 mt-2">Band Karein</button>
               </div>
             </div>
           </div>
         )}
 
-        {isManualLeadModalOpen && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[2000] flex items-center justify-center p-6">
-            <div className="bg-white w-full max-w-md rounded-[2.5rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
-              <div className="p-8 bg-[#0f172a] text-white text-center">
-                <h3 className="text-2xl font-black uppercase tracking-tighter leading-none">Manual Entry</h3>
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mt-2">Single Node Registration</p>
-              </div>
-              <form onSubmit={handleAddManualLead} className="p-8 space-y-4">
-                <div className="space-y-1">
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Student Full Name</label>
-                  <input type="text" value={manualLead.name} onChange={e => setManualLead({ ...manualLead, name: e.target.value })} className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:border-indigo-600 font-bold text-sm text-[#1e293b]" placeholder="Identity Name" required />
-                </div>
-                
-                <div className="space-y-1">
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Contact Number</label>
-                  <input type="tel" value={manualLead.phone} onChange={e => setManualLead({ ...manualLead, phone: e.target.value })} className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:border-indigo-600 font-bold text-sm text-[#1e293b]" placeholder="10 Digit Node" required />
-                </div>
-
-                <div className="pt-4">
-                  <button type="submit" className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-indigo-100 transition-all active:scale-[0.98]">Provision Lead</button>
-                  <button type="button" onClick={() => setIsManualLeadModalOpen(false)} className="w-full py-3 text-[9px] font-black uppercase text-slate-300 hover:text-slate-500 mt-1 transition-colors">Cancel</button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {isExportModalOpen && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[2000] flex items-center justify-center p-6">
-            <div className="bg-white w-full max-w-xs rounded-[2.5rem] overflow-hidden shadow-2xl">
-               <div className="p-8 bg-indigo-600 text-white text-center"><h3 className="text-2xl font-black uppercase tracking-tighter">Export Report</h3></div>
-               <div className="p-8 space-y-3">
-                  {['pdf', 'excel', 'csv'].map(fmt => (
-                    <button key={fmt} onClick={() => executeExport(fmt as any)} className="w-full py-4 bg-slate-50 hover:bg-indigo-600 hover:text-white rounded-xl font-black text-[9px] uppercase tracking-widest transition-all">Format: {fmt.toUpperCase()}</button>
-                  ))}
-                  <button onClick={() => setIsExportModalOpen(false)} className="w-full py-3 text-[9px] font-black uppercase text-slate-300 hover:text-slate-500 transition-colors">Discard</button>
-               </div>
-            </div>
-          </div>
-        )}
-
-        {isImportModalOpen && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[2000] flex items-center justify-center p-6">
-            <div className="bg-white w-full max-w-md rounded-[2.5rem] overflow-hidden shadow-2xl">
-               <div className="p-8 bg-emerald-600 text-white text-center"><h3 className="text-2xl font-black uppercase tracking-tighter">Bulk Import</h3></div>
-               <div className="p-8 space-y-4 text-center">
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-relaxed">Choose an institutional dataset (XLSX/CSV).</p>
-                  <button onClick={() => fileInputRef.current?.click()} className="w-full py-10 border-2 border-dashed border-slate-200 rounded-3xl hover:border-emerald-500 hover:bg-emerald-50 transition-all font-black text-[10px] uppercase tracking-widest text-slate-400">Select Dataset File</button>
-                  <button onClick={() => setIsImportModalOpen(false)} className="w-full py-3 text-[9px] font-black uppercase text-slate-300 hover:text-slate-500 transition-colors">Return</button>
-               </div>
-            </div>
-          </div>
-        )}
         <AIChatbot />
       </Layout>
     </Router>

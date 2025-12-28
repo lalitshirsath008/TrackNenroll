@@ -37,15 +37,14 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
     await new Promise(r => setTimeout(r, 600));
     const user = users.find(u => u.email.toLowerCase() === loginEmail.toLowerCase());
     
-    // In a real app, you'd verify the hashed password here.
     if (user && (loginPass === 'admin123' || loginPass === 'password' || loginPass === '123456')) {
       if (!user.isApproved) {
-        setError('Account awaiting institutional approval.');
+        setError('Aapka account abhi tak approve nahi hua hai.');
       } else {
         onLogin(user);
       }
     } else {
-      setError('Invalid credentials or unauthorized account.');
+      setError('Galat email ya password. Dubara check karein.');
     }
     setLoading(false);
   };
@@ -54,13 +53,23 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
     e.preventDefault();
     setError('');
     
-    if (regPass !== regConfirmPass) {
-      setError('Passwords do not match.');
+    if (regName.trim().length < 3) {
+      setError('Aapka poora naam likhein.');
+      return;
+    }
+
+    if (!regEmail.includes('@')) {
+      setError('Sahi institutional email daalein.');
       return;
     }
 
     if (regPass.length < 6) {
-      setError('Password must be at least 6 characters.');
+      setError('Password kam se kam 6 aksharo ka hona chahiye.');
+      return;
+    }
+
+    if (regPass !== regConfirmPass) {
+      setError('Dono password alag hain. Phir se likhein.');
       return;
     }
 
@@ -68,15 +77,15 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
     
     const existing = users.find(u => u.email.toLowerCase() === regEmail.toLowerCase());
     if (existing) {
-      setError('Email already exists in the roster.');
+      setError('Yeh email pehle se register hai.');
       setLoading(false);
       return;
     }
 
     const newUser: User = {
       id: `u-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-      name: regName,
-      email: regEmail,
+      name: regName.trim(),
+      email: regEmail.trim().toLowerCase(),
       role: regRole,
       department: (regRole === UserRole.HOD || regRole === UserRole.TEACHER) ? regDept : undefined,
       isApproved: false,
@@ -85,7 +94,7 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
 
     try {
       await registerUser(newUser);
-      setSuccess('Institutional registration request transmitted.');
+      setSuccess('Registration request bhej di gayi hai. Admin approve karega.');
       setTimeout(() => {
         setAuthMode('login');
         setSuccess('');
@@ -95,7 +104,7 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
         setRegConfirmPass('');
       }, 3000);
     } catch (err) {
-      setError('Transmission failed. Network error.');
+      setError('Network problem. Dubara koshish karein.');
     }
     setLoading(false);
   };
@@ -106,7 +115,7 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
         <div className="text-center mb-10">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-slate-900 rounded-2xl text-white font-black text-2xl shadow-lg mb-4">T</div>
           <h1 className="text-3xl font-black text-slate-900 tracking-tight uppercase">TrackNEnroll</h1>
-          <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] mt-1">Institutional Access Node</p>
+          <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] mt-1">Institutional Login</p>
         </div>
 
         <div className="bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-slate-100 p-10">
@@ -114,7 +123,7 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="mb-8 text-center">
                 <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Login</h2>
-                <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-1">Enter your credentials</p>
+                <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-1">Aapne details daalein</p>
               </div>
 
               <form onSubmit={handleLoginSubmit} className="space-y-5">
@@ -130,24 +139,24 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Access Key</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Password</label>
                   <input type="password" value={loginPass} onChange={e => setLoginPass(e.target.value)} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-600 transition-all font-bold" placeholder="••••••••" required />
                 </div>
 
                 <button type="submit" disabled={loading} className="w-full py-5 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all shadow-xl shadow-slate-200 active:scale-[0.98] mt-4">
-                  {loading ? 'Authenticating...' : 'Sign In'}
+                  {loading ? 'Check ho raha hai...' : 'Sign In'}
                 </button>
               </form>
 
               <div className="mt-8 pt-8 border-t border-slate-50 text-center">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">New faculty? <button onClick={() => setAuthMode('register')} className="text-indigo-600 font-black hover:underline ml-1">Request Account</button></p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Naya faculty? <button onClick={() => setAuthMode('register')} className="text-indigo-600 font-black hover:underline ml-1">Naya Account Banayein</button></p>
               </div>
             </div>
           ) : (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="mb-8 text-center">
                 <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Register</h2>
-                <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-1">Profile Provisioning</p>
+                <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-1">Profile Banayein</p>
               </div>
 
               <form onSubmit={handleRegisterSubmit} className="space-y-4">
@@ -163,18 +172,18 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Identity Name</label>
-                  <input type="text" value={regName} onChange={e => setRegName(e.target.value)} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-600 font-bold" placeholder="Full Name" required />
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Poora Naam</label>
+                  <input type="text" value={regName} onChange={e => setRegName(e.target.value)} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-600 font-bold" placeholder="Identity Name" required />
                 </div>
 
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Work Email</label>
-                  <input type="email" value={regEmail} onChange={e => setRegEmail(e.target.value)} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-600 font-bold" placeholder="Institutional Email" required />
+                  <input type="email" value={regEmail} onChange={e => setRegEmail(e.target.value)} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-600 font-bold" placeholder="name@college.edu" required />
                 </div>
 
                 {(regRole === UserRole.HOD || regRole === UserRole.TEACHER) && (
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Branch</label>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Branch (Vibhaag)</label>
                     <select value={regDept} onChange={e => setRegDept(e.target.value as Department)} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-600 font-bold text-slate-700 appearance-none">
                       {Object.values(Department).map(d => <option key={d} value={d}>{d}</option>)}
                     </select>
@@ -183,7 +192,7 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Create Pass</label>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Naya Pass</label>
                     <input type="password" value={regPass} onChange={e => setRegPass(e.target.value)} className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-600 font-bold" placeholder="••••••" required />
                   </div>
                   <div className="space-y-1.5">
@@ -193,15 +202,13 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
                 </div>
 
                 <button type="submit" disabled={loading} className="w-full py-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all mt-4 active:scale-[0.98]">
-                  Submit Request
+                  Request Bheinjein
                 </button>
-                <button type="button" onClick={() => setAuthMode('login')} className="w-full text-center text-[10px] font-black uppercase text-slate-400 hover:text-slate-600 mt-4">Back to Login</button>
+                <button type="button" onClick={() => setAuthMode('login')} className="w-full text-center text-[10px] font-black uppercase text-slate-400 hover:text-slate-600 mt-4">Login Par Jayein</button>
               </form>
             </div>
           )}
         </div>
-        
-        <p className="text-center mt-10 text-[9px] text-slate-400 uppercase tracking-[0.3em] font-black">Data Synchronized • Secure Institutional Network</p>
       </div>
     </div>
   );

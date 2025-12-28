@@ -53,12 +53,12 @@ const ChatSystem: React.FC<ChatProps> = ({ currentUser }) => {
     }
   };
 
-  // FIX: Added messages.length as a dependency to trigger seen status whenever new messages arrive
+  // Improved reactive clearing of seen status
   useEffect(() => {
     if (activePartnerId) {
       markMessagesAsSeen(activePartnerId, currentUser.id);
     }
-  }, [activePartnerId, messages.length, currentUser.id, markMessagesAsSeen]);
+  }, [activePartnerId, messages, currentUser.id, markMessagesAsSeen]);
 
   useEffect(() => { 
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' }); 

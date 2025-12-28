@@ -21,7 +21,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { messages } = useData();
+  const { messages, users } = useData();
 
   const getRoleLabel = (role: UserRole) => {
     if (role === UserRole.SUPER_ADMIN) return 'Principal';
@@ -30,9 +30,16 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
     return 'Teacher';
   };
 
+  // Precise unreadCount logic to prevent ghost badges
   const unreadCount = useMemo(() => {
-    return messages.filter(m => m.receiverId === user.id && m.status !== 'seen').length;
-  }, [messages, user.id]);
+    // Only count messages from users that are currently approved/valid
+    const activeUserIds = new Set(users.filter(u => u.isApproved).map(u => u.id));
+    return messages.filter(m => 
+      m.receiverId === user.id && 
+      m.status !== 'seen' && 
+      activeUserIds.has(m.senderId)
+    ).length;
+  }, [messages, user.id, users]);
 
   const menuItems: MenuItem[] = [
     { 
@@ -114,8 +121,8 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
                 {item.icon}
               </div>
               <span className="text-[11px] font-black uppercase tracking-widest">{item.label}</span>
-              {item.badge ? (
-                <span className="ml-auto w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] font-black shadow-lg shadow-red-900/20">
+              {item.badge && item.badge > 0 ? (
+                <span className="ml-auto w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] font-black shadow-lg shadow-red-900/20 animate-pulse">
                   {item.badge}
                 </span>
               ) : null}
@@ -124,20 +131,21 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
         </nav>
 
         <div className="p-8 mt-auto">
-          <div className="p-6 bg-white/5 rounded-[2rem] border border-white/5 backdrop-blur-md">
+          {/* Improved Visibility for Account Detail Bar */}
+          <div className="p-6 bg-[#1a2336] rounded-[2.5rem] border border-white/10 backdrop-blur-md shadow-2xl">
             <div className="flex items-center gap-4 mb-6">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center font-black text-lg text-white shadow-lg">
+              <div className="w-14 h-14 rounded-2xl bg-indigo-600 flex items-center justify-center font-black text-xl text-white shadow-lg border border-white/20">
                 {user.name.split(' ').map(n => n[0]).join('')}
               </div>
               <div className="flex-1 overflow-hidden">
-                <p className="text-xs font-black text-white truncate leading-tight uppercase tracking-tight">{user.name}</p>
-                <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest mt-1">{getRoleLabel(user.role)}</p>
+                <p className="text-sm font-black text-white truncate leading-tight uppercase tracking-tight block">{user.name}</p>
+                <p className="text-[10px] text-indigo-400 font-black uppercase tracking-[0.2em] mt-1.5">{getRoleLabel(user.role)}</p>
               </div>
             </div>
             
             <button 
               onClick={onLogout} 
-              className="w-full py-4 bg-white/5 hover:bg-red-500 text-slate-400 hover:text-white rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all duration-300 active:scale-95"
+              className="w-full py-4 bg-white/5 hover:bg-red-500 text-slate-300 hover:text-white rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all duration-300 active:scale-95 border border-white/5"
             >
               Log Out
             </button>
@@ -157,7 +165,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
         </header>
 
         <main className="flex-1 overflow-y-auto overflow-x-hidden p-6 md:p-12 custom-scroll">
-          <div className="max-get7xl mx-auto">
+          <div className="max-w-7xl mx-auto">
             {children}
           </div>
         </main>

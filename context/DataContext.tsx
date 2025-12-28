@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { StudentLead, Message, User, LeadStage, SystemLog, UserAction, Department, UserRole } from '../types';
 import { db } from '../lib/firebase';
@@ -23,6 +24,8 @@ interface DataContextType {
   updateLead: (id: string, updates: Partial<StudentLead>) => Promise<void>;
   assignLeadsToHOD: (leadIds: string[], hodId: string) => Promise<void>;
   assignLeadsToTeacher: (leadIds: string[], teacherId: string) => Promise<void>;
+  autoDistributeLeadsToHODs: (leadIds: string[]) => Promise<void>;
+  autoDistributeLeadsToTeachers: (leadIds: string[], department: Department) => Promise<void>;
   sendMessage: (msg: Message) => Promise<void>;
   registerUser: (user: User) => Promise<void>;
   addUser: (user: User) => Promise<void>;
@@ -109,7 +112,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateLead = async (id: string, updates: Partial<StudentLead>) => {
-    // Using setDoc with merge: true instead of updateDoc to prevent "No document to update" errors
     await setDoc(doc(db, 'leads', id), updates, { merge: true });
   };
 
@@ -122,7 +124,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateUser = async (id: string, updates: Partial<User>) => {
-    // Using setDoc with merge: true instead of updateDoc to prevent "No document to update" errors
     await setDoc(doc(db, 'users', id), updates, { merge: true });
   };
 
@@ -143,7 +144,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const hod = users.find(u => u.id === hodId);
     const batch = writeBatch(db);
     leadIds.forEach(id => {
-      // Using batch.set with merge: true instead of batch.update
       batch.set(doc(db, 'leads', id), {
         assignedToHOD: hodId,
         department: hod?.department || Department.IT,
@@ -156,9 +156,39 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const assignLeadsToTeacher = async (leadIds: string[], teacherId: string) => {
     const batch = writeBatch(db);
     leadIds.forEach(id => {
-      // Using batch.set with merge: true instead of batch.update
       batch.set(doc(db, 'leads', id), {
         assignedToTeacher: teacherId,
+        stage: LeadStage.ASSIGNED
+      }, { merge: true });
+    });
+    await batch.commit();
+  };
+
+  const autoDistributeLeadsToHODs = async (leadIds: string[]) => {
+    const approvedHODs = users.filter(u => u.role === UserRole.HOD && u.isApproved);
+    if (approvedHODs.length === 0 || leadIds.length === 0) return;
+
+    const batch = writeBatch(db);
+    leadIds.forEach((id, index) => {
+      const assignedHOD = approvedHODs[index % approvedHODs.length];
+      batch.set(doc(db, 'leads', id), {
+        assignedToHOD: assignedHOD.id,
+        department: assignedHOD.department || Department.IT,
+        stage: LeadStage.ASSIGNED
+      }, { merge: true });
+    });
+    await batch.commit();
+  };
+
+  const autoDistributeLeadsToTeachers = async (leadIds: string[], department: Department) => {
+    const deptTeachers = users.filter(u => u.role === UserRole.TEACHER && u.department === department && u.isApproved);
+    if (deptTeachers.length === 0 || leadIds.length === 0) return;
+
+    const batch = writeBatch(db);
+    leadIds.forEach((id, index) => {
+      const assignedTeacher = deptTeachers[index % deptTeachers.length];
+      batch.set(doc(db, 'leads', id), {
+        assignedToTeacher: assignedTeacher.id,
         stage: LeadStage.ASSIGNED
       }, { merge: true });
     });
@@ -178,7 +208,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const batch = writeBatch(db);
     unseenIds.forEach(id => {
-      // Use batch.set with merge: true to avoid "No document to update" errors during race conditions
       batch.set(doc(db, 'messages', id), { status: 'seen' }, { merge: true });
     });
     await batch.commit();
@@ -220,6 +249,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <DataContext.Provider value={{ 
       leads, messages, users, logs, loading,
       addLead, batchAddLeads, updateLead, assignLeadsToHOD, assignLeadsToTeacher, 
+      autoDistributeLeadsToHODs, autoDistributeLeadsToTeachers,
       sendMessage, registerUser, addUser, updateUser, deleteUser, handleUserApproval,
       markMessagesAsSeen, addLog, exportSystemData, importSystemData
     }}>

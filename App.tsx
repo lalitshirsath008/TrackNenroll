@@ -16,7 +16,7 @@ import { jsPDF } from 'jspdf';
 import * as XLSX from 'xlsx';
 
 const App: React.FC = () => {
-  const { leads, users, logs, loading, batchAddLeads, addLead, addLog, assignLeadsToHOD } = useData();
+  const { leads, users, logs, loading, batchAddLeads, addLead, addLog, assignLeadsToHOD, autoDistributeLeadsToHODs } = useData();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isManualLeadModalOpen, setIsManualLeadModalOpen] = useState(false);
   const [adminTab, setAdminTab] = useState<'overview' | 'leads' | 'logs'>('overview');
@@ -126,6 +126,22 @@ const App: React.FC = () => {
     };
     reader.readAsBinaryString(file);
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleAutoDistribution = async () => {
+    if (unassignedLeads.length === 0) {
+      alert("No unassigned leads found in pool.");
+      return;
+    }
+    if (hodList.length === 0) {
+      alert("No active HOD nodes found for distribution.");
+      return;
+    }
+    if (window.confirm(`Auto-distribute ${unassignedLeads.length} leads equally among ${hodList.length} HODs?`)) {
+      await autoDistributeLeadsToHODs(unassignedLeads.map(l => l.id));
+      addLog(currentUser?.id || 'admin', currentUser?.name || 'Admin', UserAction.IMPORT_LEADS, `Auto-distributed ${unassignedLeads.length} leads equally across HODs.`);
+      alert("Equal distribution completed successfully!");
+    }
   };
 
   const downloadInstitutionalReport = (format: 'pdf' | 'excel') => {
@@ -309,9 +325,15 @@ const App: React.FC = () => {
                         <svg className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                         <input type="text" placeholder="Search unassigned pool..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-14 pr-6 py-5 bg-slate-50 border border-slate-200 rounded-2xl text-[12px] font-bold outline-none focus:border-indigo-600 transition-all shadow-sm" />
                       </div>
-                      <button disabled={selectedLeadIds.length === 0} onClick={() => setIsAssignModalOpen(true)} className="w-full md:w-auto px-12 py-5 bg-[#0f172a] disabled:opacity-30 text-white rounded-2xl font-black text-[12px] uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all">
-                        Delegate to HOD ({selectedLeadIds.length})
-                      </button>
+                      <div className="flex gap-4 w-full md:w-auto">
+                        <button onClick={handleAutoDistribution} className="flex-1 md:flex-none px-10 py-5 bg-indigo-600 text-white rounded-2xl font-black text-[12px] uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-2">
+                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                           Auto-Distribute
+                        </button>
+                        <button disabled={selectedLeadIds.length === 0} onClick={() => setIsAssignModalOpen(true)} className="flex-1 md:flex-none px-12 py-5 bg-[#0f172a] disabled:opacity-30 text-white rounded-2xl font-black text-[12px] uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all">
+                          Delegate ({selectedLeadIds.length})
+                        </button>
+                      </div>
                     </div>
                     <div className="bg-white rounded-[3.5rem] border border-slate-100 overflow-hidden shadow-sm">
                       <div className="overflow-x-auto">

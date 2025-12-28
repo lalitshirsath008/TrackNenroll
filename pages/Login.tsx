@@ -73,10 +73,19 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
       return;
     }
 
+    // HOD REDUNDANCY CHECK: Ensure only one HOD per department
+    if (regRole === UserRole.HOD) {
+      const existingHOD = users.find(u => u.role === UserRole.HOD && u.department === regDept);
+      if (existingHOD) {
+        setError(`Institutional Conflict: An HOD for ${regDept} is already registered in the system.`);
+        return;
+      }
+    }
+
     setLoading(true);
     
-    const existing = users.find(u => u.email.toLowerCase() === regEmail.toLowerCase());
-    if (existing) {
+    const existingEmail = users.find(u => u.email.toLowerCase() === regEmail.toLowerCase());
+    if (existingEmail) {
       setError('This email is already registered.');
       setLoading(false);
       return;

@@ -1,12 +1,12 @@
 
 import React, { useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
-import { User, StudentLead, UserRole, LeadStage, Department } from '../types';
+import { User, StudentLead, UserRole, LeadStage, Department, UserAction } from '../types';
 import { jsPDF } from 'jspdf';
 import * as XLSX from 'xlsx';
 
 const HODDashboard: React.FC<{ currentUser: User }> = ({ currentUser }) => {
-  const { leads, users, assignLeadsToTeacher } = useData();
+  const { leads, users, assignLeadsToTeacher, autoDistributeLeadsToTeachers, addLog } = useData();
   const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -55,6 +55,22 @@ const HODDashboard: React.FC<{ currentUser: User }> = ({ currentUser }) => {
     await assignLeadsToTeacher(selectedLeadIds, teacherId);
     setSelectedLeadIds([]);
     setIsAssignModalOpen(false);
+  };
+
+  const handleAutoDistribution = async () => {
+    if (unassignedToTeacher.length === 0) {
+      alert("No unassigned leads found in departmental pool.");
+      return;
+    }
+    if (myTeachers.length === 0) {
+      alert("No active faculty nodes found in your department.");
+      return;
+    }
+    if (window.confirm(`Auto-distribute ${unassignedToTeacher.length} leads equally among ${myTeachers.length} active teachers?`)) {
+      await autoDistributeLeadsToTeachers(unassignedToTeacher.map(l => l.id), currentUser.department!);
+      addLog(currentUser.id, currentUser.name, UserAction.IMPORT_LEADS, `HOD Auto-distributed ${unassignedToTeacher.length} leads across department faculty.`);
+      alert("Equal distribution to faculty completed!");
+    }
   };
 
   const downloadDeptReport = (format: 'pdf' | 'excel') => {
@@ -151,12 +167,16 @@ const HODDashboard: React.FC<{ currentUser: User }> = ({ currentUser }) => {
                <svg className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                <input type="text" placeholder="Search departmental pool..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-14 pr-6 py-5 bg-slate-50 border border-slate-200 rounded-2xl text-[12px] font-bold outline-none focus:border-indigo-600" />
             </div>
-            <div className="flex gap-3 w-full md:w-auto">
+            <div className="flex flex-wrap gap-3 w-full md:w-auto">
               <div className="flex bg-slate-100 rounded-2xl p-1.5 border border-slate-200">
                 <button onClick={() => downloadDeptReport('pdf')} className="px-5 py-3.5 hover:bg-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all">PDF Report</button>
                 <button onClick={() => downloadDeptReport('excel')} className="px-5 py-3.5 hover:bg-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all">Excel</button>
               </div>
-              <button disabled={selectedLeadIds.length === 0} onClick={() => setIsAssignModalOpen(true)} className="flex-1 md:flex-none px-12 py-5 bg-indigo-600 disabled:opacity-20 text-white rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-indigo-100 active:scale-95 transition-all">
+              <button onClick={handleAutoDistribution} className="px-10 py-5 bg-indigo-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-indigo-100 active:scale-95 transition-all flex items-center justify-center gap-2">
+                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                 Auto-Distribute
+              </button>
+              <button disabled={selectedLeadIds.length === 0} onClick={() => setIsAssignModalOpen(true)} className="flex-1 md:flex-none px-12 py-5 bg-[#0f172a] disabled:opacity-20 text-white rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all">
                 Delegate ({selectedLeadIds.length})
               </button>
             </div>

@@ -39,12 +39,12 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
     
     if (user && (loginPass === 'admin123' || loginPass === 'password' || loginPass === '123456')) {
       if (!user.isApproved) {
-        setError('Your account is not approved by the admin yet.');
+        setError('Your account is not approved yet.');
       } else {
         onLogin(user);
       }
     } else {
-      setError('Wrong email or password. Please try again.');
+      setError('Wrong email or password.');
     }
     setLoading(false);
   };
@@ -54,43 +54,19 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
     setError('');
     
     if (regName.trim().length < 3) {
-      setError('Name should be at least 3 letters.');
+      setError('Name is too short.');
       return;
     }
 
-    if (!regEmail.includes('@') || !regEmail.includes('.')) {
-      setError('Please enter a valid email address.');
-      return;
-    }
-
-    if (regPass.length < 6) {
-      setError('Password must be at least 6 characters.');
-      return;
-    }
-
-    if (regPass !== regConfirmPass) {
-      setError('Passwords do not match.');
-      return;
-    }
-
-    // HOD REDUNDANCY CHECK: Ensure only one HOD per department
     if (regRole === UserRole.HOD) {
       const existingHOD = users.find(u => u.role === UserRole.HOD && u.department === regDept);
       if (existingHOD) {
-        setError(`Institutional Conflict: An HOD for ${regDept} is already registered in the system.`);
+        setError(`HOD for ${regDept} already exists.`);
         return;
       }
     }
 
     setLoading(true);
-    
-    const existingEmail = users.find(u => u.email.toLowerCase() === regEmail.toLowerCase());
-    if (existingEmail) {
-      setError('This email is already registered.');
-      setLoading(false);
-      return;
-    }
-
     const newUser: User = {
       id: `u-${Date.now()}`,
       name: regName.trim(),
@@ -103,113 +79,87 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
 
     try {
       await registerUser(newUser);
-      setSuccess('Request sent! Please wait for the admin to approve.');
+      setSuccess('Request sent! Wait for approval.');
       setTimeout(() => {
         setAuthMode('login');
         setSuccess('');
-        setRegName('');
-        setRegEmail('');
-        setRegPass('');
-        setRegConfirmPass('');
-      }, 3000);
+      }, 2000);
     } catch (err) {
-      setError('Network error. Please try again later.');
+      setError('Error occurred.');
     }
     setLoading(false);
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] p-6 font-['Inter']">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-slate-900 rounded-[2rem] text-white font-black text-3xl shadow-2xl mb-6">T</div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase leading-none">TrackNEnroll</h1>
-          <p className="text-slate-500 text-[11px] font-black uppercase tracking-[0.4em] mt-2">Institutional Node Access</p>
+    <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] p-4">
+      <div className="w-full max-w-sm">
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center justify-center w-14 h-14 bg-slate-900 rounded-2xl text-white font-black text-xl shadow-xl mb-4">T</div>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight uppercase">TrackNEnroll</h1>
+          <p className="text-slate-500 text-[9px] font-black uppercase tracking-widest mt-1">Institutional Node</p>
         </div>
 
-        <div className="bg-white rounded-[3rem] shadow-[0_30px_70px_-15px_rgba(0,0,0,0.1)] border border-slate-100 p-12">
+        <div className="bg-white rounded-3xl shadow-xl border border-slate-100 p-8 md:p-10">
           {authMode === 'login' ? (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="mb-10 text-center">
-                <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tight">Sign In</h2>
-                <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mt-2 italic">Institutional Clearance Required</p>
-              </div>
-
-              <form onSubmit={handleLoginSubmit} className="space-y-6">
-                {error && <div className="p-5 bg-rose-50 text-rose-600 text-[10px] font-black uppercase tracking-widest rounded-2xl border border-rose-100 text-center">{error}</div>}
-                
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] ml-1">Work Email</label>
-                  <input type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} className="w-full px-6 py-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-600 transition-all font-bold text-slate-900" placeholder="name@college.edu" required />
+            <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <h2 className="text-xl font-black text-slate-900 uppercase text-center mb-6">Sign In</h2>
+              <form onSubmit={handleLoginSubmit} className="space-y-4">
+                {error && <div className="p-3 bg-rose-50 text-rose-600 text-[9px] font-black uppercase text-center rounded-xl">{error}</div>}
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Work Email</label>
+                  <input type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 text-sm font-bold" required />
                 </div>
-
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] ml-1">Secure Password</label>
-                  <input type="password" value={loginPass} onChange={e => setLoginPass(e.target.value)} className="w-full px-6 py-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-600 transition-all font-bold text-slate-900" placeholder="••••••••" required />
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Password</label>
+                  <input type="password" value={loginPass} onChange={e => setLoginPass(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 text-sm font-bold" required />
                 </div>
-
-                <button type="submit" disabled={loading} className="w-full py-6 bg-slate-950 hover:bg-slate-800 text-white rounded-2xl font-black text-[12px] uppercase tracking-[0.3em] transition-all shadow-2xl active:scale-[0.98] mt-6">
-                  {loading ? 'Authenticating...' : 'Authorize Login'}
+                <button type="submit" className="w-full py-4 bg-slate-950 hover:bg-slate-800 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg mt-4 transition-all active:scale-95">
+                  {loading ? 'Processing...' : 'Authorize'}
                 </button>
               </form>
-
-              <div className="mt-10 pt-10 border-t border-slate-50 text-center">
-                <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Unregistered Node? <button onClick={() => setAuthMode('register')} className="text-indigo-600 font-black hover:underline ml-1">Create Access Request</button></p>
-              </div>
+              <button onClick={() => setAuthMode('register')} className="w-full text-center text-[9px] font-black text-indigo-600 uppercase mt-6 tracking-widest hover:underline">New Request Access</button>
             </div>
           ) : (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="mb-10 text-center">
-                <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tight">Request Access</h2>
-                <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mt-2 italic">Provision Your Staff Profile</p>
-              </div>
-
-              <form onSubmit={handleRegisterSubmit} className="space-y-5">
-                {success && <div className="p-5 bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest rounded-2xl border border-emerald-100 text-center">{success}</div>}
-                {error && <div className="p-5 bg-rose-50 text-rose-600 text-[10px] font-black uppercase tracking-widest rounded-2xl border border-rose-100 text-center">{error}</div>}
+            <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <h2 className="text-xl font-black text-slate-900 uppercase text-center mb-6">Register</h2>
+              <form onSubmit={handleRegisterSubmit} className="space-y-3">
+                {success && <div className="p-3 bg-emerald-50 text-emerald-600 text-[9px] font-black uppercase text-center rounded-xl">{success}</div>}
+                {error && <div className="p-3 bg-rose-50 text-rose-600 text-[9px] font-black uppercase text-center rounded-xl">{error}</div>}
                 
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-3 gap-2">
                   {[UserRole.TEACHER, UserRole.HOD, UserRole.ADMIN].map(r => (
-                    <button key={r} type="button" onClick={() => setRegRole(r)} className={`py-4 text-[9px] font-black uppercase rounded-2xl border transition-all ${regRole === r ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg' : 'bg-slate-50 border-slate-200 text-slate-400'}`}>
+                    <button key={r} type="button" onClick={() => setRegRole(r)} className={`py-2.5 text-[8px] font-black uppercase rounded-lg border ${regRole === r ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-slate-50 border-slate-100 text-slate-400'}`}>
                       {r.split(' ')[0]}
                     </button>
                   ))}
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Identity Name</label>
-                  <input type="text" value={regName} onChange={e => setRegName(e.target.value)} className="w-full px-6 py-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-600 font-bold" placeholder="Your Name" required />
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Name</label>
+                  <input type="text" value={regName} onChange={e => setRegName(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-xs font-bold" required />
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Institutional Email</label>
-                  <input type="email" value={regEmail} onChange={e => setRegEmail(e.target.value)} className="w-full px-6 py-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-600 font-bold" placeholder="name@college.edu" required />
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Email</label>
+                  <input type="email" value={regEmail} onChange={e => setRegEmail(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-xs font-bold" required />
                 </div>
 
                 {(regRole === UserRole.HOD || regRole === UserRole.TEACHER) && (
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Branch (Department)</label>
-                    <select value={regDept} onChange={e => setRegDept(e.target.value as Department)} className="w-full px-6 py-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-600 font-bold text-slate-700 appearance-none">
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Branch</label>
+                    <select value={regDept} onChange={e => setRegDept(e.target.value as Department)} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-xs font-bold">
                       {Object.values(Department).map(d => <option key={d} value={d}>{d}</option>)}
                     </select>
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Password</label>
-                    <input type="password" value={regPass} onChange={e => setRegPass(e.target.value)} className="w-full px-5 py-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-600 font-bold" placeholder="••••••" required />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Verify</label>
-                    <input type="password" value={regConfirmPass} onChange={e => setRegConfirmPass(e.target.value)} className="w-full px-5 py-5 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-600 font-bold" placeholder="••••••" required />
-                  </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <input type="password" value={regPass} onChange={e => setRegPass(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-xs font-bold" placeholder="Password" required />
+                  <input type="password" value={regConfirmPass} onChange={e => setRegConfirmPass(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-xs font-bold" placeholder="Confirm" required />
                 </div>
 
-                <button type="submit" disabled={loading} className="w-full py-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-[12px] uppercase tracking-[0.3em] transition-all mt-6 shadow-2xl active:scale-[0.98]">
-                  Submit Request
-                </button>
-                <button type="button" onClick={() => setAuthMode('login')} className="w-full text-center text-[10px] font-black uppercase text-slate-400 hover:text-slate-600 mt-6 tracking-widest">Already have an account? Login</button>
+                <button type="submit" className="w-full py-4 bg-indigo-600 text-white rounded-xl font-black text-[10px] uppercase mt-4">Submit</button>
+                <button type="button" onClick={() => setAuthMode('login')} className="w-full text-center text-[9px] font-black text-slate-400 uppercase mt-4 tracking-widest">Back to Login</button>
               </form>
             </div>
           )}

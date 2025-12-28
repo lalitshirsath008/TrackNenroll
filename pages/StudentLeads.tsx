@@ -66,18 +66,21 @@ const StudentLeads: React.FC = () => {
     const fileName = `SubBranch_Forwarded_Leads_${new Date().toISOString().slice(0,10)}.xlsx`;
     XLSX.writeFile(wb, fileName);
 
-    // 3. Prepare and trigger pre-filled email
+    // 3. Prepare and trigger Gmail Compose in Browser
     const subject = encodeURIComponent(`Action Required: Forwarded 11th/12th Student Leads for Branch Processing`);
     const body = encodeURIComponent(
-      `Hello Sub-Branch Team,\n\nWe are forwarding a list of ${filteredLeads.length} student leads categorized as "${filterResponse}". These students have been contacted by our counselors and require immediate attention for the next phase of admissions.\n\nSummary:\n- Total Leads: ${filteredLeads.length}\n- Category: ${filterResponse}\n- Exported on: ${new Date().toLocaleString()}\n\nNote: Please attach the downloaded file "${fileName}" manually before sending.\n\nRegards,\nInstitutional Admin`
+      `Hello Sub-Branch Team,\n\nWe are forwarding a list of ${filteredLeads.length} student leads categorized as "${filterResponse}". These students have been contacted by our counselors and require immediate attention for the next phase of admissions.\n\nSummary:\n- Total Leads: ${filteredLeads.length}\n- Category: ${filterResponse}\n- Exported on: ${new Date().toLocaleString()}\n\nNote: PLEASE ATTACH THE DOWNLOADED EXCEL FILE "${fileName}" MANUALLY TO THIS GMAIL DRAFT.\n\nRegards,\nInstitutional Admin`
     );
 
+    // Opening Gmail Compose window in a new tab
+    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&su=${subject}&body=${body}`;
+    
     setTimeout(() => {
-      window.location.href = `mailto:?subject=${subject}&body=${body}`;
+      window.open(gmailUrl, '_blank');
     }, 1000);
 
     if (currentUser.id) {
-      addLog(currentUser.id, currentUser.name, UserAction.MANUAL_ADD, `Forwarded ${filteredLeads.length} leads to sub-branch via Student Leads Page.`);
+      addLog(currentUser.id, currentUser.name, UserAction.MANUAL_ADD, `Forwarded ${filteredLeads.length} leads to sub-branch via Gmail Desktop.`);
     }
   };
 

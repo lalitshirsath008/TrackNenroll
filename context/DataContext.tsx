@@ -74,10 +74,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const q = query(collection(db, 'messages'), orderBy('timestamp', 'asc'));
       const unsub = onSnapshot(q, (snapshot) => {
-        const msgData = snapshot.docs.map(doc => ({
-          ...doc.data(),
-          id: doc.id // Map Firestore doc ID to message ID
-        } as Message));
+        const msgData = snapshot.docs.map(doc => {
+          const data = doc.data() as Message;
+          return {
+            ...data,
+            id: doc.id // Crucial: Always use Firestore doc ID
+          };
+        });
         setMessages(msgData);
       }, (error) => {
         console.error("Messages sync error:", error);
@@ -204,7 +207,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteMessage = async (messageId: string) => {
-    if (!messageId) return;
+    if (!messageId) {
+      console.error("Delete failed: No message ID provided.");
+      return;
+    }
     try {
       await deleteDoc(doc(db, 'messages', messageId));
     } catch (error) {

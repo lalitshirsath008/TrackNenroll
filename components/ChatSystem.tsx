@@ -49,11 +49,12 @@ const ChatSystem: React.FC<ChatProps> = ({ currentUser }) => {
 
   const handleDelete = async (msgId: string) => {
     if (!msgId) return;
-    if (window.confirm('Delete this message?')) {
+    if (window.confirm('Permanent delete this message?')) {
       try {
         await deleteMessage(msgId);
       } catch (err) {
-        alert('Failed to delete message. Please check your connection.');
+        console.error("Delete UI Error:", err);
+        alert('Could not delete message. Check internet connection.');
       }
     }
   };
@@ -151,7 +152,7 @@ const ChatSystem: React.FC<ChatProps> = ({ currentUser }) => {
             </div>
           ) : (
             <>
-              {/* Chat Header - Enhanced with detailed partner info */}
+              {/* Chat Header */}
               <div className="p-5 md:p-6 border-b border-slate-100 flex items-center gap-4 bg-white shrink-0 z-10 shadow-sm">
                 <button onClick={() => setActivePartnerId(null)} className="md:hidden p-3 bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M15 19l-7-7 7-7"/></svg>
@@ -170,10 +171,6 @@ const ChatSystem: React.FC<ChatProps> = ({ currentUser }) => {
                        </>
                     )}
                   </div>
-                </div>
-                <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-emerald-50 rounded-full border border-emerald-100">
-                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
-                  <p className="text-[8px] text-emerald-700 font-black uppercase tracking-widest">Connected</p>
                 </div>
               </div>
 
@@ -204,10 +201,10 @@ const ChatSystem: React.FC<ChatProps> = ({ currentUser }) => {
                           )}
                           <button 
                             onClick={() => handleDelete(m.id)} 
-                            className="opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity p-1 text-slate-300 hover:text-red-500"
-                            title="Delete message"
+                            className="md:opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity p-1.5 text-slate-400 hover:text-red-500 bg-slate-100 md:bg-transparent rounded-lg ml-2"
+                            title="Delete"
                           >
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                           </button>
                         </div>
                       </div>

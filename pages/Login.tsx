@@ -24,7 +24,7 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
   const [regEmail, setRegEmail] = useState('');
   const [regPass, setRegPass] = useState('');
   const [regConfirmPass, setRegConfirmPass] = useState('');
-  const [regDept, setRegDept] = useState<Department>(Department.IT);
+  const [regDept, setRegDept] = useState<Department | ''>('');
 
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -58,6 +58,11 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
       return;
     }
 
+    if ((regRole === UserRole.HOD || regRole === UserRole.TEACHER) && !regDept) {
+      setError('Please select your branch.');
+      return;
+    }
+
     if (regPass !== regConfirmPass) {
       setError('Passwords do not match.');
       return;
@@ -69,7 +74,7 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
       name: regName.trim(),
       email: regEmail.trim().toLowerCase(),
       role: regRole,
-      department: (regRole === UserRole.HOD || regRole === UserRole.TEACHER) ? regDept : undefined,
+      department: (regRole === UserRole.HOD || regRole === UserRole.TEACHER) ? (regDept as Department) : undefined,
       isApproved: false,
       registrationStatus: 'pending'
     };
@@ -181,7 +186,8 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
                 {(regRole === UserRole.HOD || regRole === UserRole.TEACHER) && (
                   <div className="space-y-1">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Branch / Department</label>
-                    <select value={regDept} onChange={e => setRegDept(e.target.value as Department)} className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-xs font-bold appearance-none">
+                    <select value={regDept} onChange={e => setRegDept(e.target.value as Department)} className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-xs font-bold appearance-none" required>
+                      <option value="" disabled>Select Branch</option>
                       {Object.values(Department).map(d => <option key={d} value={d}>{d}</option>)}
                     </select>
                   </div>

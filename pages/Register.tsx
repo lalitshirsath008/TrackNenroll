@@ -7,21 +7,30 @@ import { useData } from '../context/DataContext';
 const Register: React.FC = () => {
   const navigate = useNavigate();
   const { registerUser } = useData();
-  const [role, setRole] = useState<UserRole>(UserRole.TEACHER);
+  const [role, setRole] = useState<UserRole | ''>('');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [dept, setDept] = useState<Department>(Department.IT);
+  const [dept, setDept] = useState<Department | ''>('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Fix: Added missing properties 'isApproved' and 'registrationStatus' to satisfy the User interface requirements for registration
+    if (!role) {
+      alert('Please select a role.');
+      return;
+    }
+
+    if ((role === UserRole.HOD || role === UserRole.TEACHER) && !dept) {
+      alert('Please select a department.');
+      return;
+    }
+
     const newUser: User = {
       id: 'u' + Date.now(),
       name,
       email,
-      role,
-      department: (role === UserRole.HOD || role === UserRole.TEACHER) ? dept : undefined,
+      role: role as UserRole,
+      department: (role === UserRole.HOD || role === UserRole.TEACHER) ? (dept as Department) : undefined,
       isApproved: false,
       registrationStatus: 'pending'
     };
@@ -90,7 +99,9 @@ const Register: React.FC = () => {
                 className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-700 appearance-none"
                 value={dept}
                 onChange={(e) => setDept(e.target.value as Department)}
+                required
               >
+                <option value="" disabled>Select Department</option>
                 {Object.values(Department).map(d => (
                   <option key={d} value={d}>{d}</option>
                 ))}

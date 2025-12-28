@@ -10,7 +10,9 @@ import {
   deleteDoc, 
   query, 
   orderBy, 
-  writeBatch
+  writeBatch,
+  where,
+  limit
 } from 'firebase/firestore';
 
 interface DataContextType {
@@ -48,6 +50,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [logs, setLogs] = useState<SystemLog[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Sync Users
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'users'), (snapshot) => {
       const userData = snapshot.docs.map(doc => doc.data() as User);
@@ -60,6 +63,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => unsub();
   }, []);
 
+  // Sync Leads
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'leads'), (snapshot) => {
       const leadData = snapshot.docs.map(doc => doc.data() as StudentLead);
@@ -70,17 +74,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => unsub();
   }, []);
 
+  // Sync Messages with rigorous ID mapping and content verification
   useEffect(() => {
     try {
       const q = query(collection(db, 'messages'), orderBy('timestamp', 'asc'));
       const unsub = onSnapshot(q, (snapshot) => {
-        const msgData = snapshot.docs.map(doc => {
-          const data = doc.data() as Message;
-          return {
-            ...data,
-            id: doc.id // Crucial: Always use Firestore doc ID
-          };
-        });
+        const msgData = snapshot.docs
+          .map(doc => ({ ...(doc.data() as Message), id: doc.id }))
+          .filter(m => m.text && m.senderId && m.receiverId); // Filter out potential ghost records
+        
         setMessages(msgData);
       }, (error) => {
         console.error("Messages sync error:", error);
@@ -91,12 +93,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
+  // Sync Logs
   useEffect(() => {
     try {
-      const q = query(collection(db, 'logs'), orderBy('timestamp', 'desc'));
+      const q = query(collection(db, 'logs'), orderBy('timestamp', 'desc'), limit(100));
       const unsub = onSnapshot(q, (snapshot) => {
         const logData = snapshot.docs.map(doc => doc.data() as SystemLog);
-        setLogs(logData.slice(0, 100));
+        setLogs(logData);
       }, (error) => {
         console.error("Logs sync error:", error);
       });
@@ -207,19 +210,23 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteMessage = async (messageId: string) => {
-    if (!messageId) {
-      console.error("Delete failed: No message ID provided.");
-      return;
-    }
+    if (!messageId) return;
+    
+    // Optimistic local update: Remove from local state immediately to avoid race conditions
+    setMessages(prev => prev.filter(m => m.id !== messageId));
+
     try {
       await deleteDoc(doc(db, 'messages', messageId));
+      console.log("Message deleted successfully from Firestore");
     } catch (error) {
-      console.error("Error deleting message:", error);
+      console.error("Firestore delete failed:", error);
+      // Re-fetch or let onSnapshot handle the sync if delete fails
       throw error;
     }
   };
 
   const markMessagesAsSeen = useCallback(async (partnerId: string, currentUserId: string) => {
+    // Only target messages that ARE in our current verified list
     const unseenIds = messages
       .filter(m => m.senderId === partnerId && m.receiverId === currentUserId && m.status !== 'seen')
       .map(m => m.id);
@@ -228,9 +235,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const batch = writeBatch(db);
     unseenIds.forEach(id => {
-      batch.set(doc(db, 'messages', id), { status: 'seen' }, { merge: true });
+      // Use batch.update to ensure we don't recreate docs that are being deleted
+      batch.update(doc(db, 'messages', id), { status: 'seen' });
     });
-    await batch.commit();
+    
+    try {
+      await batch.commit();
+    } catch (e) {
+      // If a message was just deleted, update will fail. We ignore this safely.
+      console.debug("Silent failure in markMessagesAsSeen (likely a race condition with deletion)");
+    }
   }, [messages]);
 
   const addLog = async (userId: string, userName: string, action: UserAction, details: string) => {

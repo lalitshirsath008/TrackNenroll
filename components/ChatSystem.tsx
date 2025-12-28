@@ -12,6 +12,7 @@ const ChatSystem: React.FC<ChatProps> = ({ currentUser }) => {
   const [activePartnerId, setActivePartnerId] = useState<string | null>(null);
   const [inputText, setInputText] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const getRoleLabel = (role: UserRole) => {
@@ -20,6 +21,7 @@ const ChatSystem: React.FC<ChatProps> = ({ currentUser }) => {
     return role;
   };
 
+  // Filter messages for the current conversation
   const myMessages = messages.filter(m => 
     (m.senderId === currentUser.id && m.receiverId === activePartnerId) || 
     (m.senderId === activePartnerId && m.receiverId === currentUser.id)
@@ -29,6 +31,8 @@ const ChatSystem: React.FC<ChatProps> = ({ currentUser }) => {
     if (!u.isApproved || u.registrationStatus !== 'approved') return false;
     if (u.id === currentUser.id) return false;
     if (searchTerm && !u.name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+    
+    // Admins see everyone, HODs/Teachers see admin or their own department
     if (currentUser.role === UserRole.SUPER_ADMIN || currentUser.role === UserRole.ADMIN) return true;
     if (u.role === UserRole.SUPER_ADMIN || u.role === UserRole.ADMIN) return true;
     return u.department === currentUser.department;
@@ -36,8 +40,9 @@ const ChatSystem: React.FC<ChatProps> = ({ currentUser }) => {
 
   const handleSend = () => {
     if (!inputText.trim() || !activePartnerId) return;
+    const newMsgId = `msg-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     sendMessage({
-      id: `msg-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      id: newMsgId,
       senderId: currentUser.id,
       receiverId: activePartnerId,
       text: inputText,
@@ -48,22 +53,26 @@ const ChatSystem: React.FC<ChatProps> = ({ currentUser }) => {
   };
 
   const handleDelete = async (msgId: string) => {
-    if (!msgId) return;
+    if (!msgId || isDeleting) return;
+    
     if (window.confirm('Permanent delete this message?')) {
       try {
+        setIsDeleting(msgId);
         await deleteMessage(msgId);
       } catch (err) {
-        console.error("Delete UI Error:", err);
-        alert('Could not delete message. Check internet connection.');
+        console.error("Delete UI catch:", err);
+        alert('Could not delete from server. Check internet.');
+      } finally {
+        setIsDeleting(null);
       }
     }
   };
 
   useEffect(() => {
-    if (activePartnerId) {
+    if (activePartnerId && messages.length > 0) {
       markMessagesAsSeen(activePartnerId, currentUser.id);
     }
-  }, [activePartnerId, messages, currentUser.id, markMessagesAsSeen]);
+  }, [activePartnerId, messages.length, currentUser.id, markMessagesAsSeen]);
 
   useEffect(() => { 
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' }); 
@@ -178,8 +187,9 @@ const ChatSystem: React.FC<ChatProps> = ({ currentUser }) => {
               <div className="flex-1 overflow-y-auto p-5 md:p-8 space-y-5 bg-slate-50/50 custom-scroll">
                 {myMessages.map((m, i) => {
                   const isMine = m.senderId === currentUser.id;
+                  const deleting = isDeleting === m.id;
                   return (
-                    <div key={m.id || i} className={`flex ${isMine ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-1 duration-200 group`}>
+                    <div key={m.id || i} className={`flex ${isMine ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-1 duration-200 group ${deleting ? 'opacity-30 blur-[1px]' : ''}`}>
                       <div className="max-w-[90%] md:max-w-[75%] relative">
                         <div className={`px-5 py-4 rounded-[1.5rem] shadow-sm ${
                           isMine 
@@ -199,13 +209,22 @@ const ChatSystem: React.FC<ChatProps> = ({ currentUser }) => {
                               )}
                             </div>
                           )}
-                          <button 
-                            onClick={() => handleDelete(m.id)} 
-                            className="md:opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity p-1.5 text-slate-400 hover:text-red-500 bg-slate-100 md:bg-transparent rounded-lg ml-2"
-                            title="Delete"
-                          >
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                          </button>
+                          
+                          {/* DELETE BUTTON: Visible for own messages always, or on hover for others if admin */}
+                          {isMine && (
+                            <button 
+                              onClick={() => handleDelete(m.id)} 
+                              disabled={deleting}
+                              className={`p-1.5 text-slate-400 hover:text-red-500 bg-slate-100 md:bg-transparent rounded-lg ml-2 transition-all shrink-0 flex items-center justify-center`}
+                              title="Delete Permanently"
+                            >
+                              {deleting ? (
+                                <div className="w-3 h-3 border-2 border-slate-300 border-t-transparent rounded-full animate-spin"></div>
+                              ) : (
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                              )}
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>

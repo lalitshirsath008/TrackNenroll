@@ -37,14 +37,15 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
     await new Promise(r => setTimeout(r, 600));
     const user = users.find(u => u.email.toLowerCase() === loginEmail.toLowerCase());
     
+    // Passwords are plain text for this simple demo implementation
     if (user && (loginPass === 'admin123' || loginPass === 'password' || loginPass === '123456')) {
       if (!user.isApproved) {
-        setError('Your account is not approved by Admin yet.');
+        setError('Your account is not approved by the admin yet.');
       } else {
         onLogin(user);
       }
     } else {
-      setError('Invalid email or password. Please try again.');
+      setError('Wrong email or password. Please try again.');
     }
     setLoading(false);
   };
@@ -54,7 +55,7 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
     setError('');
     
     if (regName.trim().length < 3) {
-      setError('Please enter your full name (min 3 letters).');
+      setError('Name should be at least 3 letters.');
       return;
     }
 
@@ -69,7 +70,7 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
     }
 
     if (regPass !== regConfirmPass) {
-      setError('Passwords do not match. Please check again.');
+      setError('Passwords do not match.');
       return;
     }
 
@@ -94,7 +95,7 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
 
     try {
       await registerUser(newUser);
-      setSuccess('Request sent! Please wait for Admin approval.');
+      setSuccess('Request sent! Please wait for the admin to approve.');
       setTimeout(() => {
         setAuthMode('login');
         setSuccess('');
@@ -104,7 +105,7 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
         setRegConfirmPass('');
       }, 3000);
     } catch (err) {
-      setError('Something went wrong. Please try again.');
+      setError('Network error. Please try again later.');
     }
     setLoading(false);
   };
@@ -115,22 +116,22 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
         <div className="text-center mb-10">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-slate-900 rounded-2xl text-white font-black text-2xl shadow-lg mb-4">T</div>
           <h1 className="text-3xl font-black text-slate-900 tracking-tight uppercase">TrackNEnroll</h1>
-          <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mt-1">Staff Access Portal</p>
+          <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mt-1">Staff Access Hub</p>
         </div>
 
-        <div className="bg-white rounded-[2.5rem] shadow-xl border border-slate-100 p-10">
+        <div className="bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-slate-100 p-10">
           {authMode === 'login' ? (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="mb-8 text-center">
-                <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Login</h2>
-                <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-1">Enter your details</p>
+                <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Sign In</h2>
+                <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-1">Enter your login details</p>
               </div>
 
               <form onSubmit={handleLoginSubmit} className="space-y-5">
                 {error && <div className="p-4 bg-rose-50 text-rose-600 text-[10px] font-black uppercase rounded-xl border border-rose-100 text-center">{error}</div>}
                 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Email ID</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Work Email</label>
                   <input type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-600 transition-all font-bold" placeholder="name@college.edu" required />
                 </div>
 
@@ -140,19 +141,19 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
                 </div>
 
                 <button type="submit" disabled={loading} className="w-full py-5 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all shadow-xl active:scale-[0.98] mt-4">
-                  {loading ? 'Checking...' : 'Sign In'}
+                  {loading ? 'Logging in...' : 'Login Now'}
                 </button>
               </form>
 
               <div className="mt-8 pt-8 border-t border-slate-50 text-center">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">New here? <button onClick={() => setAuthMode('register')} className="text-indigo-600 font-black hover:underline ml-1">Create Account</button></p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">New Staff? <button onClick={() => setAuthMode('register')} className="text-indigo-600 font-black hover:underline ml-1">Create Account</button></p>
               </div>
             </div>
           ) : (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="mb-8 text-center">
-                <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Register</h2>
-                <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-1">Create your profile</p>
+                <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Join Staff</h2>
+                <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-1">Create your professional profile</p>
               </div>
 
               <form onSubmit={handleRegisterSubmit} className="space-y-4">
@@ -173,13 +174,13 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Email ID</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Institutional Email</label>
                   <input type="email" value={regEmail} onChange={e => setRegEmail(e.target.value)} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-600 font-bold" placeholder="name@college.edu" required />
                 </div>
 
                 {(regRole === UserRole.HOD || regRole === UserRole.TEACHER) && (
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Branch</label>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Branch (Department)</label>
                     <select value={regDept} onChange={e => setRegDept(e.target.value as Department)} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-600 font-bold text-slate-700 appearance-none">
                       {Object.values(Department).map(d => <option key={d} value={d}>{d}</option>)}
                     </select>
@@ -200,7 +201,7 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
                 <button type="submit" disabled={loading} className="w-full py-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all mt-4 active:scale-[0.98]">
                   Submit Request
                 </button>
-                <button type="button" onClick={() => setAuthMode('login')} className="w-full text-center text-[10px] font-black uppercase text-slate-400 hover:text-slate-600 mt-4">Back to Login</button>
+                <button type="button" onClick={() => setAuthMode('login')} className="w-full text-center text-[10px] font-black uppercase text-slate-400 hover:text-slate-600 mt-4">Already have account? Login</button>
               </form>
             </div>
           )}

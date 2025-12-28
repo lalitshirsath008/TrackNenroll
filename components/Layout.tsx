@@ -21,8 +21,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { messages, exportSystemData, importSystemData } = useData();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { messages } = useData();
 
   const getRoleLabel = (role: UserRole) => {
     if (role === UserRole.SUPER_ADMIN) return 'Principal';
@@ -44,7 +43,6 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
     },
   ];
 
-  // Super Admin exclusive: Analytics
   if (user.role === UserRole.SUPER_ADMIN) {
     menuItems.push({ 
       path: '/analytics', 
@@ -60,7 +58,6 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
     badge: unreadCount 
   });
 
-  // Admin exclusive: Staff Portal & Approvals
   if (user.role === UserRole.ADMIN) {
     menuItems.push({ 
       path: '/users', 
@@ -73,30 +70,6 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
       icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg> 
     });
   }
-
-  const handleExport = () => {
-    const data = exportSystemData();
-    const blob = new Blob([data], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `Backup_${new Date().getTime()}.json`; a.click();
-  };
-
-  const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      const content = event.target?.result as string;
-      const success = await importSystemData(content);
-      if (success) {
-        alert('Database Restored!'); window.location.reload();
-      } else {
-        alert('Restore failed. Check file format.');
-      }
-    };
-    reader.readAsText(file);
-  };
 
   return (
     <div className="flex h-screen bg-[#fcfdfe] overflow-hidden font-['Inter']">
@@ -150,7 +123,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
         </nav>
 
         <div className="p-4 md:p-6 mt-auto border-t border-white/5 bg-black/10">
-          <div className="p-4 bg-white/5 rounded-2xl border border-white/5 backdrop-blur-md mb-4">
+          <div className="p-4 bg-white/5 rounded-2xl border border-white/5 backdrop-blur-md">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center font-black text-sm">
                 {user.name.split(' ').map(n => n[0]).join('')}
@@ -168,14 +141,6 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
               Sign Out
             </button>
           </div>
-          
-          {user.role === UserRole.SUPER_ADMIN && (
-            <div className="grid grid-cols-2 gap-2">
-              <button onClick={handleExport} className="py-2 bg-transparent border border-white/10 text-[8px] font-black uppercase text-slate-400 rounded-lg hover:text-white transition-all">Backup</button>
-              <button onClick={() => fileInputRef.current?.click()} className="py-2 bg-transparent border border-white/10 text-[8px] font-black uppercase text-slate-400 rounded-lg hover:text-white transition-all">Restore</button>
-              <input type="file" ref={fileInputRef} className="hidden" accept=".json" onChange={handleFileImport} />
-            </div>
-          )}
         </div>
       </aside>
 

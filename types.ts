@@ -21,6 +21,8 @@ export enum StudentResponse {
   NOT_INTERESTED = 'Not Interested',
   CONFUSED = 'Confused',
   GRADE_11_12 = '11th / 12th',
+  NOT_RESPONDING = 'Not Responding',
+  NOT_REACHABLE = 'Not Reachable',
   OTHERS = 'Others'
 }
 

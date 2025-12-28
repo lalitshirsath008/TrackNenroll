@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { StudentLead, Message, User, LeadStage, SystemLog, UserAction, Department, UserRole } from '../types';
 import { db } from '../lib/firebase';
@@ -7,11 +6,9 @@ import {
   onSnapshot, 
   doc, 
   setDoc, 
-  updateDoc, 
   deleteDoc, 
   query, 
   orderBy, 
-  addDoc,
   writeBatch
 } from 'firebase/firestore';
 
@@ -34,7 +31,6 @@ interface DataContextType {
   handleUserApproval: (userId: string, approverId: string, status: 'approved' | 'rejected') => Promise<void>;
   markMessagesAsSeen: (partnerId: string, currentUserId: string) => Promise<void>;
   addLog: (userId: string, userName: string, action: UserAction, details: string) => Promise<void>;
-  // Added export and import system data functions to satisfy the interface expected by Layout component
   exportSystemData: () => string;
   importSystemData: (content: string) => Promise<boolean>;
 }
@@ -48,7 +44,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [logs, setLogs] = useState<SystemLog[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Real-time Sync for Users
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'users'), (snapshot) => {
       const userData = snapshot.docs.map(doc => doc.data() as User);
@@ -61,7 +56,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => unsub();
   }, []);
 
-  // Real-time Sync for Leads
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'leads'), (snapshot) => {
       const leadData = snapshot.docs.map(doc => doc.data() as StudentLead);
@@ -72,7 +66,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => unsub();
   }, []);
 
-  // Real-time Sync for Messages
   useEffect(() => {
     try {
       const q = query(collection(db, 'messages'), orderBy('timestamp', 'asc'));
@@ -88,7 +81,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  // Real-time Sync for Logs
   useEffect(() => {
     try {
       const q = query(collection(db, 'logs'), orderBy('timestamp', 'desc'));
@@ -117,7 +109,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateLead = async (id: string, updates: Partial<StudentLead>) => {
-    await updateDoc(doc(db, 'leads', id), updates);
+    // Using setDoc with merge: true instead of updateDoc to prevent "No document to update" errors
+    await setDoc(doc(db, 'leads', id), updates, { merge: true });
   };
 
   const registerUser = async (user: User) => {
@@ -129,7 +122,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateUser = async (id: string, updates: Partial<User>) => {
-    await updateDoc(doc(db, 'users', id), updates);
+    // Using setDoc with merge: true instead of updateDoc to prevent "No document to update" errors
+    await setDoc(doc(db, 'users', id), updates, { merge: true });
   };
 
   const deleteUser = async (userId: string) => {
@@ -137,23 +131,24 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const handleUserApproval = async (userId: string, approverId: string, status: 'approved' | 'rejected') => {
-    await updateDoc(doc(db, 'users', userId), {
+    await setDoc(doc(db, 'users', userId), {
       registrationStatus: status,
       isApproved: status === 'approved',
       approvedBy: approverId,
       approvalDate: new Date().toLocaleString()
-    });
+    }, { merge: true });
   };
 
   const assignLeadsToHOD = async (leadIds: string[], hodId: string) => {
     const hod = users.find(u => u.id === hodId);
     const batch = writeBatch(db);
     leadIds.forEach(id => {
-      batch.update(doc(db, 'leads', id), {
+      // Using batch.set with merge: true instead of batch.update
+      batch.set(doc(db, 'leads', id), {
         assignedToHOD: hodId,
         department: hod?.department || Department.IT,
         stage: LeadStage.ASSIGNED
-      });
+      }, { merge: true });
     });
     await batch.commit();
   };
@@ -161,27 +156,38 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const assignLeadsToTeacher = async (leadIds: string[], teacherId: string) => {
     const batch = writeBatch(db);
     leadIds.forEach(id => {
-      batch.update(doc(db, 'leads', id), {
+      // Using batch.set with merge: true instead of batch.update
+      batch.set(doc(db, 'leads', id), {
         assignedToTeacher: teacherId,
         stage: LeadStage.ASSIGNED
-      });
+      }, { merge: true });
     });
     await batch.commit();
   };
 
   const sendMessage = async (msg: Message) => {
-    await addDoc(collection(db, 'messages'), msg);
+    await setDoc(doc(db, 'messages', msg.id), msg);
   };
 
   const markMessagesAsSeen = useCallback(async (partnerId: string, currentUserId: string) => {
+    const unseenIds = messages
+      .filter(m => m.senderId === partnerId && m.receiverId === currentUserId && m.status !== 'seen')
+      .map(m => m.id);
+
+    if (unseenIds.length === 0) return;
+
     const batch = writeBatch(db);
-    // Note: Marking messages as seen in Firestore would require an indexed search or specific IDs
-    // Implementation for real-time update omitted for brevity, but functionality is set
-  }, []);
+    unseenIds.forEach(id => {
+      // Use batch.set with merge: true to avoid "No document to update" errors during race conditions
+      batch.set(doc(db, 'messages', id), { status: 'seen' }, { merge: true });
+    });
+    await batch.commit();
+  }, [messages]);
 
   const addLog = async (userId: string, userName: string, action: UserAction, details: string) => {
-    await addDoc(collection(db, 'logs'), {
-      id: 'log-' + Date.now(),
+    const logId = 'log-' + Date.now();
+    await setDoc(doc(db, 'logs', logId), {
+      id: logId,
       userId,
       userName,
       action,
@@ -190,45 +196,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
-  // Implemented exportSystemData to allow system state backup
   const exportSystemData = useCallback(() => {
-    return JSON.stringify({
-      users,
-      leads,
-      messages,
-      logs
-    });
+    return JSON.stringify({ users, leads, messages, logs });
   }, [users, leads, messages, logs]);
 
-  // Implemented importSystemData to allow system state restoration via Firestore batch operations
   const importSystemData = useCallback(async (content: string) => {
     try {
       const data = JSON.parse(content);
       const batch = writeBatch(db);
-      
-      if (data.users && Array.isArray(data.users)) {
-        data.users.forEach((u: any) => {
-          batch.set(doc(db, 'users', u.id), u);
-        });
-      }
-      if (data.leads && Array.isArray(data.leads)) {
-        data.leads.forEach((l: any) => {
-          batch.set(doc(db, 'leads', l.id), l);
-        });
-      }
-      if (data.messages && Array.isArray(data.messages)) {
-        data.messages.forEach((m: any) => {
-          const mRef = m.id ? doc(db, 'messages', m.id) : doc(collection(db, 'messages'));
-          batch.set(mRef, m);
-        });
-      }
-      if (data.logs && Array.isArray(data.logs)) {
-        data.logs.forEach((log: any) => {
-          const lRef = log.id ? doc(db, 'logs', log.id) : doc(collection(db, 'logs'));
-          batch.set(lRef, log);
-        });
-      }
-      
+      if (data.users) data.users.forEach((u: any) => batch.set(doc(db, 'users', u.id), u));
+      if (data.leads) data.leads.forEach((l: any) => batch.set(doc(db, 'leads', l.id), l));
+      if (data.messages) data.messages.forEach((m: any) => batch.set(doc(db, 'messages', m.id || `m-${Math.random()}`), m));
+      if (data.logs) data.logs.forEach((log: any) => batch.set(doc(db, 'logs', log.id || `l-${Math.random()}`), log));
       await batch.commit();
       return true;
     } catch (e) {
@@ -242,8 +221,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       leads, messages, users, logs, loading,
       addLead, batchAddLeads, updateLead, assignLeadsToHOD, assignLeadsToTeacher, 
       sendMessage, registerUser, addUser, updateUser, deleteUser, handleUserApproval,
-      markMessagesAsSeen, addLog,
-      exportSystemData, importSystemData
+      markMessagesAsSeen, addLog, exportSystemData, importSystemData
     }}>
       {children}
     </DataContext.Provider>

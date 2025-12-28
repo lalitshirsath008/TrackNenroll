@@ -1,7 +1,7 @@
 
 import { User, StudentLead } from './types';
 
-// Mock data has been removed. 
-// The system now relies exclusively on Firebase Firestore for all data.
+// The system relies exclusively on Firebase Firestore for all data.
+// Mock data is removed to ensure a clean institutional start.
 export const MOCK_USERS: User[] = [];
 export const MOCK_LEADS: StudentLead[] = [];

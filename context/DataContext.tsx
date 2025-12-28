@@ -34,6 +34,9 @@ interface DataContextType {
   handleUserApproval: (userId: string, approverId: string, status: 'approved' | 'rejected') => Promise<void>;
   markMessagesAsSeen: (partnerId: string, currentUserId: string) => Promise<void>;
   addLog: (userId: string, userName: string, action: UserAction, details: string) => Promise<void>;
+  // Added export and import system data functions to satisfy the interface expected by Layout component
+  exportSystemData: () => string;
+  importSystemData: (content: string) => Promise<boolean>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -187,12 +190,60 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
+  // Implemented exportSystemData to allow system state backup
+  const exportSystemData = useCallback(() => {
+    return JSON.stringify({
+      users,
+      leads,
+      messages,
+      logs
+    });
+  }, [users, leads, messages, logs]);
+
+  // Implemented importSystemData to allow system state restoration via Firestore batch operations
+  const importSystemData = useCallback(async (content: string) => {
+    try {
+      const data = JSON.parse(content);
+      const batch = writeBatch(db);
+      
+      if (data.users && Array.isArray(data.users)) {
+        data.users.forEach((u: any) => {
+          batch.set(doc(db, 'users', u.id), u);
+        });
+      }
+      if (data.leads && Array.isArray(data.leads)) {
+        data.leads.forEach((l: any) => {
+          batch.set(doc(db, 'leads', l.id), l);
+        });
+      }
+      if (data.messages && Array.isArray(data.messages)) {
+        data.messages.forEach((m: any) => {
+          const mRef = m.id ? doc(db, 'messages', m.id) : doc(collection(db, 'messages'));
+          batch.set(mRef, m);
+        });
+      }
+      if (data.logs && Array.isArray(data.logs)) {
+        data.logs.forEach((log: any) => {
+          const lRef = log.id ? doc(db, 'logs', log.id) : doc(collection(db, 'logs'));
+          batch.set(lRef, log);
+        });
+      }
+      
+      await batch.commit();
+      return true;
+    } catch (e) {
+      console.error("Import failed:", e);
+      return false;
+    }
+  }, []);
+
   return (
     <DataContext.Provider value={{ 
       leads, messages, users, logs, loading,
       addLead, batchAddLeads, updateLead, assignLeadsToHOD, assignLeadsToTeacher, 
       sendMessage, registerUser, addUser, updateUser, deleteUser, handleUserApproval,
-      markMessagesAsSeen, addLog
+      markMessagesAsSeen, addLog,
+      exportSystemData, importSystemData
     }}>
       {children}
     </DataContext.Provider>

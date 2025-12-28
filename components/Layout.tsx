@@ -21,6 +21,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  // exportSystemData and importSystemData are now defined in DataContextType
   const { messages, exportSystemData, importSystemData } = useData();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -87,75 +88,136 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (event) => {
+    // Fixed: handleFileImport now properly awaits the async importSystemData function
+    reader.onload = async (event) => {
       const content = event.target?.result as string;
-      if (importSystemData(content)) {
+      const success = await importSystemData(content);
+      if (success) {
         alert('Database Restored!'); window.location.reload();
+      } else {
+        alert('Restore failed. Check file format.');
       }
     };
     reader.readAsText(file);
   };
 
   return (
-    <div className="min-h-screen bg-[#fcfdfe] flex flex-col md:flex-row font-['Inter']">
-      {/* Mobile Top Nav */}
-      <header className="md:hidden bg-slate-900 p-4 flex justify-between items-center sticky top-0 z-[100] text-white">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center font-bold">T</div>
-          <span className="font-bold tracking-tight">TrackNEnroll</span>
-        </div>
-        <button onClick={() => setIsSidebarOpen(true)} className="p-2">
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7"/></svg>
-        </button>
-      </header>
+    <div className="flex h-screen bg-[#fcfdfe] overflow-hidden font-['Inter']">
+      {/* Sidebar Overlay (Mobile) */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-slate-900/60 z-[110] backdrop-blur-sm md:hidden" 
+          onClick={() => setIsSidebarOpen(false)} 
+        />
+      )}
 
-      {isSidebarOpen && <div className="fixed inset-0 bg-slate-900/40 z-[110] backdrop-blur-sm" onClick={() => setIsSidebarOpen(false)} />}
-
-      {/* Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 w-72 bg-slate-900 text-white flex flex-col z-[120] transform transition-transform duration-300 md:translate-x-0 md:static md:h-screen ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="p-8 hidden md:block">
+      {/* Sidebar Container */}
+      <aside className={`
+        fixed md:sticky top-0 inset-y-0 left-0 z-[120] 
+        w-72 bg-[#0f172a] text-white flex flex-col 
+        transition-transform duration-300 md:translate-x-0 
+        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+        shadow-2xl md:shadow-none h-screen
+      `}>
+        {/* Sidebar Logo Section */}
+        <div className="p-8 shrink-0">
            <div className="flex items-center gap-3 mb-1">
-             <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center font-black text-xl shadow-lg">T</div>
-             <h1 className="text-xl font-bold tracking-tight">TrackNEnroll</h1>
+             <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center font-black text-xl shadow-lg shadow-emerald-900/20">T</div>
+             <div className="flex flex-col">
+               <h1 className="text-xl font-bold tracking-tight leading-none">TrackNEnroll</h1>
+               <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Admin Panel</p>
+             </div>
            </div>
-           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Enterprise Edition</p>
         </div>
         
-        <nav className="flex-1 px-4 py-4 space-y-1">
+        {/* Navigation Section */}
+        <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto custom-scroll">
           {menuItems.map((item) => (
-            <button key={item.path} onClick={() => { navigate(item.path); setIsSidebarOpen(false); }} className={`w-full text-left px-5 py-3.5 rounded-xl flex items-center gap-4 transition-all ${location.pathname === item.path ? 'bg-emerald-600 text-white shadow-md font-semibold' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
-              {item.icon}
-              <span className="text-sm">{item.label}</span>
-              {item.badge ? <span className="ml-auto w-5 h-5 bg-rose-500 text-white rounded-full flex items-center justify-center text-[10px] font-bold">{item.badge}</span> : null}
+            <button 
+              key={item.path} 
+              onClick={() => { navigate(item.path); setIsSidebarOpen(false); }} 
+              className={`
+                w-full text-left px-5 py-4 rounded-xl flex items-center gap-4 transition-all duration-200
+                ${location.pathname === item.path 
+                  ? 'bg-emerald-600 text-white shadow-xl shadow-emerald-900/20 font-semibold' 
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'}
+              `}
+            >
+              <div className={location.pathname === item.path ? 'scale-110 transition-transform' : ''}>
+                {item.icon}
+              </div>
+              <span className="text-sm font-medium tracking-tight">{item.label}</span>
+              {item.badge ? (
+                <span className="ml-auto w-5 h-5 bg-rose-500 text-white rounded-full flex items-center justify-center text-[10px] font-black">
+                  {item.badge}
+                </span>
+              ) : null}
             </button>
           ))}
         </nav>
 
-        <div className="p-6 space-y-4">
-          <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
-            <div className="flex items-center gap-3 mb-3">
-              <img src={`https://ui-avatars.com/api/?name=${user.name}&background=10b981&color=fff`} className="w-9 h-9 rounded-xl" />
-              <div className="overflow-hidden">
-                <p className="text-xs font-bold truncate">{user.name}</p>
-                <p className="text-[9px] text-slate-500 uppercase tracking-wider">{getRoleLabel(user.role)}</p>
+        {/* User Card Section (As per screenshot) */}
+        <div className="p-6 mt-auto border-t border-white/5 bg-black/10">
+          <div className="p-5 bg-white/5 rounded-3xl border border-white/5 backdrop-blur-md mb-4 group">
+            <div className="flex items-center gap-4 mb-5">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-600 flex items-center justify-center font-black text-lg shadow-inner">
+                {user.name.split(' ').map(n => n[0]).join('')}
+              </div>
+              <div className="flex-1 overflow-hidden">
+                <p className="text-sm font-black text-white truncate leading-tight uppercase tracking-tight">{user.name}</p>
+                <p className="text-[9px] text-slate-500 font-bold uppercase tracking-[0.15em] mt-1">{getRoleLabel(user.role)}</p>
               </div>
             </div>
-            <button onClick={onLogout} className="w-full py-2.5 text-[10px] font-bold uppercase tracking-widest bg-white/5 hover:bg-rose-500/20 hover:text-rose-400 rounded-lg transition-colors">Sign Out</button>
+            
+            <button 
+              onClick={onLogout} 
+              className="w-full py-3.5 bg-white/5 hover:bg-rose-500 text-slate-300 hover:text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all duration-300 active:scale-[0.97]"
+            >
+              Sign Out
+            </button>
           </div>
           
+          {/* Action Buttons */}
           {(user.role === UserRole.SUPER_ADMIN || user.role === UserRole.ADMIN) && (
-            <div className="flex gap-2">
-              <button onClick={handleExport} className="flex-1 py-2 text-[9px] font-bold uppercase border border-white/10 rounded-lg hover:bg-white/5">Backup</button>
-              <button onClick={() => fileInputRef.current?.click()} className="flex-1 py-2 text-[9px] font-bold uppercase border border-white/10 rounded-lg hover:bg-white/5">Restore</button>
+            <div className="grid grid-cols-2 gap-2">
+              <button 
+                onClick={handleExport} 
+                className="py-2.5 bg-transparent border border-white/10 text-[9px] font-black uppercase tracking-widest text-slate-400 rounded-xl hover:bg-white/5 hover:text-white transition-all"
+              >
+                Backup
+              </button>
+              <button 
+                onClick={() => fileInputRef.current?.click()} 
+                className="py-2.5 bg-transparent border border-white/10 text-[9px] font-black uppercase tracking-widest text-slate-400 rounded-xl hover:bg-white/5 hover:text-white transition-all"
+              >
+                Restore
+              </button>
               <input type="file" ref={fileInputRef} className="hidden" accept=".json" onChange={handleFileImport} />
             </div>
           )}
         </div>
       </aside>
 
-      <main className="flex-1 w-full p-6 md:p-12 overflow-x-hidden">
-        <div className="max-w-6xl mx-auto">{children}</div>
-      </main>
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0 bg-[#fcfdfe]">
+        {/* Mobile Header */}
+        <header className="md:hidden bg-[#0f172a] p-4 flex justify-between items-center sticky top-0 z-[100] text-white shadow-lg">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center font-bold">T</div>
+            <span className="font-bold tracking-tight text-sm">TrackNEnroll</span>
+          </div>
+          <button onClick={() => setIsSidebarOpen(true)} className="p-2 bg-white/5 rounded-lg active:bg-white/10">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7"/></svg>
+          </button>
+        </header>
+
+        {/* Page Content */}
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-6 md:p-12 custom-scroll">
+          <div className="max-w-7xl mx-auto">
+            {children}
+          </div>
+        </main>
+      </div>
     </div>
   );
 };

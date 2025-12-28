@@ -57,7 +57,7 @@ export interface StudentLead {
   stage: LeadStage;
   callVerified: boolean;
   callTimestamp?: string;
-  callDuration?: number; // Duration in seconds to prevent fake reporting
+  callDuration?: number;
 }
 
 export interface Message {
@@ -67,4 +67,20 @@ export interface Message {
   text: string;
   timestamp: string;
   status: 'sent' | 'delivered' | 'seen';
+}
+
+export enum UserAction {
+  LOGIN = 'Login',
+  LOGOUT = 'Logout',
+  IMPORT_LEADS = 'Import Leads',
+  MANUAL_ADD = 'Manual Entry'
+}
+
+export interface SystemLog {
+  id: string;
+  userId: string;
+  userName: string;
+  action: UserAction;
+  details: string;
+  timestamp: string;
 }

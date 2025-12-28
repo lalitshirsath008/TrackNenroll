@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { User, UserRole, Department } from '../types';
 import { useData } from '../context/DataContext';
@@ -9,12 +10,12 @@ interface LoginProps {
 
 const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
   const { users, registerUser } = useData();
-  const navigate = useNavigate();
   const location = useLocation();
   
-  const [isRegistering, setIsRegistering] = useState(location.pathname === '/register');
+  const [authMode, setAuthMode] = useState<'login' | 'register'>(
+    location.pathname === '/register' ? 'register' : 'login'
+  );
   
-  // Form States
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPass, setLoginPass] = useState('');
   const [regRole, setRegRole] = useState<UserRole>(UserRole.TEACHER);
@@ -22,74 +23,42 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
   const [regEmail, setRegEmail] = useState('');
   const [regDept, setRegDept] = useState<Department>(Department.IT);
 
-  // Error States
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
-  const [generalError, setGeneralError] = useState('');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    setIsRegistering(location.pathname === '/register');
-    setErrors({});
-    setGeneralError('');
-  }, [location.pathname]);
-
-  const toggleMode = (e: React.MouseEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newMode = !isRegistering;
-    setIsRegistering(newMode);
-    navigate(newMode ? '/register' : '/login', { replace: true });
-  };
+    setError('');
+    setLoading(true);
+    await new Promise(r => setTimeout(r, 600));
 
-  const validateEmail = (email: string) => {
-    return /\S+@\S+\.\S+/.test(email);
-  };
-
-  const handleQuickLogin = (role: UserRole) => {
-    const user = users.find(u => u.role === role && u.isApproved);
-    if (user) onLogin(user);
-    else setGeneralError(`No approved user found for: ${role}`);
-  };
-
-  const handleLoginSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrors({});
-    setGeneralError('');
-
-    const newErrors: { [key: string]: string } = {};
-    if (!validateEmail(loginEmail)) newErrors.loginEmail = 'Please enter a valid email address.';
-    if (loginPass.length < 6) newErrors.loginPass = 'Password must be at least 6 characters.';
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
-
-    const user = users.find(u => u.email === loginEmail);
-    if (user) {
+    const user = users.find(u => u.email.toLowerCase() === loginEmail.toLowerCase());
+    
+    if (user && (loginPass === 'admin123' || loginPass === 'password')) {
       if (!user.isApproved) {
-        setGeneralError('Your account is still waiting for approval.');
-        return;
+        setError('Your account is awaiting approval from Admin.');
+      } else {
+        onLogin(user);
       }
-      if (loginPass === 'admin123') onLogin(user);
-      else setGeneralError('Wrong password. Please use "admin123" for demo.');
     } else {
-      setGeneralError('We could not find an account with this email.');
+      setError('Invalid email or password.');
     }
+    setLoading(false);
   };
 
-  const handleRegisterSubmit = (e: React.FormEvent) => {
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrors({});
-    setGeneralError('');
+    setError('');
+    setLoading(true);
 
-    const newErrors: { [key: string]: string } = {};
-    if (regName.trim().length < 3) newErrors.regName = 'Name is too short.';
-    if (!validateEmail(regEmail)) newErrors.regEmail = 'Invalid email format.';
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
+    const existing = users.find(u => u.email === regEmail);
+    if (existing) {
+      setError('Email already exists.');
+      setLoading(false);
       return;
     }
-
+    
     const newUser: User = {
       id: 'u' + Date.now(),
       name: regName,
@@ -99,162 +68,95 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
       isApproved: false,
       registrationStatus: 'pending'
     };
-    registerUser(newUser);
-    alert('Request sent! Please wait for an admin to approve your profile.');
-    setIsRegistering(false);
-    navigate('/login');
+
+    await registerUser(newUser);
+    setSuccess('Registration request sent! Please wait for approval.');
+    setTimeout(() => {
+      setAuthMode('login');
+      setSuccess('');
+    }, 3000);
+    setLoading(false);
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#020617] p-4 font-['Inter']">
-      <div className="w-full max-w-[950px] flex flex-col md:flex-row bg-[#0f172a] rounded-[1.5rem] md:rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/5 animate-in fade-in zoom-in-95 duration-500">
-        
-        {/* Branding Side */}
-        <div className="w-full md:w-[40%] bg-emerald-600 p-10 md:p-14 flex flex-col justify-between text-white border-r border-white/5 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32"></div>
-          <div>
-            <div className="w-14 h-14 bg-white text-emerald-600 rounded-2xl flex items-center justify-center font-black text-3xl shadow-md mb-10">T</div>
-            <h1 className="text-5xl font-black tracking-tight leading-tight">
-              TrackNEnroll
-            </h1>
-            <div className="h-1.5 w-16 bg-white/30 mt-6 rounded-full"></div>
-            <p className="text-white/90 text-base font-medium mt-8 leading-relaxed">
-              Managing student admissions is now easy and clean.
-            </p>
-          </div>
-          <div className="hidden md:block">
-            <p className="text-[10px] font-black uppercase tracking-widest opacity-60">High Pixel Definition v4.1</p>
-          </div>
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6 font-['Inter']">
+      <div className="w-full max-w-md">
+        {/* Logo Section */}
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-600 rounded-2xl text-white font-black text-2xl shadow-lg mb-4">T</div>
+          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">TrackNEnroll</h1>
+          <p className="text-slate-500 text-sm font-medium mt-1">Institutional Admission Management</p>
         </div>
 
-        {/* Form Side */}
-        <div className="flex-1 p-8 md:p-14 bg-slate-900 flex flex-col justify-center overflow-y-auto">
-          {!isRegistering ? (
-            <div className="animate-in fade-in slide-in-from-right-4 duration-500">
-              <h2 className="text-4xl font-black text-white tracking-tight">Login</h2>
-              <p className="text-sm text-slate-400 mt-2 mb-10">Welcome back! Please sign in.</p>
+        {/* Form Card */}
+        <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/60 border border-slate-100 p-8 md:p-10">
+          {authMode === 'login' ? (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="mb-8">
+                <h2 className="text-2xl font-bold text-slate-900">Welcome Back</h2>
+                <p className="text-slate-400 text-sm">Please enter your credentials</p>
+              </div>
 
-              <form onSubmit={handleLoginSubmit} className="space-y-6">
-                {generalError && (
-                  <div className="p-4 bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs font-bold rounded-xl">
-                    {generalError}
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Email</label>
-                  <input 
-                    type="email" 
-                    value={loginEmail} 
-                    onChange={e => setLoginEmail(e.target.value)}
-                    className={`w-full px-6 py-4 bg-white/[0.03] border ${errors.loginEmail ? 'border-rose-500' : 'border-white/10'} rounded-xl text-white outline-none focus:border-emerald-500 transition-all text-sm`}
-                    placeholder="you@college.com" 
-                  />
-                  {errors.loginEmail && <p className="text-rose-500 text-[10px] font-bold ml-1">{errors.loginEmail}</p>}
+              <form onSubmit={handleLoginSubmit} className="space-y-5">
+                {error && <div className="p-3 bg-rose-50 text-rose-600 text-xs font-bold rounded-xl border border-rose-100 text-center">{error}</div>}
+                
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-500 ml-1">Work Email</label>
+                  <input type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="name@college.edu" required />
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Password</label>
-                  <input 
-                    type="password" 
-                    value={loginPass} 
-                    onChange={e => setLoginPass(e.target.value)}
-                    className={`w-full px-6 py-4 bg-white/[0.03] border ${errors.loginPass ? 'border-rose-500' : 'border-white/10'} rounded-xl text-white outline-none focus:border-emerald-500 transition-all text-sm`}
-                    placeholder="Enter password" 
-                  />
-                  {errors.loginPass && <p className="text-rose-500 text-[10px] font-bold ml-1">{errors.loginPass}</p>}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-500 ml-1">Password</label>
+                  <input type="password" value={loginPass} onChange={e => setLoginPass(e.target.value)} className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all" placeholder="••••••••" required />
                 </div>
 
-                <button type="submit" className="w-full py-5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg transition-all mt-4 active:scale-[0.98]">
-                  Sign In
+                <button type="submit" disabled={loading} className="w-full py-4 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-sm transition-all shadow-lg active:scale-[0.98]">
+                  {loading ? 'Logging in...' : 'Sign In'}
                 </button>
               </form>
 
-              <div className="mt-10 pt-10 border-t border-white/5 flex flex-col items-center">
-                <p className="text-xs font-medium text-slate-500">
-                  New here? <button onClick={toggleMode} className="text-emerald-500 font-bold hover:underline">Create an account</button>
-                </p>
-                <div className="mt-8 flex flex-wrap gap-2 justify-center opacity-30">
-                  {[UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.HOD, UserRole.TEACHER].map(r => (
-                    <button key={r} onClick={() => handleQuickLogin(r)} className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-[9px] font-bold text-white hover:border-emerald-500 transition-all">
-                      {r}
-                    </button>
-                  ))}
-                </div>
+              <div className="mt-8 pt-8 border-t border-slate-50 text-center">
+                <p className="text-sm text-slate-500">New faculty member? <button onClick={() => setAuthMode('register')} className="text-emerald-600 font-bold hover:underline">Register Profile</button></p>
               </div>
             </div>
           ) : (
-            <div className="animate-in fade-in slide-in-from-left-4 duration-500">
-              <h2 className="text-4xl font-black text-white tracking-tight">Register</h2>
-              <p className="text-sm text-slate-400 mt-2 mb-8">Join the TrackNEnroll team</p>
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="mb-8">
+                <h2 className="text-2xl font-bold text-slate-900">Create Account</h2>
+                <p className="text-slate-400 text-sm">Join the institutional network</p>
+              </div>
 
-              <form onSubmit={handleRegisterSubmit} className="space-y-5">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Your Role</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[UserRole.ADMIN, UserRole.HOD, UserRole.TEACHER].map(r => (
-                      <button 
-                        key={r} 
-                        type="button" 
-                        onClick={() => setRegRole(r)}
-                        className={`py-4 text-[9px] font-black uppercase rounded-xl border transition-all ${regRole === r ? 'bg-emerald-500 border-emerald-500 text-slate-950' : 'bg-white/5 border-white/10 text-white/40'}`}
-                      >
-                        {r.split(' ')[0]}
-                      </button>
-                    ))}
-                  </div>
+              <form onSubmit={handleRegisterSubmit} className="space-y-4">
+                {success && <div className="p-3 bg-emerald-50 text-emerald-600 text-xs font-bold rounded-xl border border-emerald-100 text-center">{success}</div>}
+                
+                <div className="grid grid-cols-2 gap-2">
+                  {[UserRole.TEACHER, UserRole.HOD, UserRole.ADMIN].map(r => (
+                    <button key={r} type="button" onClick={() => setRegRole(r)} className={`py-3 text-[10px] font-bold uppercase rounded-xl border transition-all ${regRole === r ? 'bg-emerald-600 border-emerald-600 text-white' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
+                      {r.split(' ')[0]}
+                    </button>
+                  ))}
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Full Name</label>
-                  <input 
-                    type="text" 
-                    value={regName} 
-                    onChange={e => setRegName(e.target.value)}
-                    className={`w-full px-6 py-4 bg-white/[0.03] border ${errors.regName ? 'border-rose-500' : 'border-white/10'} rounded-xl text-white outline-none focus:border-emerald-500 text-sm`}
-                    placeholder="Enter your name" 
-                  />
-                  {errors.regName && <p className="text-rose-500 text-[10px] font-bold ml-1">{errors.regName}</p>}
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Email</label>
-                  <input 
-                    type="email" 
-                    value={regEmail} 
-                    onChange={e => setRegEmail(e.target.value)}
-                    className={`w-full px-6 py-4 bg-white/[0.03] border ${errors.regEmail ? 'border-rose-500' : 'border-white/10'} rounded-xl text-white outline-none focus:border-emerald-500 text-sm`}
-                    placeholder="Enter email" 
-                  />
-                  {errors.regEmail && <p className="text-rose-500 text-[10px] font-bold ml-1">{errors.regEmail}</p>}
-                </div>
+                <input type="text" value={regName} onChange={e => setRegName(e.target.value)} className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-emerald-500 text-sm" placeholder="Full Name" required />
+                <input type="email" value={regEmail} onChange={e => setRegEmail(e.target.value)} className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-emerald-500 text-sm" placeholder="Work Email" required />
 
                 {(regRole === UserRole.HOD || regRole === UserRole.TEACHER) && (
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Department</label>
-                    <select 
-                      value={regDept} 
-                      onChange={e => setRegDept(e.target.value as Department)}
-                      className="w-full px-6 py-4 bg-slate-900 border border-white/10 rounded-xl text-white outline-none focus:border-emerald-500 text-xs appearance-none cursor-pointer"
-                    >
-                      {Object.values(Department).map(d => <option key={d} value={d}>{d}</option>)}
-                    </select>
-                  </div>
+                  <select value={regDept} onChange={e => setRegDept(e.target.value as Department)} className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-emerald-500 text-sm text-slate-600">
+                    {Object.values(Department).map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
                 )}
 
-                <button type="submit" className="w-full py-5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-xl font-black text-xs uppercase tracking-widest shadow-xl transition-all mt-4 active:scale-[0.98]">
-                  Register Profile
+                <button type="submit" disabled={loading} className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-sm transition-all mt-2 active:scale-[0.98]">
+                  Request Registration
                 </button>
+                <button type="button" onClick={() => setAuthMode('login')} className="w-full text-center text-sm font-medium text-slate-400 hover:text-slate-600 mt-2">Back to Login</button>
               </form>
-
-              <div className="mt-8 pt-8 border-t border-white/5 text-center">
-                <p className="text-xs font-medium text-slate-500">
-                  Already a member? <button onClick={toggleMode} className="text-emerald-500 font-bold hover:underline">Sign In</button>
-                </p>
-              </div>
             </div>
           )}
         </div>
+        
+        {/* Footer Info */}
+        <p className="text-center mt-10 text-[10px] text-slate-400 uppercase tracking-widest font-bold">TrackNEnroll v4.5.0-PRO • No Card Required</p>
       </div>
     </div>
   );

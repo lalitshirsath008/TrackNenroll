@@ -8,7 +8,7 @@ interface ChatProps {
 }
 
 const ChatSystem: React.FC<ChatProps> = ({ currentUser }) => {
-  const { messages, sendMessage, users, markMessagesAsSeen } = useData();
+  const { messages, sendMessage, deleteMessage, users, markMessagesAsSeen } = useData();
   const [activePartnerId, setActivePartnerId] = useState<string | null>(null);
   const [inputText, setInputText] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -47,12 +47,18 @@ const ChatSystem: React.FC<ChatProps> = ({ currentUser }) => {
     setInputText('');
   };
 
-  // FIX: Added 'messages' as a dependency to ensure status changes are caught immediately
+  const handleDelete = (msgId: string) => {
+    if (window.confirm('Delete this message?')) {
+      deleteMessage(msgId);
+    }
+  };
+
+  // FIX: Added messages.length as a dependency to trigger seen status whenever new messages arrive
   useEffect(() => {
     if (activePartnerId) {
       markMessagesAsSeen(activePartnerId, currentUser.id);
     }
-  }, [activePartnerId, messages, currentUser.id, markMessagesAsSeen]);
+  }, [activePartnerId, messages.length, currentUser.id, markMessagesAsSeen]);
 
   useEffect(() => { 
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' }); 
@@ -72,7 +78,7 @@ const ChatSystem: React.FC<ChatProps> = ({ currentUser }) => {
   return (
     <div className="flex flex-col h-[calc(100vh-100px)] bg-white rounded-3xl md:rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden font-['Inter']">
       <div className="flex h-full flex-col md:flex-row">
-        {/* Contacts Sidebar - UI matched to screenshot */}
+        {/* Contacts Sidebar */}
         <div className={`flex-col bg-[#fcfdfe] border-r border-slate-100 h-full w-full md:w-80 lg:w-96 ${activePartnerId ? 'hidden md:flex' : 'flex'}`}>
           <div className="p-8 pb-12 bg-[#4c47f5] text-white shrink-0 rounded-tl-[4rem] relative overflow-hidden">
             <div className="relative z-10">
@@ -87,7 +93,6 @@ const ChatSystem: React.FC<ChatProps> = ({ currentUser }) => {
                 />
               </div>
             </div>
-            {/* Background design element */}
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-3xl"></div>
           </div>
 
@@ -123,7 +128,7 @@ const ChatSystem: React.FC<ChatProps> = ({ currentUser }) => {
           </div>
         </div>
 
-        {/* Chat Area - Compressed & Sleek */}
+        {/* Chat Area */}
         <div className={`flex-1 flex flex-col h-full bg-[#f8fafc] ${!activePartnerId ? 'hidden md:flex' : 'flex'}`}>
           {!activePartnerId ? (
             <div className="flex-1 flex flex-col items-center justify-center text-center p-12">
@@ -151,13 +156,13 @@ const ChatSystem: React.FC<ChatProps> = ({ currentUser }) => {
                 </div>
               </div>
 
-              {/* Messages Area - Compact */}
+              {/* Messages Area */}
               <div className="flex-1 overflow-y-auto p-5 md:p-8 space-y-5 bg-slate-50/50 custom-scroll">
                 {myMessages.map((m, i) => {
                   const isMine = m.senderId === currentUser.id;
                   return (
-                    <div key={i} className={`flex ${isMine ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-1 duration-200`}>
-                      <div className="max-w-[90%] md:max-w-[75%]">
+                    <div key={i} className={`flex ${isMine ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-1 duration-200 group`}>
+                      <div className="max-w-[90%] md:max-w-[75%] relative">
                         <div className={`px-5 py-4 rounded-[1.5rem] shadow-sm ${
                           isMine 
                             ? 'bg-[#4c47f5] text-white rounded-tr-none' 
@@ -165,10 +170,10 @@ const ChatSystem: React.FC<ChatProps> = ({ currentUser }) => {
                         }`}>
                           <p className="text-xs font-bold leading-relaxed">{m.text}</p>
                         </div>
-                        <div className={`flex items-center gap-1.5 mt-1.5 px-2 ${isMine ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`flex items-center gap-2 mt-1.5 px-2 ${isMine ? 'justify-end' : 'justify-start'}`}>
                           <p className="text-[8px] font-black text-slate-400 uppercase tracking-tighter">{formatTime(m.timestamp)}</p>
                           {isMine && (
-                            <div className="flex items-center">
+                            <div className="flex items-center gap-1">
                               {m.status === 'seen' ? (
                                 <svg className="w-3 h-3 text-indigo-500" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7m-12 0l4 4L19 7"/></svg>
                               ) : (
@@ -176,6 +181,13 @@ const ChatSystem: React.FC<ChatProps> = ({ currentUser }) => {
                               )}
                             </div>
                           )}
+                          <button 
+                            onClick={() => handleDelete(m.id)} 
+                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-slate-300 hover:text-red-500"
+                            title="Delete message"
+                          >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                          </button>
                         </div>
                       </div>
                     </div>

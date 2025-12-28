@@ -27,6 +27,7 @@ interface DataContextType {
   autoDistributeLeadsToHODs: (leadIds: string[]) => Promise<void>;
   autoDistributeLeadsToTeachers: (leadIds: string[], department: Department) => Promise<void>;
   sendMessage: (msg: Message) => Promise<void>;
+  deleteMessage: (messageId: string) => Promise<void>;
   registerUser: (user: User) => Promise<void>;
   addUser: (user: User) => Promise<void>;
   updateUser: (id: string, updates: Partial<User>) => Promise<void>;
@@ -199,6 +200,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await setDoc(doc(db, 'messages', msg.id), msg);
   };
 
+  const deleteMessage = async (messageId: string) => {
+    await deleteDoc(doc(db, 'messages', messageId));
+  };
+
   const markMessagesAsSeen = useCallback(async (partnerId: string, currentUserId: string) => {
     const unseenIds = messages
       .filter(m => m.senderId === partnerId && m.receiverId === currentUserId && m.status !== 'seen')
@@ -250,7 +255,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       leads, messages, users, logs, loading,
       addLead, batchAddLeads, updateLead, assignLeadsToHOD, assignLeadsToTeacher, 
       autoDistributeLeadsToHODs, autoDistributeLeadsToTeachers,
-      sendMessage, registerUser, addUser, updateUser, deleteUser, handleUserApproval,
+      sendMessage, deleteMessage, registerUser, addUser, updateUser, deleteUser, handleUserApproval,
       markMessagesAsSeen, addLog, exportSystemData, importSystemData
     }}>
       {children}

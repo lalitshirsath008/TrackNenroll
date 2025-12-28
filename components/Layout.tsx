@@ -157,7 +157,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
         </header>
 
         <main className="flex-1 overflow-y-auto overflow-x-hidden p-6 md:p-12 custom-scroll">
-          <div className="max-w-7xl mx-auto">
+          <div className="max-get7xl mx-auto">
             {children}
           </div>
         </main>

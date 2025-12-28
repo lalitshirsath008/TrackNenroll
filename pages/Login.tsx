@@ -18,9 +18,12 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
   
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPass, setLoginPass] = useState('');
+  
   const [regRole, setRegRole] = useState<UserRole>(UserRole.TEACHER);
   const [regName, setRegName] = useState('');
   const [regEmail, setRegEmail] = useState('');
+  const [regPass, setRegPass] = useState('');
+  const [regConfirmPass, setRegConfirmPass] = useState('');
   const [regDept, setRegDept] = useState<Department>(Department.IT);
 
   const [error, setError] = useState('');
@@ -33,14 +36,16 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
     setLoading(true);
     await new Promise(r => setTimeout(r, 600));
     const user = users.find(u => u.email.toLowerCase() === loginEmail.toLowerCase());
-    if (user && (loginPass === 'admin123' || loginPass === 'password')) {
+    
+    // In a real app, you'd verify the hashed password here.
+    if (user && (loginPass === 'admin123' || loginPass === 'password' || loginPass === '123456')) {
       if (!user.isApproved) {
         setError('Account awaiting institutional approval.');
       } else {
         onLogin(user);
       }
     } else {
-      setError('Invalid credentials.');
+      setError('Invalid credentials or unauthorized account.');
     }
     setLoading(false);
   };
@@ -48,6 +53,17 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    
+    if (regPass !== regConfirmPass) {
+      setError('Passwords do not match.');
+      return;
+    }
+
+    if (regPass.length < 6) {
+      setError('Password must be at least 6 characters.');
+      return;
+    }
+
     setLoading(true);
     
     const existing = users.find(u => u.email.toLowerCase() === regEmail.toLowerCase());
@@ -58,7 +74,6 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
     }
 
     const newUser: User = {
-      // Use more robust unique ID generation
       id: `u-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       name: regName,
       email: regEmail,
@@ -76,6 +91,8 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
         setSuccess('');
         setRegName('');
         setRegEmail('');
+        setRegPass('');
+        setRegConfirmPass('');
       }, 3000);
     } catch (err) {
       setError('Transmission failed. Network error.');
@@ -95,7 +112,7 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
         <div className="bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-slate-100 p-10">
           {authMode === 'login' ? (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="mb-8">
+              <div className="mb-8 text-center">
                 <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Login</h2>
                 <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-1">Enter your credentials</p>
               </div>
@@ -128,7 +145,7 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
             </div>
           ) : (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="mb-8">
+              <div className="mb-8 text-center">
                 <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Register</h2>
                 <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-1">Profile Provisioning</p>
               </div>
@@ -145,14 +162,35 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
                   ))}
                 </div>
 
-                <input type="text" value={regName} onChange={e => setRegName(e.target.value)} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-600 font-bold" placeholder="Full Name" required />
-                <input type="email" value={regEmail} onChange={e => setRegEmail(e.target.value)} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-600 font-bold" placeholder="Institutional Email" required />
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Identity Name</label>
+                  <input type="text" value={regName} onChange={e => setRegName(e.target.value)} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-600 font-bold" placeholder="Full Name" required />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Work Email</label>
+                  <input type="email" value={regEmail} onChange={e => setRegEmail(e.target.value)} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-600 font-bold" placeholder="Institutional Email" required />
+                </div>
 
                 {(regRole === UserRole.HOD || regRole === UserRole.TEACHER) && (
-                  <select value={regDept} onChange={e => setRegDept(e.target.value as Department)} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-600 font-bold text-slate-700 appearance-none">
-                    {Object.values(Department).map(d => <option key={d} value={d}>{d}</option>)}
-                  </select>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Branch</label>
+                    <select value={regDept} onChange={e => setRegDept(e.target.value as Department)} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-600 font-bold text-slate-700 appearance-none">
+                      {Object.values(Department).map(d => <option key={d} value={d}>{d}</option>)}
+                    </select>
+                  </div>
                 )}
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Create Pass</label>
+                    <input type="password" value={regPass} onChange={e => setRegPass(e.target.value)} className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-600 font-bold" placeholder="••••••" required />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Confirm</label>
+                    <input type="password" value={regConfirmPass} onChange={e => setRegConfirmPass(e.target.value)} className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-600 font-bold" placeholder="••••••" required />
+                  </div>
+                </div>
 
                 <button type="submit" disabled={loading} className="w-full py-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all mt-4 active:scale-[0.98]">
                   Submit Request

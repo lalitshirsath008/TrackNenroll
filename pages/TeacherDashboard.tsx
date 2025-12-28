@@ -13,7 +13,8 @@ const TeacherDashboard: React.FC<{ currentUser: User }> = ({ currentUser }) => {
   const [showDeptPicker, setShowDeptPicker] = useState(false);
   const timerRef = useRef<number | null>(null);
 
-  const MIN_VALID_DURATION = 10; 
+  // Mandatory 20 seconds lock as requested
+  const MIN_VALID_DURATION = 20; 
 
   const myLeads = useMemo(() => leads.filter(l => l.assignedToTeacher === currentUser.id), [leads, currentUser.id]);
   const pendingLeads = useMemo(() => myLeads.filter(l => l.stage === LeadStage.ASSIGNED || l.stage === LeadStage.UNASSIGNED), [myLeads]);
@@ -39,7 +40,11 @@ const TeacherDashboard: React.FC<{ currentUser: User }> = ({ currentUser }) => {
   };
 
   const handleCategorization = (leadId: string, response: StudentResponse, selectedDept?: Department) => {
-    // If student is interested, we must pick a branch
+    if (callDuration < MIN_VALID_DURATION) {
+      alert(`Bhai, categorization ke liye kam se kam ${MIN_VALID_DURATION} seconds baat karni hogi.`);
+      return;
+    }
+
     if (response === StudentResponse.INTERESTED && !selectedDept) {
       setShowDeptPicker(true);
       return;
@@ -70,11 +75,15 @@ const TeacherDashboard: React.FC<{ currentUser: User }> = ({ currentUser }) => {
 
     setCallingLead(null);
     setShowDeptPicker(false);
+    setCallDuration(0);
   };
+
+  const isLocked = isCallActive || callDuration < MIN_VALID_DURATION;
+  const progressPercent = Math.min((callDuration / MIN_VALID_DURATION) * 100, 100);
 
   return (
     <div className="space-y-6 font-['Inter']">
-      {/* Enhanced Hero Stats */}
+      {/* Hero Stats */}
       <div className="bg-[#0f172a] p-8 md:p-12 rounded-[2.5rem] text-white shadow-2xl flex flex-col md:flex-row justify-between items-center gap-8 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
         <div className="relative z-10">
@@ -93,7 +102,7 @@ const TeacherDashboard: React.FC<{ currentUser: User }> = ({ currentUser }) => {
         </div>
       </div>
 
-      {/* Modern Tabs */}
+      {/* Tabs */}
       <div className="flex bg-slate-100 p-1.5 rounded-2xl w-full md:w-max">
         <button 
           onClick={() => setActiveTab('pending')}
@@ -109,7 +118,7 @@ const TeacherDashboard: React.FC<{ currentUser: User }> = ({ currentUser }) => {
         </button>
       </div>
 
-      {/* Leads Grid */}
+      {/* Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {(activeTab === 'pending' ? pendingLeads : completedLeads).map(lead => (
           <div key={lead.id} className="bg-white rounded-[2.5rem] border border-slate-100 p-8 flex flex-col shadow-sm hover:shadow-xl transition-all group">
@@ -138,77 +147,98 @@ const TeacherDashboard: React.FC<{ currentUser: User }> = ({ currentUser }) => {
             )}
           </div>
         ))}
-        {(activeTab === 'pending' ? pendingLeads : completedLeads).length === 0 && (
-          <div className="col-span-full py-32 text-center">
-            <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-200">
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0a2 2 0 01-2 2H6a2 2 0 01-2-2m16 0l-8 8-8-8"/></svg>
-            </div>
-            <p className="text-slate-400 font-black uppercase tracking-widest text-xs italic">Everything is handled for now.</p>
-          </div>
-        )}
       </div>
 
-      {/* Call & Classification Modal */}
+      {/* Call Modal */}
       {callingLead && (
         <div className="fixed inset-0 z-[1000] bg-slate-900/95 backdrop-blur-xl flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-lg rounded-[3.5rem] overflow-hidden shadow-2xl flex flex-col animate-in zoom-in-95 duration-200">
-            {/* Header / Timer Section */}
             <div className="p-12 bg-[#0f172a] text-white text-center relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-white/10">
-                <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: `${Math.min((callDuration / MIN_VALID_DURATION) * 100, 100)}%` }}></div>
+              <div className="absolute top-0 left-0 w-full h-2 bg-white/10">
+                <div 
+                  className={`h-full transition-all duration-1000 ${progressPercent < 100 ? 'bg-amber-500' : 'bg-emerald-500'}`} 
+                  style={{ width: `${progressPercent}%` }}
+                ></div>
               </div>
-              <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.4em] mb-4">Calling Now</p>
-              <h3 className="text-4xl font-black uppercase leading-none mb-8 tracking-tighter">{callingLead.name}</h3>
+              <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.4em] mb-4">Calling Session</p>
+              <h3 className="text-4xl font-black uppercase leading-none mb-4 tracking-tighter">{callingLead.name}</h3>
               <div className="text-6xl font-black tabular-nums my-6 text-white drop-shadow-xl">
                 {Math.floor(callDuration/60)}:{(callDuration%60).toString().padStart(2,'0')}
               </div>
+
               {isCallActive ? (
-                <button onClick={endCallSession} className="mt-4 px-12 py-5 bg-red-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl shadow-red-900/40 active:scale-95 transition-all">
-                  Finish Call
+                <button 
+                  onClick={endCallSession} 
+                  className="mt-4 px-12 py-5 bg-red-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl shadow-red-900/40 active:scale-95 transition-all"
+                >
+                  End Call Now
                 </button>
               ) : (
-                <div className="mt-4 text-[10px] font-black text-emerald-400 uppercase tracking-[0.2em] bg-emerald-400/10 py-3 rounded-xl border border-emerald-400/20">Call Recorded - Select Outcome</div>
+                <div className="mt-4 flex flex-col items-center">
+                  {callDuration < MIN_VALID_DURATION ? (
+                    <div className="px-6 py-4 bg-amber-500/20 border border-amber-500/30 rounded-2xl">
+                      <p className="text-[9px] font-black text-amber-400 uppercase tracking-widest">
+                        Wait: {MIN_VALID_DURATION - callDuration}s more to unlock
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="px-6 py-4 bg-emerald-500/20 border border-emerald-500/30 rounded-2xl">
+                      <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">
+                        Call Verified - Ready to Categorize
+                      </p>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
             
-            {/* Classification Buttons */}
-            <div className="p-12 space-y-4 bg-white">
+            <div className="p-12 space-y-4 bg-white relative">
+              {isLocked && (
+                <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center text-center p-8">
+                  <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                    <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2-2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                    </svg>
+                  </div>
+                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">
+                    {isCallActive ? 'Finish call first' : `Talk for ${MIN_VALID_DURATION}s to unlock`}
+                  </p>
+                </div>
+              )}
+
               {!showDeptPicker ? (
                 <>
                   <button 
                     onClick={() => handleCategorization(callingLead.id, StudentResponse.INTERESTED)} 
-                    disabled={isCallActive}
-                    className="w-full py-6 bg-indigo-600 text-white rounded-[2rem] font-black text-[12px] uppercase tracking-widest shadow-2xl shadow-indigo-100 disabled:opacity-20 transition-all hover:bg-indigo-700 active:scale-[0.98]"
+                    disabled={isLocked}
+                    className="w-full py-6 bg-indigo-600 text-white rounded-[2rem] font-black text-[12px] uppercase tracking-widest shadow-2xl shadow-indigo-100 transition-all hover:bg-indigo-700 active:scale-[0.98]"
                   >
                     Student Interested
                   </button>
-
                   <button 
                     onClick={() => handleCategorization(callingLead.id, StudentResponse.GRADE_11_12)} 
-                    disabled={isCallActive}
-                    className="w-full py-5 bg-slate-900 text-white rounded-[1.5rem] font-black text-[11px] uppercase tracking-widest disabled:opacity-20 transition-all active:scale-[0.98]"
+                    disabled={isLocked}
+                    className="w-full py-5 bg-slate-900 text-white rounded-[1.5rem] font-black text-[11px] uppercase tracking-widest transition-all active:scale-[0.98]"
                   >
                     11th / 12th Standard
                   </button>
-
                   <div className="grid grid-cols-2 gap-4">
                     <button 
                       onClick={() => handleCategorization(callingLead.id, StudentResponse.NOT_INTERESTED)} 
-                      disabled={isCallActive}
-                      className="py-4 bg-slate-50 border border-slate-100 rounded-2xl text-[10px] font-black uppercase text-slate-500 hover:bg-slate-100 disabled:opacity-20 transition-all"
+                      disabled={isLocked}
+                      className="py-4 bg-slate-50 border border-slate-100 rounded-2xl text-[10px] font-black uppercase text-slate-500 hover:bg-slate-100 transition-all"
                     >
                       Not Interested
                     </button>
                     <button 
                       onClick={() => handleCategorization(callingLead.id, StudentResponse.CONFUSED)} 
-                      disabled={isCallActive}
-                      className="py-4 bg-slate-50 border border-slate-100 rounded-2xl text-[10px] font-black uppercase text-slate-500 hover:bg-slate-100 disabled:opacity-20 transition-all"
+                      disabled={isLocked}
+                      className="py-4 bg-slate-50 border border-slate-100 rounded-2xl text-[10px] font-black uppercase text-slate-500 hover:bg-slate-100 transition-all"
                     >
                       Confused
                     </button>
                   </div>
-                  
-                  <button onClick={() => setCallingLead(null)} className="w-full py-3 text-slate-300 text-[9px] font-black uppercase tracking-[0.2em] mt-6">Cancel Log</button>
+                  <button onClick={() => setCallingLead(null)} className="w-full py-3 text-slate-300 text-[9px] font-black uppercase tracking-[0.2em] mt-6">Discard Session</button>
                 </>
               ) : (
                 <div className="space-y-6 animate-in slide-in-from-bottom-4">
@@ -218,17 +248,11 @@ const TeacherDashboard: React.FC<{ currentUser: User }> = ({ currentUser }) => {
                    </div>
                    <div className="grid grid-cols-1 gap-3 max-h-72 overflow-y-auto pr-3 custom-scroll">
                       {Object.values(Department).map(d => (
-                        <button 
-                          key={d} 
-                          onClick={() => handleCategorization(callingLead.id, StudentResponse.INTERESTED, d)} 
-                          className="w-full p-5 bg-[#f8fafc] hover:bg-indigo-600 hover:text-white rounded-2xl text-[10px] font-black uppercase transition-all border border-slate-100 text-slate-600 text-left flex justify-between items-center group"
-                        >
+                        <button key={d} onClick={() => handleCategorization(callingLead.id, StudentResponse.INTERESTED, d)} className="w-full p-5 bg-[#f8fafc] hover:bg-indigo-600 hover:text-white rounded-2xl text-[10px] font-black uppercase transition-all border border-slate-100 text-slate-600 text-left flex justify-between items-center group">
                           {d}
-                          <svg className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7"/></svg>
                         </button>
                       ))}
                    </div>
-                   <button onClick={() => setShowDeptPicker(false)} className="w-full py-3 text-indigo-600 text-[10px] font-black uppercase tracking-widest">Back to Options</button>
                 </div>
               )}
             </div>

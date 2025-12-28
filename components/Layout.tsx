@@ -25,8 +25,9 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
 
   const getRoleLabel = (role: UserRole) => {
     if (role === UserRole.SUPER_ADMIN) return 'Principal';
-    if (role === UserRole.ADMIN) return 'Student Section';
-    return role;
+    if (role === UserRole.ADMIN) return 'Admin';
+    if (role === UserRole.HOD) return 'HOD';
+    return 'Teacher';
   };
 
   const unreadCount = useMemo(() => {
@@ -36,9 +37,9 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
   const menuItems: MenuItem[] = [
     { 
       path: '/dashboard', 
-      label: user.role === UserRole.TEACHER ? 'Counseling' : 'Dashboard', 
+      label: user.role === UserRole.TEACHER ? 'Calling Area' : 'Dashboard', 
       icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
       )
     },
   ];
@@ -46,28 +47,28 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
   if (user.role === UserRole.SUPER_ADMIN) {
     menuItems.push({ 
       path: '/analytics', 
-      label: 'Global Analytics', 
-      icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg> 
+      label: 'Statistics', 
+      icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg> 
     });
   }
 
   menuItems.push({ 
     path: '/chat', 
-    label: 'Messenger', 
-    icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>, 
+    label: 'Messages', 
+    icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>, 
     badge: unreadCount 
   });
 
   if (user.role === UserRole.ADMIN) {
     menuItems.push({ 
       path: '/users', 
-      label: 'Staff Portal', 
-      icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg> 
+      label: 'Manage Staff', 
+      icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg> 
     });
     menuItems.push({ 
       path: '/approvals', 
-      label: 'Approvals', 
-      icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg> 
+      label: 'Approve Users', 
+      icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg> 
     });
   }
 
@@ -82,39 +83,39 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
 
       <aside className={`
         fixed md:sticky top-0 inset-y-0 left-0 z-[120] 
-        w-64 md:w-72 bg-[#0f172a] text-white flex flex-col 
+        w-64 md:w-80 bg-[#0f172a] text-white flex flex-col 
         transition-transform duration-300 md:translate-x-0 
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         shadow-2xl md:shadow-none h-screen
       `}>
-        <div className="p-6 md:p-8 shrink-0">
-           <div className="flex items-center gap-3">
-             <div className="w-9 h-9 bg-emerald-600 rounded-xl flex items-center justify-center font-black text-lg">T</div>
+        <div className="p-10 shrink-0">
+           <div className="flex items-center gap-4">
+             <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center font-black text-2xl text-[#0f172a] shadow-lg">T</div>
              <div className="flex flex-col">
-               <h1 className="text-lg font-bold tracking-tight leading-none">TrackNEnroll</h1>
-               <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">Admin Panel</p>
+               <h1 className="text-xl font-black tracking-tight leading-none">TrackNEnroll</h1>
+               <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mt-1.5">Staff Portal</p>
              </div>
            </div>
         </div>
         
-        <nav className="flex-1 px-4 py-2 space-y-1 overflow-y-auto custom-scroll">
+        <nav className="flex-1 px-6 py-2 space-y-2 overflow-y-auto custom-scroll">
           {menuItems.map((item) => (
             <button 
               key={item.path} 
               onClick={() => { navigate(item.path); setIsSidebarOpen(false); }} 
               className={`
-                w-full text-left px-4 py-3.5 rounded-xl flex items-center gap-3 transition-all duration-200
+                w-full text-left px-5 py-4 rounded-2xl flex items-center gap-4 transition-all duration-300
                 ${location.pathname === item.path 
-                  ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/10 font-semibold' 
-                  : 'text-slate-400 hover:text-white hover:bg-white/5'}
+                  ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-900/20 font-bold' 
+                  : 'text-slate-500 hover:text-white hover:bg-white/5'}
               `}
             >
-              <div className={location.pathname === item.path ? 'scale-105 transition-transform' : ''}>
+              <div className={location.pathname === item.path ? 'scale-110 transition-transform' : ''}>
                 {item.icon}
               </div>
-              <span className="text-sm font-medium tracking-tight">{item.label}</span>
+              <span className="text-[11px] font-black uppercase tracking-widest">{item.label}</span>
               {item.badge ? (
-                <span className="ml-auto w-4.5 h-4.5 bg-rose-500 text-white rounded-full flex items-center justify-center text-[9px] font-black">
+                <span className="ml-auto w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] font-black shadow-lg shadow-red-900/20">
                   {item.badge}
                 </span>
               ) : null}
@@ -122,40 +123,40 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
           ))}
         </nav>
 
-        <div className="p-4 md:p-6 mt-auto border-t border-white/5 bg-black/10">
-          <div className="p-4 bg-white/5 rounded-2xl border border-white/5 backdrop-blur-md">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center font-black text-sm">
+        <div className="p-8 mt-auto">
+          <div className="p-6 bg-white/5 rounded-[2rem] border border-white/5 backdrop-blur-md">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center font-black text-lg text-white shadow-lg">
                 {user.name.split(' ').map(n => n[0]).join('')}
               </div>
               <div className="flex-1 overflow-hidden">
-                <p className="text-xs font-black text-white truncate leading-tight uppercase">{user.name}</p>
-                <p className="text-[8px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">{getRoleLabel(user.role)}</p>
+                <p className="text-xs font-black text-white truncate leading-tight uppercase tracking-tight">{user.name}</p>
+                <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest mt-1">{getRoleLabel(user.role)}</p>
               </div>
             </div>
             
             <button 
               onClick={onLogout} 
-              className="w-full py-2.5 bg-white/5 hover:bg-rose-500 text-slate-300 hover:text-white rounded-xl font-black text-[9px] uppercase tracking-widest transition-all duration-300"
+              className="w-full py-4 bg-white/5 hover:bg-red-500 text-slate-400 hover:text-white rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all duration-300 active:scale-95"
             >
-              Sign Out
+              Log Out
             </button>
           </div>
         </div>
       </aside>
 
-      <div className="flex-1 flex flex-col min-w-0 bg-[#fcfdfe]">
-        <header className="md:hidden bg-[#0f172a] p-4 flex justify-between items-center sticky top-0 z-[100] text-white">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-emerald-600 rounded-lg flex items-center justify-center font-bold text-sm">T</div>
-            <span className="font-bold text-xs tracking-tight">TrackNEnroll</span>
+      <div className="flex-1 flex flex-col min-w-0 bg-[#f8fafc]">
+        <header className="md:hidden bg-[#0f172a] p-5 flex justify-between items-center sticky top-0 z-[100] text-white">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center font-black text-[#0f172a] text-lg">T</div>
+            <span className="font-black text-sm tracking-tight">TrackNEnroll</span>
           </div>
-          <button onClick={() => setIsSidebarOpen(true)} className="p-2 bg-white/5 rounded-lg">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7"/></svg>
+          <button onClick={() => setIsSidebarOpen(true)} className="p-3 bg-white/5 rounded-xl active:scale-95 transition-all">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 6h16M4 12h16m-7 6h7"/></svg>
           </button>
         </header>
 
-        <main className="flex-1 overflow-y-auto overflow-x-hidden p-6 md:p-10 custom-scroll">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-6 md:p-12 custom-scroll">
           <div className="max-w-7xl mx-auto">
             {children}
           </div>

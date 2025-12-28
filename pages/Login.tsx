@@ -39,7 +39,7 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
     
     if (user && (loginPass === 'admin123' || loginPass === 'password' || loginPass === '123456')) {
       if (!user.isApproved) {
-        setError('Your account is not approved yet.');
+        setError('Your account is not approved yet. Please wait.');
       } else {
         onLogin(user);
       }
@@ -58,12 +58,9 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
       return;
     }
 
-    if (regRole === UserRole.HOD) {
-      const existingHOD = users.find(u => u.role === UserRole.HOD && u.department === regDept);
-      if (existingHOD) {
-        setError(`HOD for ${regDept} already exists.`);
-        return;
-      }
+    if (regPass !== regConfirmPass) {
+      setError('Passwords do not match.');
+      return;
     }
 
     setLoading(true);
@@ -79,87 +76,127 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
 
     try {
       await registerUser(newUser);
-      setSuccess('Request sent! Wait for approval.');
+      setSuccess('Request sent! Please wait for admin to approve.');
       setTimeout(() => {
         setAuthMode('login');
         setSuccess('');
-      }, 2000);
+      }, 3000);
     } catch (err) {
-      setError('Error occurred.');
+      setError('Something went wrong. Try again.');
     }
     setLoading(false);
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] p-4">
+    <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] p-4 font-['Inter']">
       <div className="w-full max-w-sm">
-        <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-slate-900 rounded-2xl text-white font-black text-xl shadow-xl mb-4">T</div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight uppercase">TrackNEnroll</h1>
-          <p className="text-slate-500 text-[9px] font-black uppercase tracking-widest mt-1">Institutional Node</p>
+        {/* Logo Section */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-[#0f172a] rounded-2xl text-white font-black text-2xl shadow-xl mb-4">T</div>
+          <h1 className="text-3xl font-black text-[#0f172a] tracking-tight">TrackNEnroll</h1>
+          <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mt-1">Staff Login Portal</p>
         </div>
 
-        <div className="bg-white rounded-3xl shadow-xl border border-slate-100 p-8 md:p-10">
+        <div className="bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-slate-100 p-10">
           {authMode === 'login' ? (
-            <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <h2 className="text-xl font-black text-slate-900 uppercase text-center mb-6">Sign In</h2>
-              <form onSubmit={handleLoginSubmit} className="space-y-4">
-                {error && <div className="p-3 bg-rose-50 text-rose-600 text-[9px] font-black uppercase text-center rounded-xl">{error}</div>}
-                <div className="space-y-1">
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Work Email</label>
-                  <input type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 text-sm font-bold" required />
+            <div className="animate-in fade-in slide-in-from-bottom-2 duration-400">
+              <h2 className="text-2xl font-black text-[#0f172a] uppercase text-center mb-8 tracking-tighter">Sign In</h2>
+              <form onSubmit={handleLoginSubmit} className="space-y-5">
+                {error && <div className="p-4 bg-red-50 text-red-600 text-[10px] font-black uppercase text-center rounded-2xl border border-red-100">{error}</div>}
+                
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Work Email</label>
+                  <input 
+                    type="email" 
+                    value={loginEmail} 
+                    onChange={e => setLoginEmail(e.target.value)} 
+                    className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-500 focus:bg-white text-sm font-bold transition-all" 
+                    placeholder="email@college.com"
+                    required 
+                  />
                 </div>
-                <div className="space-y-1">
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Password</label>
-                  <input type="password" value={loginPass} onChange={e => setLoginPass(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 text-sm font-bold" required />
+                
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Password</label>
+                  <input 
+                    type="password" 
+                    value={loginPass} 
+                    onChange={e => setLoginPass(e.target.value)} 
+                    className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-500 focus:bg-white text-sm font-bold transition-all" 
+                    placeholder="••••••••"
+                    required 
+                  />
                 </div>
-                <button type="submit" className="w-full py-4 bg-slate-950 hover:bg-slate-800 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg mt-4 transition-all active:scale-95">
-                  {loading ? 'Processing...' : 'Authorize'}
+
+                <button 
+                  type="submit" 
+                  disabled={loading}
+                  className="w-full py-5 bg-[#0f172a] hover:bg-slate-800 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-slate-200 mt-6 transition-all active:scale-[0.98]"
+                >
+                  {loading ? 'Please Wait...' : 'Login'}
                 </button>
               </form>
-              <button onClick={() => setAuthMode('register')} className="w-full text-center text-[9px] font-black text-indigo-600 uppercase mt-6 tracking-widest hover:underline">New Request Access</button>
+              
+              <button 
+                onClick={() => setAuthMode('register')} 
+                className="w-full text-center text-[10px] font-black text-indigo-600 uppercase mt-8 tracking-widest hover:text-indigo-700 transition-colors"
+              >
+                Register / Create Account
+              </button>
             </div>
           ) : (
-            <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <h2 className="text-xl font-black text-slate-900 uppercase text-center mb-6">Register</h2>
-              <form onSubmit={handleRegisterSubmit} className="space-y-3">
-                {success && <div className="p-3 bg-emerald-50 text-emerald-600 text-[9px] font-black uppercase text-center rounded-xl">{success}</div>}
-                {error && <div className="p-3 bg-rose-50 text-rose-600 text-[9px] font-black uppercase text-center rounded-xl">{error}</div>}
+            <div className="animate-in fade-in slide-in-from-bottom-2 duration-400">
+              <h2 className="text-2xl font-black text-[#0f172a] uppercase text-center mb-8 tracking-tighter">Register</h2>
+              <form onSubmit={handleRegisterSubmit} className="space-y-4">
+                {success && <div className="p-4 bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase text-center rounded-2xl border border-emerald-100">{success}</div>}
+                {error && <div className="p-4 bg-red-50 text-red-600 text-[10px] font-black uppercase text-center rounded-2xl border border-red-100">{error}</div>}
                 
                 <div className="grid grid-cols-3 gap-2">
                   {[UserRole.TEACHER, UserRole.HOD, UserRole.ADMIN].map(r => (
-                    <button key={r} type="button" onClick={() => setRegRole(r)} className={`py-2.5 text-[8px] font-black uppercase rounded-lg border ${regRole === r ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-slate-50 border-slate-100 text-slate-400'}`}>
-                      {r.split(' ')[0]}
+                    <button 
+                      key={r} 
+                      type="button" 
+                      onClick={() => setRegRole(r)} 
+                      className={`py-3 text-[9px] font-black uppercase rounded-xl border transition-all ${
+                        regRole === r 
+                        ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-100' 
+                        : 'bg-slate-50 border-slate-100 text-slate-400'
+                      }`}
+                    >
+                      {r === UserRole.TEACHER ? 'Teacher' : r === UserRole.HOD ? 'HOD' : 'Admin'}
                     </button>
                   ))}
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Name</label>
-                  <input type="text" value={regName} onChange={e => setRegName(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-xs font-bold" required />
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
+                  <input type="text" value={regName} onChange={e => setRegName(e.target.value)} className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-xs font-bold" placeholder="Your Name" required />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Email</label>
-                  <input type="email" value={regEmail} onChange={e => setRegEmail(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-xs font-bold" required />
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Email</label>
+                  <input type="email" value={regEmail} onChange={e => setRegEmail(e.target.value)} className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-xs font-bold" placeholder="name@college.com" required />
                 </div>
 
                 {(regRole === UserRole.HOD || regRole === UserRole.TEACHER) && (
                   <div className="space-y-1">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Branch</label>
-                    <select value={regDept} onChange={e => setRegDept(e.target.value as Department)} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-xs font-bold">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Branch / Department</label>
+                    <select value={regDept} onChange={e => setRegDept(e.target.value as Department)} className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-xs font-bold appearance-none">
                       {Object.values(Department).map(d => <option key={d} value={d}>{d}</option>)}
                     </select>
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-2">
-                  <input type="password" value={regPass} onChange={e => setRegPass(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-xs font-bold" placeholder="Password" required />
-                  <input type="password" value={regConfirmPass} onChange={e => setRegConfirmPass(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-xs font-bold" placeholder="Confirm" required />
+                <div className="grid grid-cols-2 gap-3">
+                  <input type="password" value={regPass} onChange={e => setRegPass(e.target.value)} className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-xs font-bold" placeholder="Password" required />
+                  <input type="password" value={regConfirmPass} onChange={e => setRegConfirmPass(e.target.value)} className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-xs font-bold" placeholder="Confirm" required />
                 </div>
 
-                <button type="submit" className="w-full py-4 bg-indigo-600 text-white rounded-xl font-black text-[10px] uppercase mt-4">Submit</button>
-                <button type="button" onClick={() => setAuthMode('login')} className="w-full text-center text-[9px] font-black text-slate-400 uppercase mt-4 tracking-widest">Back to Login</button>
+                <button type="submit" disabled={loading} className="w-full py-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl shadow-indigo-100 mt-4 transition-all active:scale-[0.98]">
+                  {loading ? 'Processing...' : 'Register Now'}
+                </button>
+                
+                <button type="button" onClick={() => setAuthMode('login')} className="w-full text-center text-[10px] font-black text-slate-400 uppercase mt-4 tracking-widest">Back to Login</button>
               </form>
             </div>
           )}

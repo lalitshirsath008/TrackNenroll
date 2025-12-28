@@ -113,6 +113,17 @@ const App: React.FC = () => {
     }
   };
 
+  // Log Helper for Colors and Icons
+  const getLogStyle = (action: UserAction) => {
+    switch(action) {
+      case UserAction.LOGIN: return { bg: 'bg-emerald-50', border: 'border-emerald-100', text: 'text-emerald-700', strip: 'bg-emerald-500', icon: 'M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1' };
+      case UserAction.LOGOUT: return { bg: 'bg-rose-50', border: 'border-rose-100', text: 'text-rose-700', strip: 'bg-rose-500', icon: 'M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1' };
+      case UserAction.IMPORT_LEADS: return { bg: 'bg-indigo-50', border: 'border-indigo-100', text: 'text-indigo-700', strip: 'bg-indigo-500', icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12' };
+      case UserAction.MANUAL_ADD: return { bg: 'bg-amber-50', border: 'border-amber-100', text: 'text-amber-700', strip: 'bg-amber-500', icon: 'M12 4v16m8-8H4' };
+      default: return { bg: 'bg-slate-50', border: 'border-slate-100', text: 'text-slate-700', strip: 'bg-slate-400', icon: 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' };
+    }
+  };
+
   if (!currentUser) return (
     <Router>
       <Routes>
@@ -149,7 +160,7 @@ const App: React.FC = () => {
                 {adminTab === 'overview' ? (
                   <div className="space-y-6">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                       {[{ l: 'Total', v: stats.total, c: 'text-slate-800' }, { l: 'Allocated', v: stats.assigned, c: 'text-indigo-600' }, { l: 'Interested', v: stats.interested, c: 'text-emerald-600' }, { l: 'Verified', v: stats.callsDone, c: 'text-amber-600' }].map((s, i) => (
+                       {[{ l: 'Total Students', v: stats.total, c: 'text-slate-800' }, { l: 'Allocated Nodes', v: stats.assigned, c: 'text-indigo-600' }, { l: 'Interested Leads', v: stats.interested, c: 'text-emerald-600' }, { l: 'Verified Calls', v: stats.callsDone, c: 'text-amber-600' }].map((s, i) => (
                          <div key={i} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
                             <p className="text-[8px] font-black uppercase text-slate-400 mb-1">{s.l}</p>
                             <p className={`text-xl font-black ${s.c}`}>{s.v}</p>
@@ -162,12 +173,12 @@ const App: React.FC = () => {
                         <h3 className="text-lg font-black uppercase mb-4 relative z-10">Data Pipeline</h3>
                         <div className="flex gap-3 relative z-10">
                            <input type="file" accept=".xlsx,.xls,.csv" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
-                           <button onClick={() => fileInputRef.current?.click()} className="px-5 py-3 bg-indigo-600 text-white rounded-xl font-black text-[9px] uppercase tracking-widest">Import</button>
+                           <button onClick={() => fileInputRef.current?.click()} className="px-5 py-3 bg-indigo-600 text-white rounded-xl font-black text-[9px] uppercase tracking-widest">Import Pool</button>
                            <button onClick={() => setIsManualLeadModalOpen(true)} className="px-5 py-3 bg-white/10 border border-white/10 text-white rounded-xl font-black text-[9px] uppercase tracking-widest">Add Student</button>
                         </div>
                       </div>
                       <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
-                        <p className="text-[9px] font-black uppercase text-slate-400 mb-4">Activity</p>
+                        <p className="text-[9px] font-black uppercase text-slate-400 mb-4">Recent Activity</p>
                         <div className="space-y-3">
                           {recentLeads.map(l => (
                             <div key={l.id} className="flex items-center justify-between border-b border-slate-50 pb-2">
@@ -182,7 +193,7 @@ const App: React.FC = () => {
                 ) : adminTab === 'leads' ? (
                   <div className="space-y-4 animate-in slide-in-from-right-2 duration-300">
                     <div className="flex flex-col md:flex-row gap-3 items-center bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-                      <input type="text" placeholder="Search pool..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold outline-none focus:border-indigo-600" />
+                      <input type="text" placeholder="Search student pool..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold outline-none focus:border-indigo-600" />
                       <div className="flex gap-2 w-full md:w-auto">
                         <button onClick={handleAutoDistribution} className="flex-1 px-4 py-2.5 bg-indigo-600 text-white rounded-lg font-black text-[9px] uppercase tracking-widest shadow-lg">Auto-Distribute</button>
                         <button disabled={selectedLeadIds.length === 0} onClick={() => setIsAssignModalOpen(true)} className="flex-1 px-4 py-2.5 bg-slate-900 disabled:opacity-30 text-white rounded-lg font-black text-[9px] uppercase tracking-widest">Delegate ({selectedLeadIds.length})</button>
@@ -214,16 +225,42 @@ const App: React.FC = () => {
                     </div>
                   </div>
                 ) : (
-                  <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm h-[400px]">
-                    <div className="p-4 border-b border-slate-50 flex justify-between items-center"><h3 className="text-sm font-black uppercase">System Logs</h3></div>
-                    <div className="overflow-y-auto h-full p-2 space-y-2">
-                       {logs.map(log => (
-                         <div key={log.id} className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex flex-col gap-1">
-                            <p className="text-[8px] font-black text-slate-400">{log.timestamp}</p>
-                            <p className="text-[10px] font-black text-slate-800 uppercase">{log.userName} - {log.action}</p>
-                            <p className="text-[9px] font-bold text-slate-500 italic">{log.details}</p>
+                  <div className="bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden shadow-sm flex flex-col h-[550px]">
+                    <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-[#fcfdfe]">
+                      <div>
+                        <h3 className="text-xl font-black uppercase tracking-tighter text-slate-800 leading-none">System Logs</h3>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">Audit trail of all administrative actions</p>
+                      </div>
+                      <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center">
+                        <svg className="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                      </div>
+                    </div>
+                    <div className="overflow-y-auto h-full p-6 space-y-3 custom-scroll bg-slate-50/30">
+                       {logs.length === 0 ? (
+                         <div className="flex flex-col items-center justify-center h-full text-slate-300">
+                           <svg className="w-12 h-12 mb-4 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                           <p className="text-[10px] font-black uppercase tracking-widest">No logs recorded yet</p>
                          </div>
-                       ))}
+                       ) : logs.map(log => {
+                         const style = getLogStyle(log.action);
+                         return (
+                           <div key={log.id} className={`p-5 ${style.bg} rounded-[1.5rem] border ${style.border} flex items-start gap-4 relative overflow-hidden transition-all hover:shadow-md animate-in fade-in slide-in-from-left-2 duration-300`}>
+                              <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${style.strip}`}></div>
+                              <div className="flex-1">
+                                <div className="flex justify-between items-start mb-1">
+                                  <p className="text-[10px] font-black text-slate-400 tabular-nums">{log.timestamp}</p>
+                                  <svg className={`w-4 h-4 ${style.text}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d={style.icon}/></svg>
+                                </div>
+                                <p className={`text-[11px] font-black uppercase tracking-tight ${style.text} mb-1`}>
+                                  {log.userName} - {log.action}
+                                </p>
+                                <p className="text-[10px] font-bold text-slate-500 italic opacity-80 leading-relaxed">
+                                  {log.details}
+                                </p>
+                              </div>
+                           </div>
+                         );
+                       })}
                     </div>
                   </div>
                 )}
@@ -245,7 +282,7 @@ const App: React.FC = () => {
               <form onSubmit={handleAddManualLead} className="p-6 space-y-4">
                 <input type="text" value={manualLead.name} onChange={e => setManualLead(p => ({ ...p, name: e.target.value }))} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-xs font-bold" placeholder="Name" required />
                 <input type="text" value={manualLead.phone} onChange={e => setManualLead(p => ({ ...p, phone: e.target.value.replace(/\D/g, '').slice(0, 10) }))} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-xs font-bold" placeholder="Phone (10 digits)" required />
-                <button type="submit" className="w-full py-4 bg-indigo-600 text-white rounded-xl font-black text-[10px] uppercase shadow-lg">Save</button>
+                <button type="submit" className="w-full py-4 bg-indigo-600 text-white rounded-xl font-black text-[10px] uppercase shadow-lg">Save Student</button>
                 <button type="button" onClick={() => setIsManualLeadModalOpen(false)} className="w-full text-center text-[9px] font-black uppercase text-slate-400">Cancel</button>
               </form>
             </div>

@@ -30,9 +30,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
     return 'Teacher';
   };
 
-  // Precise unreadCount logic to prevent ghost badges
   const unreadCount = useMemo(() => {
-    // Only count messages from users that are currently approved/valid
     const activeUserIds = new Set(users.filter(u => u.isApproved).map(u => u.id));
     return messages.filter(m => 
       m.receiverId === user.id && 
@@ -66,6 +64,12 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
     badge: unreadCount 
   });
 
+  menuItems.push({ 
+    path: '/support', 
+    label: 'AI Helper', 
+    icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg> 
+  });
+
   if (user.role === UserRole.ADMIN) {
     menuItems.push({ 
       path: '/users', 
@@ -95,23 +99,23 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         shadow-2xl md:shadow-none h-screen
       `}>
-        <div className="p-10 shrink-0">
+        <div className="p-8 md:p-10 shrink-0">
            <div className="flex items-center gap-4">
-             <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center font-black text-2xl text-[#0f172a] shadow-lg">T</div>
+             <div className="w-10 h-10 md:w-12 md:h-12 bg-white rounded-2xl flex items-center justify-center font-black text-xl md:text-2xl text-[#0f172a] shadow-lg">T</div>
              <div className="flex flex-col">
-               <h1 className="text-xl font-black tracking-tight leading-none">TrackNEnroll</h1>
-               <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mt-1.5">Staff Portal</p>
+               <h1 className="text-lg md:text-xl font-black tracking-tight leading-none text-white">TrackNEnroll</h1>
+               <p className="text-[8px] md:text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mt-1.5">Staff Portal</p>
              </div>
            </div>
         </div>
         
-        <nav className="flex-1 px-6 py-2 space-y-2 overflow-y-auto custom-scroll">
+        <nav className="flex-1 px-5 py-2 space-y-1 overflow-y-auto custom-scroll">
           {menuItems.map((item) => (
             <button 
               key={item.path} 
               onClick={() => { navigate(item.path); setIsSidebarOpen(false); }} 
               className={`
-                w-full text-left px-5 py-4 rounded-2xl flex items-center gap-4 transition-all duration-300
+                w-full text-left px-5 py-3.5 rounded-xl flex items-center gap-4 transition-all duration-300
                 ${location.pathname === item.path 
                   ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-900/20 font-bold' 
                   : 'text-slate-500 hover:text-white hover:bg-white/5'}
@@ -120,7 +124,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
               <div className={location.pathname === item.path ? 'scale-110 transition-transform' : ''}>
                 {item.icon}
               </div>
-              <span className="text-[11px] font-black uppercase tracking-widest">{item.label}</span>
+              <span className="text-[10px] font-black uppercase tracking-widest">{item.label}</span>
               {item.badge && item.badge > 0 ? (
                 <span className="ml-auto w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] font-black shadow-lg shadow-red-900/20 animate-pulse">
                   {item.badge}
@@ -130,22 +134,21 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
           ))}
         </nav>
 
-        <div className="p-8 mt-auto">
-          {/* Improved Visibility for Account Detail Bar */}
-          <div className="p-6 bg-[#1a2336] rounded-[2.5rem] border border-white/10 backdrop-blur-md shadow-2xl">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-14 h-14 rounded-2xl bg-indigo-600 flex items-center justify-center font-black text-xl text-white shadow-lg border border-white/20">
-                {user.name.split(' ').map(n => n[0]).join('')}
+        <div className="px-5 py-6 mt-auto">
+          <div className="p-4 bg-[#1a2336] rounded-[2rem] border border-white/10 backdrop-blur-md shadow-2xl transition-all">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 shrink-0 rounded-xl bg-indigo-600 flex items-center justify-center font-black text-sm text-white shadow-lg border border-white/20">
+                {user.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
               </div>
               <div className="flex-1 overflow-hidden">
-                <p className="text-sm font-black text-white truncate leading-tight uppercase tracking-tight block">{user.name}</p>
-                <p className="text-[10px] text-indigo-400 font-black uppercase tracking-[0.2em] mt-1.5">{getRoleLabel(user.role)}</p>
+                <p className="text-[11px] font-black text-white truncate leading-tight uppercase tracking-tight block">{user.name}</p>
+                <p className="text-[8px] text-indigo-400 font-black uppercase tracking-[0.15em] mt-1">{getRoleLabel(user.role)}</p>
               </div>
             </div>
             
             <button 
               onClick={onLogout} 
-              className="w-full py-4 bg-white/5 hover:bg-red-500 text-slate-300 hover:text-white rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all duration-300 active:scale-95 border border-white/5"
+              className="w-full py-3 bg-white/5 hover:bg-red-500 text-slate-300 hover:text-white rounded-xl font-black text-[9px] uppercase tracking-widest transition-all duration-300 active:scale-95 border border-white/5"
             >
               Log Out
             </button>

@@ -47,13 +47,17 @@ const ChatSystem: React.FC<ChatProps> = ({ currentUser }) => {
     setInputText('');
   };
 
-  const handleDelete = (msgId: string) => {
+  const handleDelete = async (msgId: string) => {
+    if (!msgId) return;
     if (window.confirm('Delete this message?')) {
-      deleteMessage(msgId);
+      try {
+        await deleteMessage(msgId);
+      } catch (err) {
+        alert('Failed to delete message. Please check your connection.');
+      }
     }
   };
 
-  // Improved reactive clearing of seen status
   useEffect(() => {
     if (activePartnerId) {
       markMessagesAsSeen(activePartnerId, currentUser.id);
@@ -107,7 +111,7 @@ const ChatSystem: React.FC<ChatProps> = ({ currentUser }) => {
                     activePartnerId === contact.id ? 'bg-[#f0f3ff]' : 'bg-white hover:bg-slate-50'
                   }`}
                 >
-                  <div className="w-12 h-12 bg-[#6366f1] rounded-2xl flex items-center justify-center text-white font-black text-sm shadow-lg shadow-indigo-100 overflow-hidden">
+                  <div className="w-12 h-12 bg-[#6366f1] rounded-2xl flex items-center justify-center text-white font-black text-sm shadow-lg shadow-indigo-100 overflow-hidden shrink-0">
                     {contact.name.split(' ').length > 1 
                       ? contact.name.split(' ').slice(0,2).map(n => n[0]).join('')
                       : contact.name.slice(0,2).toUpperCase()
@@ -115,10 +119,18 @@ const ChatSystem: React.FC<ChatProps> = ({ currentUser }) => {
                   </div>
                   <div className="flex-1 text-left overflow-hidden">
                     <p className="font-black text-[#1e293b] text-xs truncate uppercase tracking-tight">{contact.name}</p>
-                    <p className="text-[9px] text-[#6366f1] font-black uppercase tracking-[0.15em] mt-0.5">{getRoleLabel(contact.role)}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <p className="text-[9px] text-[#6366f1] font-black uppercase tracking-[0.15em] shrink-0">{getRoleLabel(contact.role)}</p>
+                      {contact.department && (
+                        <>
+                          <span className="w-1 h-1 bg-slate-300 rounded-full shrink-0"></span>
+                          <p className="text-[8px] text-slate-400 font-bold uppercase truncate tracking-tight">{contact.department}</p>
+                        </>
+                      )}
+                    </div>
                   </div>
                   {unread > 0 && (
-                    <div className="w-6 h-6 bg-[#ff4d6d] rounded-full flex items-center justify-center text-[10px] text-white font-black shadow-lg shadow-rose-200 animate-in zoom-in duration-300">
+                    <div className="w-6 h-6 bg-[#ff4d6d] rounded-full flex items-center justify-center text-[10px] text-white font-black shadow-lg shadow-rose-200 animate-in zoom-in duration-300 shrink-0 ml-1">
                       {unread}
                     </div>
                   )}
@@ -139,20 +151,29 @@ const ChatSystem: React.FC<ChatProps> = ({ currentUser }) => {
             </div>
           ) : (
             <>
-              {/* Chat Header */}
+              {/* Chat Header - Enhanced with detailed partner info */}
               <div className="p-5 md:p-6 border-b border-slate-100 flex items-center gap-4 bg-white shrink-0 z-10 shadow-sm">
                 <button onClick={() => setActivePartnerId(null)} className="md:hidden p-3 bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M15 19l-7-7 7-7"/></svg>
                 </button>
-                <div className="w-11 h-11 bg-indigo-600 rounded-2xl flex items-center justify-center text-white font-black text-xs shadow-md">
+                <div className="w-11 h-11 bg-indigo-600 rounded-2xl flex items-center justify-center text-white font-black text-xs shadow-md shrink-0">
                    {activePartner?.name.slice(0,2).toUpperCase()}
                 </div>
                 <div className="flex-1 overflow-hidden">
-                  <p className="font-black text-[#0f172a] text-sm truncate uppercase tracking-tight">{activePartner?.name}</p>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
-                    <p className="text-[8px] text-slate-400 font-black uppercase tracking-widest">Active Link</p>
+                  <p className="font-black text-[#0f172a] text-sm md:text-base truncate uppercase tracking-tight leading-none mb-1">{activePartner?.name}</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[8px] md:text-[9px] text-indigo-600 font-black uppercase tracking-widest">{getRoleLabel(activePartner?.role as UserRole)}</span>
+                    {activePartner?.department && (
+                       <>
+                         <span className="w-1 h-1 bg-slate-200 rounded-full"></span>
+                         <p className="text-[8px] md:text-[9px] text-slate-400 font-black uppercase tracking-widest truncate">{activePartner.department}</p>
+                       </>
+                    )}
                   </div>
+                </div>
+                <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-emerald-50 rounded-full border border-emerald-100">
+                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                  <p className="text-[8px] text-emerald-700 font-black uppercase tracking-widest">Connected</p>
                 </div>
               </div>
 
@@ -161,7 +182,7 @@ const ChatSystem: React.FC<ChatProps> = ({ currentUser }) => {
                 {myMessages.map((m, i) => {
                   const isMine = m.senderId === currentUser.id;
                   return (
-                    <div key={i} className={`flex ${isMine ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-1 duration-200 group`}>
+                    <div key={m.id || i} className={`flex ${isMine ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-1 duration-200 group`}>
                       <div className="max-w-[90%] md:max-w-[75%] relative">
                         <div className={`px-5 py-4 rounded-[1.5rem] shadow-sm ${
                           isMine 
@@ -183,7 +204,7 @@ const ChatSystem: React.FC<ChatProps> = ({ currentUser }) => {
                           )}
                           <button 
                             onClick={() => handleDelete(m.id)} 
-                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-slate-300 hover:text-red-500"
+                            className="opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity p-1 text-slate-300 hover:text-red-500"
                             title="Delete message"
                           >
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>

@@ -113,7 +113,6 @@ const App: React.FC = () => {
     }
   };
 
-  // Log Helper for Colors and Icons
   const getLogStyle = (action: UserAction) => {
     switch(action) {
       case UserAction.LOGIN: return { bg: 'bg-emerald-50', border: 'border-emerald-100', text: 'text-emerald-700', strip: 'bg-emerald-500', icon: 'M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1' };
@@ -272,6 +271,7 @@ const App: React.FC = () => {
           <Route path="/users" element={<UserManagement currentUser={currentUser} />} />
           <Route path="/approvals" element={<ApprovalCenter currentUser={currentUser} />} />
           <Route path="/chat" element={<ChatSystem currentUser={currentUser} />} />
+          <Route path="/support" element={<AIChatbot />} />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Routes>
 
@@ -280,8 +280,23 @@ const App: React.FC = () => {
             <div className="bg-white w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
               <div className="p-6 bg-slate-900 text-white text-center"><h3 className="text-lg font-black uppercase">Add Student</h3></div>
               <form onSubmit={handleAddManualLead} className="p-6 space-y-4">
-                <input type="text" value={manualLead.name} onChange={e => setManualLead(p => ({ ...p, name: e.target.value }))} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-xs font-bold" placeholder="Name" required />
-                <input type="text" value={manualLead.phone} onChange={e => setManualLead(p => ({ ...p, phone: e.target.value.replace(/\D/g, '').slice(0, 10) }))} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-xs font-bold" placeholder="Phone (10 digits)" required />
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Student Name</label>
+                  <input type="text" value={manualLead.name} onChange={e => setManualLead(p => ({ ...p, name: e.target.value }))} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-xs font-bold" placeholder="Full Name" required />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone Number</label>
+                  <input 
+                    type="tel" 
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={manualLead.phone} 
+                    onChange={e => setManualLead(p => ({ ...p, phone: e.target.value.replace(/\D/g, '').slice(0, 10) }))} 
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none text-xs font-bold" 
+                    placeholder="10 digit number" 
+                    required 
+                  />
+                </div>
                 <button type="submit" className="w-full py-4 bg-indigo-600 text-white rounded-xl font-black text-[10px] uppercase shadow-lg">Save Student</button>
                 <button type="button" onClick={() => setIsManualLeadModalOpen(false)} className="w-full text-center text-[9px] font-black uppercase text-slate-400">Cancel</button>
               </form>
@@ -305,7 +320,6 @@ const App: React.FC = () => {
             </div>
           </div>
         )}
-        <AIChatbot />
       </Layout>
     </Router>
   );

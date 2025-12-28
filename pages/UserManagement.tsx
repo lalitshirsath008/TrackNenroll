@@ -8,7 +8,6 @@ const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   
-  // Changed initial state to empty strings for placeholders
   const [formData, setFormData] = useState<{
     name: string;
     email: string;
@@ -35,7 +34,7 @@ const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.role || !formData.department) {
-      alert('Please select both Role and Branch.');
+      alert('Bhai, please Role aur Branch select karein.');
       return;
     }
 

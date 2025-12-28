@@ -74,7 +74,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const q = query(collection(db, 'messages'), orderBy('timestamp', 'asc'));
       const unsub = onSnapshot(q, (snapshot) => {
-        const msgData = snapshot.docs.map(doc => doc.data() as Message);
+        const msgData = snapshot.docs.map(doc => ({
+          ...doc.data(),
+          id: doc.id // Map Firestore doc ID to message ID
+        } as Message));
         setMessages(msgData);
       }, (error) => {
         console.error("Messages sync error:", error);
@@ -201,7 +204,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteMessage = async (messageId: string) => {
-    await deleteDoc(doc(db, 'messages', messageId));
+    if (!messageId) return;
+    try {
+      await deleteDoc(doc(db, 'messages', messageId));
+    } catch (error) {
+      console.error("Error deleting message:", error);
+      throw error;
+    }
   };
 
   const markMessagesAsSeen = useCallback(async (partnerId: string, currentUserId: string) => {

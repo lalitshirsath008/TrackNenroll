@@ -187,54 +187,55 @@ const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
         </div>
       </div>
 
-      {/* User Modal - Upgraded to match IMAGE Design */}
+      {/* User Modal - PERFECTLY MATCHED TO IMAGE */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[2000] flex items-center justify-center p-4">
           <div className="bg-white rounded-[3rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-10 bg-[#0f172a] text-white flex justify-between items-center relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-10 -mt-10 blur-2xl"></div>
+            {/* Header matches screenshot exactly */}
+            <div className="p-12 bg-[#0f172a] text-white flex justify-between items-start relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full -mr-16 -mt-16 blur-3xl"></div>
               <div className="relative z-10">
-                <h3 className="text-3xl font-black uppercase tracking-tight">
+                <h3 className="text-4xl font-black uppercase tracking-tight">
                   {editingUser ? 'Edit Node' : 'Add Node'}
                 </h3>
-                <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] mt-2">Institutional Access Controller</p>
+                <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mt-3">Institutional Access Controller</p>
               </div>
               <button 
                 onClick={() => setIsModalOpen(false)} 
-                className="w-12 h-12 rounded-2xl bg-white/5 hover:bg-rose-500 flex items-center justify-center transition-all relative z-10"
+                className="w-12 h-12 rounded-2xl bg-white/10 hover:bg-rose-500 flex items-center justify-center transition-all relative z-10"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12"/></svg>
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M6 18L18 6M6 6l12 12"/></svg>
               </button>
             </div>
             
-            <form onSubmit={handleSubmit} className="p-10 space-y-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Identity Name</label>
+            <form onSubmit={handleSubmit} className="p-12 space-y-8 bg-white">
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Identity Name</label>
                 <input 
                   type="text" 
-                  className={`w-full px-6 py-5 bg-slate-50 border ${errors.name ? 'border-rose-300' : 'border-slate-100'} rounded-2xl outline-none focus:border-indigo-600 transition-all font-bold text-sm text-[#0f172a] shadow-sm`} 
+                  className={`w-full px-8 py-6 bg-slate-50 border ${errors.name ? 'border-rose-300' : 'border-slate-100'} rounded-[1.5rem] outline-none focus:border-indigo-600 transition-all font-bold text-sm text-[#0f172a] shadow-sm`} 
                   value={formData.name} 
                   onChange={e => setFormData({...formData, name: e.target.value})} 
                   placeholder="e.g. Dr. Rajesh Patil"
                 />
               </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Institutional Email</label>
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Institutional Email</label>
                 <input 
                   type="email" 
-                  className={`w-full px-6 py-5 bg-slate-50 border ${errors.email ? 'border-rose-300' : 'border-slate-100'} rounded-2xl outline-none focus:border-indigo-600 transition-all font-bold text-sm text-[#0f172a] shadow-sm`} 
+                  className={`w-full px-8 py-6 bg-slate-50 border ${errors.email ? 'border-rose-300' : 'border-slate-100'} rounded-[1.5rem] outline-none focus:border-indigo-600 transition-all font-bold text-sm text-[#0f172a] shadow-sm`} 
                   value={formData.email} 
                   onChange={e => setFormData({...formData, email: e.target.value})} 
                   placeholder="name@college.edu"
                 />
               </div>
 
-              <div className="grid grid-cols-1 gap-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Designation</label>
+              <div className="space-y-8">
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Designation</label>
                   <select 
-                    className="w-full px-6 py-5 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-indigo-600 font-bold text-sm text-[#0f172a] appearance-none shadow-sm" 
+                    className="w-full px-8 py-6 bg-slate-50 border border-slate-100 rounded-[1.5rem] outline-none focus:border-indigo-600 font-bold text-sm text-[#0f172a] appearance-none shadow-sm cursor-pointer" 
                     value={formData.role} 
                     onChange={e => setFormData({...formData, role: e.target.value as UserRole})}
                   >
@@ -243,10 +244,10 @@ const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
                     <option value={UserRole.TEACHER}>Faculty Staff</option>
                   </select>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Work Branch</label>
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Work Branch</label>
                   <select 
-                    className="w-full px-6 py-5 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-indigo-600 font-bold text-sm text-[#0f172a] appearance-none shadow-sm" 
+                    className="w-full px-8 py-6 bg-slate-50 border border-slate-100 rounded-[1.5rem] outline-none focus:border-indigo-600 font-bold text-sm text-[#0f172a] appearance-none shadow-sm cursor-pointer" 
                     value={formData.department} 
                     onChange={e => setFormData({...formData, department: e.target.value as Department})}
                   >
@@ -255,8 +256,8 @@ const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
                 </div>
               </div>
 
-              <div className="pt-6">
-                <button type="submit" className="w-full py-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-[1.5rem] font-black text-[12px] uppercase tracking-[0.3em] shadow-[0_20px_40px_rgba(79,70,229,0.3)] transition-all active:scale-[0.98]">
+              <div className="pt-8">
+                <button type="submit" className="w-full py-6 bg-[#5c4df2] hover:bg-[#4a3bc9] text-white rounded-[1.5rem] font-black text-[12px] uppercase tracking-[0.3em] shadow-[0_20px_40px_rgba(92,77,242,0.3)] transition-all active:scale-[0.98]">
                   {editingUser ? 'Authorize Update' : 'Authorize Identity'}
                 </button>
               </div>

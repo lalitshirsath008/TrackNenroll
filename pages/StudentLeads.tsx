@@ -101,24 +101,30 @@ const StudentLeads: React.FC = () => {
   const handleForwardToSubBranch = () => {
     if (filteredLeads.length === 0) return;
 
-    // 1. CONSTRUCT EMAIL TEMPLATE
-    const subject = "Urgent: Forwarded Leads - 11th/12th Grade Students";
-    let emailBody = "Hi Team,\n\nPlease find the student leads for 11th/12th grade counseling. These students require specialized follow-up from the sub-branch office.\n\nLIST OF STUDENTS:\n----------------------------------\n";
+    const leadCount = filteredLeads.length;
+    const now = new Date();
+    const formattedDate = now.toISOString().split('T')[0]; // YYYY-MM-DD
+    const formattedTimestamp = now.toLocaleString();
+    const fileName = `SubBranch_Forwarded_Leads_${formattedDate}.xlsx`;
+
+    // 1. CONSTRUCT EMAIL TEMPLATE (MATCHING USER SCREENSHOT)
+    const subject = `Action Required: Forwarded 11th/12th Student Leads for Branch Processing`;
     
-    filteredLeads.forEach((l, index) => {
-      emailBody += `${index + 1}. NAME: ${l.name.toUpperCase()}\n   PHONE: ${l.phone}\n   INTEREST: ${l.department}\n   COUNSELOR: ${teacherMap[l.assignedToTeacher || ''] || 'System'}\n----------------------------------\n`;
-    });
+    let emailBody = `Hello Sub-Branch Team,\n\n`;
+    emailBody += `We are forwarding a list of ${leadCount} student leads categorized as "11th / 12th". These students have been contacted by our counselors and require immediate attention for the next phase of admissions.\n\n`;
+    emailBody += `Summary:\n`;
+    emailBody += `- Total Leads: ${leadCount}\n`;
+    emailBody += `- Category: 11th / 12th\n`;
+    emailBody += `- Exported on: ${formattedTimestamp}\n\n`;
+    emailBody += `Note: PLEASE ATTACH THE DOWNLOADED EXCEL FILE "${fileName}" MANUALLY TO THIS GMAIL DRAFT.\n\n`;
+    emailBody += `Regards,\n`;
+    emailBody += `Institutional Admin`;
 
-    emailBody += "\nPlease process these leads on priority.\n\nRegards,\nTrackNEnroll Admissions Team";
-
-    // 2. TRIGGER GMAIL SPECIFIC URL (Desktop & Mobile)
-    // Gmail web compose URL works perfectly on desktop and redirects to Gmail app on many mobile browsers
+    // 2. TRIGGER GMAIL URL
     const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=subbranch@college.edu&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
-    
-    // Open in new tab for desktop, same window for mobile feeling
     window.open(gmailUrl, '_blank');
 
-    // 3. EXCEL EXPORT (Background Backup)
+    // 3. EXCEL EXPORT
     const excelData = filteredLeads.map((l, index) => ({
       'SR NO.': index + 1,
       'STUDENT NAME': l.name.toUpperCase(),
@@ -130,10 +136,10 @@ const StudentLeads: React.FC = () => {
     const ws = XLSX.utils.json_to_sheet(excelData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Forwarded_Students");
-    XLSX.writeFile(wb, `SubBranch_Leads_${new Date().toISOString().slice(0,10)}.xlsx`);
+    XLSX.writeFile(wb, fileName);
 
     if (currentUser.id) {
-      addLog(currentUser.id, currentUser.name, UserAction.IMPORT_LEADS, `Forwarded ${filteredLeads.length} leads to Sub-Branch via Gmail.`);
+      addLog(currentUser.id, currentUser.name, UserAction.IMPORT_LEADS, `Forwarded ${leadCount} leads to Sub-Branch via Gmail.`);
     }
   };
 

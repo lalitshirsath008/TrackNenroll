@@ -23,7 +23,7 @@ const ApprovalCenter: React.FC<{ currentUser: User }> = ({ currentUser }) => {
   const historyRequests = approvalCandidates.filter(u => u.registrationStatus !== 'pending');
 
   const getRoleLabel = (role: UserRole) => {
-    if (role === UserRole.SUPER_ADMIN) return 'Principal';
+    if (role === UserRole.SUPER_ADMIN) return 'Super Admin';
     if (role === UserRole.ADMIN) return 'Admin';
     return role;
   };

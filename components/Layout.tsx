@@ -25,7 +25,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
   const { messages, users } = useData();
 
   const getRoleLabel = (role: UserRole) => {
-    if (role === UserRole.SUPER_ADMIN) return 'Principal';
+    if (role === UserRole.SUPER_ADMIN) return 'Super Admin';
     if (role === UserRole.ADMIN) return 'Admin';
     if (role === UserRole.HOD) return 'HOD';
     return 'Teacher';

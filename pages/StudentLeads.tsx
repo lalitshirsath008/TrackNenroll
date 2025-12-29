@@ -53,20 +53,17 @@ const StudentLeads: React.FC = () => {
     }
   };
 
-  // SMART AUTO ROUTING: Assigns based on student's interested branch
+  // SMART AUTO ROUTING
   const handleSmartReassign = async () => {
     if (selectedLeadIds.length === 0) return;
-
     const selectedLeads = leads.filter(l => selectedLeadIds.includes(l.id));
     const deptGroups: Record<string, string[]> = {};
     selectedLeads.forEach(l => {
       if (!deptGroups[l.department]) deptGroups[l.department] = [];
       deptGroups[l.department].push(l.id);
     });
-
     let assignedCount = 0;
     let errors = [];
-
     for (const dept in deptGroups) {
       const targetHOD = hodList.find(h => h.department === dept);
       if (targetHOD) {
@@ -76,40 +73,52 @@ const StudentLeads: React.FC = () => {
         errors.push(dept);
       }
     }
-
     if (errors.length > 0) {
       alert(`Assigned ${assignedCount} leads. Warning: No HOD found for ${errors.join(', ')} branches.`);
     } else {
       alert(`Smart Routing Complete: All ${assignedCount} students sent to their respective branch HODs.`);
     }
-
     setSelectedLeadIds([]);
     setIsAssignMethodModalOpen(false);
-    
     if (currentUser.id) {
-      addLog(currentUser.id, currentUser.name, UserAction.MANUAL_ADD, `Smart routed ${assignedCount} leads to branch HODs.`);
+      addLog(currentUser.id, currentUser.name, UserAction.MANUAL_ADD, `Smart routed ${assignedCount} leads.`);
     }
   };
 
-  // MANUAL ASSIGN: Force assign all selected to ONE specific HOD
   const handleManualReassign = async (hodId: string) => {
     const hod = hodList.find(h => h.id === hodId);
     if (!hod) return;
-
     await assignLeadsToHOD(selectedLeadIds, hodId);
-    alert(`Successfully assigned ${selectedLeadIds.length} students to ${hod.name} (${hod.department}).`);
-    
+    alert(`Successfully assigned ${selectedLeadIds.length} students to ${hod.name}.`);
     setSelectedLeadIds([]);
     setIsManualHODPickerOpen(false);
     setIsAssignMethodModalOpen(false);
-
     if (currentUser.id) {
-      addLog(currentUser.id, currentUser.name, UserAction.MANUAL_ADD, `Manually assigned ${selectedLeadIds.length} leads to HOD ${hod.name}.`);
+      addLog(currentUser.id, currentUser.name, UserAction.MANUAL_ADD, `Manually assigned ${selectedLeadIds.length} leads.`);
     }
   };
 
   const handleForwardToSubBranch = () => {
     if (filteredLeads.length === 0) return;
+
+    // 1. CONSTRUCT EMAIL TEMPLATE
+    const subject = "Urgent: Forwarded Leads - 11th/12th Grade Students";
+    let emailBody = "Hi Team,\n\nPlease find the student leads for 11th/12th grade counseling. These students require specialized follow-up from the sub-branch office.\n\nLIST OF STUDENTS:\n----------------------------------\n";
+    
+    filteredLeads.forEach((l, index) => {
+      emailBody += `${index + 1}. NAME: ${l.name.toUpperCase()}\n   PHONE: ${l.phone}\n   INTEREST: ${l.department}\n   COUNSELOR: ${teacherMap[l.assignedToTeacher || ''] || 'System'}\n----------------------------------\n`;
+    });
+
+    emailBody += "\nPlease process these leads on priority.\n\nRegards,\nTrackNEnroll Admissions Team";
+
+    // 2. TRIGGER GMAIL SPECIFIC URL (Desktop & Mobile)
+    // Gmail web compose URL works perfectly on desktop and redirects to Gmail app on many mobile browsers
+    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=subbranch@college.edu&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
+    
+    // Open in new tab for desktop, same window for mobile feeling
+    window.open(gmailUrl, '_blank');
+
+    // 3. EXCEL EXPORT (Background Backup)
     const excelData = filteredLeads.map((l, index) => ({
       'SR NO.': index + 1,
       'STUDENT NAME': l.name.toUpperCase(),
@@ -122,6 +131,10 @@ const StudentLeads: React.FC = () => {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Forwarded_Students");
     XLSX.writeFile(wb, `SubBranch_Leads_${new Date().toISOString().slice(0,10)}.xlsx`);
+
+    if (currentUser.id) {
+      addLog(currentUser.id, currentUser.name, UserAction.IMPORT_LEADS, `Forwarded ${filteredLeads.length} leads to Sub-Branch via Gmail.`);
+    }
   };
 
   const teacherResponseOptions = [
@@ -140,7 +153,6 @@ const StudentLeads: React.FC = () => {
         </div>
       </header>
 
-      {/* Filters Card */}
       <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col md:flex-row gap-4 items-center">
         <div className="flex-1 w-full">
           <div className="relative">
@@ -190,7 +202,6 @@ const StudentLeads: React.FC = () => {
         </div>
       </div>
 
-      {/* Table Section */}
       <div className="bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
@@ -252,7 +263,6 @@ const StudentLeads: React.FC = () => {
         </div>
       </div>
 
-      {/* ASSIGN METHOD MODAL */}
       {isAssignMethodModalOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[2000] flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-md rounded-[2.5rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
@@ -261,40 +271,21 @@ const StudentLeads: React.FC = () => {
               <h3 className="text-xl font-black uppercase">How to Assign {selectedLeadIds.length} Leads?</h3>
             </div>
             <div className="p-10 space-y-4">
-              <button 
-                onClick={handleSmartReassign}
-                className="w-full p-6 bg-indigo-600 text-white rounded-3xl flex flex-col items-center gap-2 hover:bg-indigo-700 transition-all border-b-4 border-indigo-800 active:translate-y-1 active:border-b-0"
-              >
-                <span className="text-sm font-black uppercase tracking-widest">🚀 Smart Auto Route</span>
+              <button onClick={handleSmartReassign} className="w-full p-6 bg-indigo-600 text-white rounded-3xl flex flex-col items-center gap-2 hover:bg-indigo-700 transition-all border-b-4 border-indigo-800 active:translate-y-1 active:border-b-0">
+                <span className="text-sm font-black uppercase tracking-widest">Smart Auto Route</span>
                 <span className="text-[10px] opacity-70 font-bold uppercase tracking-tighter">Sends students to HOD of their INTERESTED BRANCH</span>
               </button>
-              
-              <div className="flex items-center gap-4 py-2">
-                <div className="flex-1 h-px bg-slate-100"></div>
-                <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Or Manual</span>
-                <div className="flex-1 h-px bg-slate-100"></div>
-              </div>
-
-              <button 
-                onClick={() => setIsManualHODPickerOpen(true)}
-                className="w-full p-6 bg-white border-2 border-slate-100 text-slate-800 rounded-3xl flex flex-col items-center gap-2 hover:border-indigo-600 hover:text-indigo-600 transition-all active:scale-[0.98]"
-              >
-                <span className="text-sm font-black uppercase tracking-widest">👤 Select HOD Manually</span>
+              <div className="flex items-center gap-4 py-2"><div className="flex-1 h-px bg-slate-100"></div><span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Or Manual</span><div className="flex-1 h-px bg-slate-100"></div></div>
+              <button onClick={() => setIsManualHODPickerOpen(true)} className="w-full p-6 bg-white border-2 border-slate-100 text-slate-800 rounded-3xl flex flex-col items-center gap-2 hover:border-indigo-600 hover:text-indigo-600 transition-all active:scale-[0.98]">
+                <span className="text-sm font-black uppercase tracking-widest">Select HOD Manually</span>
                 <span className="text-[10px] opacity-40 font-bold uppercase tracking-tighter">Force assign all leads to ONE specific person</span>
               </button>
-
-              <button 
-                onClick={() => setIsAssignMethodModalOpen(false)}
-                className="w-full pt-6 text-[10px] font-black text-slate-300 uppercase tracking-widest hover:text-slate-500"
-              >
-                Go Back
-              </button>
+              <button onClick={() => setIsAssignMethodModalOpen(false)} className="w-full pt-6 text-[10px] font-black text-slate-300 uppercase tracking-widest hover:text-slate-500">Go Back</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* MANUAL HOD PICKER MODAL */}
       {isManualHODPickerOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[2100] flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-sm rounded-[3rem] overflow-hidden shadow-2xl animate-in slide-in-from-bottom-4 duration-300">
@@ -304,21 +295,13 @@ const StudentLeads: React.FC = () => {
             </div>
             <div className="p-6 space-y-2 max-h-96 overflow-y-auto custom-scroll">
               {hodList.map(hod => (
-                <button 
-                  key={hod.id} 
-                  onClick={() => handleManualReassign(hod.id)}
-                  className="w-full p-5 bg-slate-50 hover:bg-indigo-600 hover:text-white rounded-2xl text-left transition-all border border-slate-100 flex justify-between items-center group"
-                >
+                <button key={hod.id} onClick={() => handleManualReassign(hod.id)} className="w-full p-5 bg-slate-50 hover:bg-indigo-600 hover:text-white rounded-2xl text-left transition-all border border-slate-100 flex justify-between items-center group">
                   <div>
                     <p className="text-[11px] font-black uppercase leading-none mb-1">{hod.name}</p>
                     <p className="text-[9px] opacity-60 uppercase font-bold tracking-tight">{hod.department}</p>
                   </div>
-                  <svg className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7"/></svg>
                 </button>
               ))}
-              {hodList.length === 0 && (
-                <p className="p-10 text-center text-[10px] font-black text-slate-300 uppercase">No HODs available for assignment</p>
-              )}
             </div>
           </div>
         </div>

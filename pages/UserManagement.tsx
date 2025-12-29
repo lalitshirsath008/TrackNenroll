@@ -11,9 +11,10 @@ const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
   const [formData, setFormData] = useState<{
     name: string;
     email: string;
+    password?: string;
     role: UserRole | '';
     department: Department | '';
-  }>({ name: '', email: '', role: '', department: '' });
+  }>({ name: '', email: '', password: '', role: '', department: '' });
 
   const handleOpenModal = (user?: User) => {
     if (user) {
@@ -21,12 +22,13 @@ const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
       setFormData({ 
         name: user.name, 
         email: user.email, 
+        password: user.password || '', // Display current password if exists
         role: user.role, 
         department: user.department || Department.IT 
       });
     } else {
       setEditingUser(null);
-      setFormData({ name: '', email: '', role: '', department: '' });
+      setFormData({ name: '', email: '', password: '', role: '', department: '' });
     }
     setIsModalOpen(true);
   };
@@ -34,7 +36,7 @@ const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.role || !formData.department) {
-      alert('Bhai, please Role aur Branch select karein.');
+      alert('Please select a valid Role and Branch.');
       return;
     }
 
@@ -88,7 +90,7 @@ const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
                   </td>
                   <td className="px-8 py-4">
                     <span className="text-[8px] font-black uppercase px-2.5 py-1.5 rounded-lg bg-slate-50 text-slate-600 border border-slate-100">
-                      {u.role === UserRole.SUPER_ADMIN ? 'Principal' : u.role === UserRole.ADMIN ? 'Student Section' : u.role}
+                      {u.role === UserRole.SUPER_ADMIN ? 'Super Admin' : u.role === UserRole.ADMIN ? 'Admin' : u.role}
                     </span>
                   </td>
                   <td className="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-tight">{u.department || 'CENTRAL'}</td>
@@ -97,7 +99,7 @@ const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                     </button>
                     {u.id !== currentUser.id && (
-                      <button onClick={() => deleteUser(u.id)} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl transition-colors">
+                      <button onClick={() => { if(window.confirm('Are you sure you want to remove this faculty member?')) deleteUser(u.id); }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl transition-colors">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                       </button>
                     )}
@@ -144,6 +146,17 @@ const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
                 />
               </div>
 
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">New Password</label>
+                <input 
+                  type="text" 
+                  className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-xs font-bold focus:border-indigo-500 focus:bg-white transition-all" 
+                  value={formData.password} 
+                  onChange={e => setFormData({...formData, password: e.target.value})} 
+                  placeholder="Set New Password"
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Role</label>
@@ -154,7 +167,7 @@ const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
                     required
                   >
                     <option value="" disabled>Select Role</option>
-                    <option value={UserRole.ADMIN}>Student Section</option>
+                    <option value={UserRole.ADMIN}>Admin</option>
                     <option value={UserRole.HOD}>Department Head</option>
                     <option value={UserRole.TEACHER}>Faculty Staff</option>
                   </select>

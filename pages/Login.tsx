@@ -35,9 +35,15 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
     setError('');
     setLoading(true);
     await new Promise(r => setTimeout(r, 600));
+    
     const user = users.find(u => u.email.toLowerCase() === loginEmail.toLowerCase());
     
-    if (user && (loginPass === 'admin123' || loginPass === 'password' || loginPass === '123456')) {
+    // Updated Logic: Check for user-specific password if it exists, else fall back to institutional defaults
+    const isCorrectPassword = user?.password 
+      ? loginPass === user.password 
+      : (loginPass === 'admin123' || loginPass === 'password' || loginPass === '123456');
+
+    if (user && isCorrectPassword) {
       if (!user.isApproved) {
         setError('Your account is not approved yet. Please wait.');
       } else {
@@ -63,6 +69,13 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
       return;
     }
 
+    // CHECK FOR DUPLICATE EMAIL
+    const emailExists = users.some(u => u.email.toLowerCase() === regEmail.trim().toLowerCase());
+    if (emailExists) {
+      setError('This email is already registered.');
+      return;
+    }
+
     if ((regRole === UserRole.HOD || regRole === UserRole.TEACHER) && !regDept) {
       setError('Please select your branch.');
       return;
@@ -78,6 +91,7 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
       id: `u-${Date.now()}`,
       name: regName.trim(),
       email: regEmail.trim().toLowerCase(),
+      password: regPass, // Save initial password
       role: regRole as UserRole,
       department: (regRole === UserRole.HOD || regRole === UserRole.TEACHER) ? (regDept as Department) : undefined,
       isApproved: false,
@@ -169,7 +183,7 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
                     required
                   >
                     <option value="" disabled>Select Role</option>
-                    <option value={UserRole.ADMIN}>Principal / Admin</option>
+                    <option value={UserRole.ADMIN}>Admin</option>
                     <option value={UserRole.HOD}>Department Head</option>
                     <option value={UserRole.TEACHER}>Faculty Staff</option>
                   </select>

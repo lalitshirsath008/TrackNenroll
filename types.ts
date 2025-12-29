@@ -39,6 +39,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  password?: string; // New field for manual reset/set
   role: UserRole;
   department?: Department;
   isApproved: boolean;
@@ -60,6 +61,7 @@ export interface StudentLead {
   callVerified: boolean;
   callTimestamp?: string;
   callDuration?: number;
+  notes?: string;
 }
 
 export interface Message {

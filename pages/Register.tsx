@@ -6,7 +6,7 @@ import { useData } from '../context/DataContext';
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
-  const { registerUser } = useData();
+  const { registerUser, users } = useData();
   const [role, setRole] = useState<UserRole | ''>('');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -20,6 +20,13 @@ const Register: React.FC = () => {
       return;
     }
 
+    // CHECK FOR DUPLICATE EMAIL - Updated Message
+    const emailExists = users.some(u => u.email.toLowerCase() === email.trim().toLowerCase());
+    if (emailExists) {
+      alert('This email is already registered.');
+      return;
+    }
+
     if ((role === UserRole.HOD || role === UserRole.TEACHER) && !dept) {
       alert('Please select a department.');
       return;
@@ -28,7 +35,7 @@ const Register: React.FC = () => {
     const newUser: User = {
       id: 'u' + Date.now(),
       name,
-      email,
+      email: email.trim().toLowerCase(),
       role: role as UserRole,
       department: (role === UserRole.HOD || role === UserRole.TEACHER) ? (dept as Department) : undefined,
       isApproved: false,
@@ -36,7 +43,7 @@ const Register: React.FC = () => {
     };
 
     registerUser(newUser);
-    alert('Registration successful! You can now login.');
+    alert('Registration successful! Request sent to admin for approval.');
     navigate('/login');
   };
 

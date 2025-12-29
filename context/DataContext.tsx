@@ -23,6 +23,7 @@ interface DataContextType {
   addLead: (lead: StudentLead) => Promise<void>;
   batchAddLeads: (newLeads: StudentLead[], replace: boolean) => Promise<void>;
   updateLead: (id: string, updates: Partial<StudentLead>) => Promise<void>;
+  deleteLead: (id: string) => Promise<void>;
   assignLeadsToHOD: (leadIds: string[], hodId: string) => Promise<void>;
   assignLeadsToTeacher: (leadIds: string[], teacherId: string) => Promise<void>;
   autoDistributeLeadsToHODs: (leadIds: string[]) => Promise<void>;
@@ -121,6 +122,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateLead = async (id: string, updates: Partial<StudentLead>) => {
     await setDoc(doc(db, 'leads', id), updates, { merge: true });
+  };
+
+  const deleteLead = async (id: string) => {
+    await deleteDoc(doc(db, 'leads', id));
   };
 
   const registerUser = async (user: User) => {
@@ -261,7 +266,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return (
     <DataContext.Provider value={{ 
       leads, messages, users, logs, loading,
-      addLead, batchAddLeads, updateLead, assignLeadsToHOD, assignLeadsToTeacher, 
+      addLead, batchAddLeads, updateLead, deleteLead, assignLeadsToHOD, assignLeadsToTeacher, 
       autoDistributeLeadsToHODs, autoDistributeLeadsToTeachers,
       sendMessage, registerUser, addUser, updateUser, deleteUser, handleUserApproval,
       markMessagesAsSeen, addLog, exportSystemData, importSystemData

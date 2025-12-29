@@ -70,16 +70,17 @@ const RadialProgress: React.FC<{ value: number; label: string; color: string; si
 
 
 const App: React.FC = () => {
-  const { leads, users, logs, loading, batchAddLeads, addLead, addLog, assignLeadsToHOD, autoDistributeLeadsToHODs } = useData();
+  const { leads, users, logs, loading, batchAddLeads, addLead, updateLead, deleteLead, addLog, assignLeadsToHOD, autoDistributeLeadsToHODs } = useData();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isManualLeadModalOpen, setIsManualLeadModalOpen] = useState(false);
+  const [editingLead, setEditingLead] = useState<StudentLead | null>(null);
   const [adminTab, setAdminTab] = useState<'overview' | 'leads' | 'logs'>('overview');
   const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [manualLead, setManualLead] = useState({ name: '', phone: '' });
+  const [leadFormData, setLeadFormData] = useState({ name: '', phone: '' });
 
   useEffect(() => {
     const saved = localStorage.getItem('ten_logged_in_user');
@@ -116,21 +117,47 @@ const App: React.FC = () => {
   const hodList = useMemo(() => users.filter(u => u.role === UserRole.HOD && u.isApproved), [users]);
   const recentLeads = useMemo(() => [...leads].sort((a, b) => b.id.localeCompare(a.id)).slice(0, 5), [leads]);
 
-  const handleAddManualLead = async (e: React.FormEvent) => {
+  const handleLeadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (manualLead.phone.length !== 10 || manualLead.name.length < 3) return;
-    const newLead: StudentLead = {
-      id: `lead-${Date.now()}`,
-      name: manualLead.name,
-      phone: `+91${manualLead.phone}`,
-      sourceFile: 'MANUAL',
-      department: Department.IT,
-      stage: LeadStage.UNASSIGNED,
-      callVerified: false
-    };
-    await addLead(newLead);
+    if (leadFormData.phone.length < 10 || leadFormData.name.length < 3) return;
+    
+    const cleanPhone = leadFormData.phone.startsWith('+91') ? leadFormData.phone : `+91${leadFormData.phone}`;
+
+    if (editingLead) {
+      await updateLead(editingLead.id, { name: leadFormData.name, phone: cleanPhone });
+      setEditingLead(null);
+    } else {
+      const newLead: StudentLead = {
+        id: `lead-${Date.now()}`,
+        name: leadFormData.name,
+        phone: cleanPhone,
+        sourceFile: 'MANUAL',
+        department: Department.IT,
+        stage: LeadStage.UNASSIGNED,
+        callVerified: false
+      };
+      await addLead(newLead);
+    }
     setIsManualLeadModalOpen(false);
-    setManualLead({ name: '', phone: '' });
+    setLeadFormData({ name: '', phone: '' });
+  };
+
+  const handleDeleteLead = async (id: string) => {
+    if (window.confirm("Bhai, are you sure you want to delete this student?")) {
+      await deleteLead(id);
+      if (currentUser) {
+        addLog(currentUser.id, currentUser.name, UserAction.MANUAL_ADD, `Deleted lead ${id}.`);
+      }
+    }
+  };
+
+  const handleOpenEdit = (lead: StudentLead) => {
+    setEditingLead(lead);
+    setLeadFormData({ 
+      name: lead.name, 
+      phone: lead.phone.replace('+91', '') 
+    });
+    setIsManualLeadModalOpen(true);
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -197,7 +224,6 @@ const App: React.FC = () => {
                   <div className="flex p-1 bg-slate-100 rounded-xl border border-slate-200 shadow-inner overflow-x-auto">
                     {[
                       { id: 'overview', label: 'Overview' },
-                      // Conditionally render 'Inflow Pool' tab for Admin only
                       ...(currentUser.role === UserRole.ADMIN ? [{ id: 'leads', label: 'Inflow Pool' }] : []),
                       { id: 'logs', label: 'History Logs' }
                     ].map((tab) => (
@@ -215,18 +241,16 @@ const App: React.FC = () => {
                 {adminTab === 'overview' && (
                   <div className="space-y-6">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                       {[{ l: 'Total Leads', v: stats.total, c: 'text-slate-800' }, { l: 'Allocated', v: stats.assigned, c: 'text-indigo-600' }, { l: 'Interested', v: stats.interested, c: 'text-emerald-600' }, { l: 'Completed', v: stats.callsDone, c: 'text-amber-600' }].map((s, i) => (
+                       {[{ l: 'Total Leads', v: stats.total, v_c: 'text-slate-800' }, { l: 'Allocated', v: stats.assigned, v_c: 'text-indigo-600' }, { l: 'Interested', v: stats.interested, v_c: 'text-emerald-600' }, { l: 'Completed', v: stats.callsDone, v_c: 'text-amber-600' }].map((s, i) => (
                          <div key={i} className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
                             <p className="text-[8px] font-black uppercase text-slate-400 mb-1">{s.l}</p>
-                            <p className={`text-2xl font-black ${s.c}`}>{s.v}</p>
+                            <p className={`text-2xl font-black ${s.v_c}`}>{s.v}</p>
                          </div>
                        ))}
                     </div>
 
-                    {/* NEW: Visualizations for Super Admin ONLY */}
                     {currentUser.role === UserRole.SUPER_ADMIN && (
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
-                        {/* Card 1: Lead Stage Breakdown */}
                         <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl">
                           <h3 className="text-xl font-black uppercase mb-8 text-slate-800">Lead Funnel Snapshot</h3>
                           <div className="flex flex-wrap gap-x-8 gap-y-6 justify-center">
@@ -248,7 +272,6 @@ const App: React.FC = () => {
                           </div>
                         </div>
 
-                        {/* Card 2: Departmental Conversion Performance */}
                         <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl">
                           <h3 className="text-xl font-black uppercase mb-8 text-slate-800">Department Performance</h3>
                           <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-6 gap-x-4 justify-items-center">
@@ -260,9 +283,9 @@ const App: React.FC = () => {
                                 <RadialProgress 
                                   key={dept}
                                   value={conversionRate} 
-                                  label={dept.split(' ')[0]} // Use first word of dept name for brevity
+                                  label={dept.split(' ')[0]} 
                                   color="text-purple-600" 
-                                  size={100} // Slightly smaller for multiple departments
+                                  size={100} 
                                   strokeWidth={8}
                                 />
                               );
@@ -272,13 +295,16 @@ const App: React.FC = () => {
                       </div>
                     )}
 
-                    {currentUser.role === UserRole.ADMIN && ( // Only for Admin
+                    {currentUser.role === UserRole.ADMIN && (
                       <div className="lg:col-span-2 bg-slate-900 p-8 rounded-[2.5rem] text-white shadow-xl relative overflow-hidden">
-                        <h3 className="text-xl font-black uppercase mb-6 relative z-10">Data Pipeline</h3>
+                        <div className="relative z-10 mb-6">
+                          <h3 className="text-xl font-black uppercase relative z-10">Data Pipeline</h3>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Please Upload file with 2 Columns only Student name and Contact Number</p>
+                        </div>
                         <div className="flex gap-4 relative z-10">
                            <input type="file" accept=".xlsx,.xls,.csv" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
                            <button onClick={() => fileInputRef.current?.click()} className="px-8 py-4 bg-indigo-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-900/40">Import Excel</button>
-                           <button onClick={() => setIsManualLeadModalOpen(true)} className="px-8 py-4 bg-white/10 border border-white/10 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest backdrop-blur-md">Add Student</button>
+                           <button onClick={() => { setEditingLead(null); setLeadFormData({ name: '', phone: '' }); setIsManualLeadModalOpen(true); }} className="px-8 py-4 bg-white/10 border border-white/10 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest backdrop-blur-md">Add Student</button>
                         </div>
                         <div className="absolute -bottom-10 -right-10 w-48 h-48 bg-indigo-500/20 rounded-full blur-3xl"></div>
                       </div>
@@ -305,16 +331,25 @@ const App: React.FC = () => {
                               <th className="p-5 w-10"><input type="checkbox" onChange={(e) => setSelectedLeadIds(e.target.checked ? unassignedLeads.map(l => l.id) : [])} className="w-4 h-4 rounded border-slate-300" /></th>
                               <th className="p-5">Student Identity</th>
                               <th className="p-5">Contact</th>
-                              <th className="p-5 text-right">Status</th>
+                              <th className="p-5">Status</th>
+                              <th className="p-5 text-right">Actions</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-50">
                             {unassignedLeads.filter(l => l.name.toLowerCase().includes(searchTerm.toLowerCase())).map(lead => (
-                              <tr key={lead.id} className="hover:bg-slate-50 transition-all">
+                              <tr key={lead.id} className="hover:bg-slate-50 transition-all group">
                                 <td className="p-5"><input type="checkbox" checked={selectedLeadIds.includes(lead.id)} onChange={() => setSelectedLeadIds(p => p.includes(lead.id) ? p.filter(i => i !== lead.id) : [...p, lead.id])} className="w-4 h-4 rounded border-slate-300" /></td>
                                 <td className="p-5 text-[11px] font-black uppercase text-slate-800">{lead.name}</td>
                                 <td className="p-5 text-[10px] font-bold text-slate-500">{lead.phone}</td>
-                                <td className="p-5 text-right"><span className="text-[8px] font-black uppercase text-amber-500 bg-amber-50 px-2 py-1 rounded-lg">Pending Allocation</span></td>
+                                <td className="p-5"><span className="text-[8px] font-black uppercase text-amber-500 bg-amber-50 px-2 py-1 rounded-lg">Pending Allocation</span></td>
+                                <td className="p-5 text-right space-x-2">
+                                  <button onClick={() => handleOpenEdit(lead)} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                                  </button>
+                                  <button onClick={() => handleDeleteLead(lead.id)} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                  </button>
+                                </td>
                               </tr>
                             ))}
                           </tbody>
@@ -353,11 +388,27 @@ const App: React.FC = () => {
         {isManualLeadModalOpen && (
           <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[2000] flex items-center justify-center p-4">
             <div className="bg-white w-full max-w-sm rounded-[2rem] overflow-hidden shadow-2xl">
-              <div className="p-6 bg-slate-900 text-white text-center font-black uppercase text-sm">Enroll Student</div>
-              <form onSubmit={handleAddManualLead} className="p-8 space-y-4">
-                <input type="text" value={manualLead.name} onChange={e => setManualLead(p => ({ ...p, name: e.target.value }))} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold" placeholder="Student Name" required />
-                <input type="tel" value={manualLead.phone} onChange={e => setManualLead(p => ({ ...p, phone: e.target.value.slice(0, 10) }))} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold" placeholder="Phone (10 digits)" required />
-                <button type="submit" className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase text-[10px]">Add to Pool</button>
+              <div className="p-6 bg-slate-900 text-white text-center font-black uppercase text-sm">{editingLead ? 'Edit Student' : 'Enroll Student'}</div>
+              <form onSubmit={handleLeadSubmit} className="p-8 space-y-4">
+                <input 
+                  type="text" 
+                  value={leadFormData.name} 
+                  onChange={e => setLeadFormData(p => ({ ...p, name: e.target.value }))} 
+                  className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold" 
+                  placeholder="Student Name" 
+                  required 
+                />
+                <input 
+                  type="tel" 
+                  value={leadFormData.phone} 
+                  onChange={e => setLeadFormData(p => ({ ...p, phone: e.target.value.slice(0, 10) }))} 
+                  className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold" 
+                  placeholder="Phone (10 digits)" 
+                  required 
+                />
+                <button type="submit" className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase text-[10px]">
+                  {editingLead ? 'Save Changes' : 'Add to Pool'}
+                </button>
                 <button type="button" onClick={() => setIsManualLeadModalOpen(false)} className="w-full text-center text-slate-400 text-[9px] font-black uppercase mt-2">Cancel</button>
               </form>
             </div>

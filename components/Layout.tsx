@@ -50,8 +50,8 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
     },
   ];
 
-  // Dedicated Student Leads Sidebar Item for Admins
-  if (user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN) {
+  // Dedicated Student Leads Sidebar Item for Admins ONLY (removed for Super Admin)
+  if (user.role === UserRole.ADMIN) { // Changed condition: removed user.role === UserRole.SUPER_ADMIN
     menuItems.push({ 
       path: '/student-leads', 
       label: 'Student Leads', 

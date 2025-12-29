@@ -15,6 +15,60 @@ import Layout from './components/Layout';
 import AIChatbot from './components/AIChatbot';
 import * as XLSX from 'xlsx';
 
+// Helper component for animated radial progress bars
+const RadialProgress: React.FC<{ value: number; label: string; color: string; size?: number; strokeWidth?: number }> = ({
+  value,
+  label,
+  color,
+  size = 120,
+  strokeWidth = 10,
+}) => {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  // Ensure value is between 0 and 100
+  const normalizedValue = Math.max(0, Math.min(100, value));
+  const offset = circumference - (normalizedValue / 100) * circumference;
+
+  return (
+    <div className="relative flex flex-col items-center justify-center" style={{ width: size, height: size }}>
+      <svg className="absolute top-0 left-0 w-full h-full" viewBox={`0 0 ${size} ${size}`}>
+        {/* Background circle */}
+        <circle
+          className="text-slate-100"
+          stroke="currentColor"
+          strokeWidth={strokeWidth}
+          fill="transparent"
+          r={radius}
+          cx={size / 2}
+          cy={size / 2}
+        />
+        {/* Progress circle */}
+        <circle
+          className={color}
+          stroke="currentColor"
+          strokeWidth={strokeWidth}
+          fill="transparent"
+          r={radius}
+          cx={size / 2}
+          cy={size / 2}
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          style={{ transition: 'stroke-dashoffset 0.8s ease-out' }}
+        >
+          {/* SVG animation for initial render */}
+          <animate attributeName="stroke-dashoffset" from={circumference} to={offset} dur="1s" fill="freeze" />
+        </circle>
+      </svg>
+      <div className="relative text-center">
+        <p className={`text-2xl font-black ${color.replace('text-', 'text-')}`}>{normalizedValue}%</p>
+        <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest leading-none">{label}</p>
+      </div>
+    </div>
+  );
+};
+
+
 const App: React.FC = () => {
   const { leads, users, logs, loading, batchAddLeads, addLead, addLog, assignLeadsToHOD, autoDistributeLeadsToHODs } = useData();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -143,7 +197,8 @@ const App: React.FC = () => {
                   <div className="flex p-1 bg-slate-100 rounded-xl border border-slate-200 shadow-inner overflow-x-auto">
                     {[
                       { id: 'overview', label: 'Overview' },
-                      { id: 'leads', label: 'Inflow Pool' },
+                      // Conditionally render 'Inflow Pool' tab for Admin only
+                      ...(currentUser.role === UserRole.ADMIN ? [{ id: 'leads', label: 'Inflow Pool' }] : []),
                       { id: 'logs', label: 'History Logs' }
                     ].map((tab) => (
                       <button 
@@ -167,15 +222,67 @@ const App: React.FC = () => {
                          </div>
                        ))}
                     </div>
-                    <div className="lg:col-span-2 bg-slate-900 p-8 rounded-[2.5rem] text-white shadow-xl relative overflow-hidden">
-                      <h3 className="text-xl font-black uppercase mb-6 relative z-10">Data Pipeline</h3>
-                      <div className="flex gap-4 relative z-10">
-                         <input type="file" accept=".xlsx,.xls,.csv" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
-                         <button onClick={() => fileInputRef.current?.click()} className="px-8 py-4 bg-indigo-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-900/40">Import Excel</button>
-                         <button onClick={() => setIsManualLeadModalOpen(true)} className="px-8 py-4 bg-white/10 border border-white/10 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest backdrop-blur-md">Add Student</button>
+
+                    {/* NEW: Visualizations for Super Admin ONLY */}
+                    {currentUser.role === UserRole.SUPER_ADMIN && (
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+                        {/* Card 1: Lead Stage Breakdown */}
+                        <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl">
+                          <h3 className="text-xl font-black uppercase mb-8 text-slate-800">Lead Funnel Snapshot</h3>
+                          <div className="flex flex-wrap gap-x-8 gap-y-6 justify-center">
+                            <RadialProgress 
+                              value={Math.round((leads.filter(l => l.stage === LeadStage.TARGETED).length / Math.max(1, stats.total)) * 100) || 0} 
+                              label="Targeted" 
+                              color="text-emerald-600" 
+                            />
+                            <RadialProgress 
+                              value={Math.round((leads.filter(l => l.stage === LeadStage.DISCARDED).length / Math.max(1, stats.total)) * 100) || 0} 
+                              label="Discarded" 
+                              color="text-rose-600" 
+                            />
+                            <RadialProgress 
+                              value={Math.round((leads.filter(l => l.stage === LeadStage.FORWARDED).length / Math.max(1, stats.total)) * 100) || 0} 
+                              label="Forwarded" 
+                              color="text-indigo-600" 
+                            />
+                          </div>
+                        </div>
+
+                        {/* Card 2: Departmental Conversion Performance */}
+                        <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl">
+                          <h3 className="text-xl font-black uppercase mb-8 text-slate-800">Department Performance</h3>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-6 gap-x-4 justify-items-center">
+                            {Object.values(Department).map(dept => {
+                              const deptLeads = leads.filter(l => l.department === dept);
+                              const targetedCount = deptLeads.filter(l => l.stage === LeadStage.TARGETED).length;
+                              const conversionRate = deptLeads.length > 0 ? Math.round((targetedCount / deptLeads.length) * 100) : 0;
+                              return (
+                                <RadialProgress 
+                                  key={dept}
+                                  value={conversionRate} 
+                                  label={dept.split(' ')[0]} // Use first word of dept name for brevity
+                                  color="text-purple-600" 
+                                  size={100} // Slightly smaller for multiple departments
+                                  strokeWidth={8}
+                                />
+                              );
+                            })}
+                          </div>
+                        </div>
                       </div>
-                      <div className="absolute -bottom-10 -right-10 w-48 h-48 bg-indigo-500/20 rounded-full blur-3xl"></div>
-                    </div>
+                    )}
+
+                    {currentUser.role === UserRole.ADMIN && ( // Only for Admin
+                      <div className="lg:col-span-2 bg-slate-900 p-8 rounded-[2.5rem] text-white shadow-xl relative overflow-hidden">
+                        <h3 className="text-xl font-black uppercase mb-6 relative z-10">Data Pipeline</h3>
+                        <div className="flex gap-4 relative z-10">
+                           <input type="file" accept=".xlsx,.xls,.csv" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
+                           <button onClick={() => fileInputRef.current?.click()} className="px-8 py-4 bg-indigo-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-indigo-900/40">Import Excel</button>
+                           <button onClick={() => setIsManualLeadModalOpen(true)} className="px-8 py-4 bg-white/10 border border-white/10 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest backdrop-blur-md">Add Student</button>
+                        </div>
+                        <div className="absolute -bottom-10 -right-10 w-48 h-48 bg-indigo-500/20 rounded-full blur-3xl"></div>
+                      </div>
+                    )}
                   </div>
                 )}
 

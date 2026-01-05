@@ -14,12 +14,20 @@ import {
   limit
 } from 'firebase/firestore';
 
+export interface Toast {
+  message: string;
+  type: 'success' | 'error' | 'info';
+}
+
 interface DataContextType {
   leads: StudentLead[];
   messages: Message[];
   users: User[];
   logs: SystemLog[];
   loading: boolean;
+  toast: Toast | null;
+  showToast: (message: string, type?: 'success' | 'error' | 'info') => void;
+  hideToast: () => void;
   addLead: (lead: StudentLead) => Promise<void>;
   batchAddLeads: (newLeads: StudentLead[], replace: boolean) => Promise<void>;
   updateLead: (id: string, updates: Partial<StudentLead>) => Promise<void>;
@@ -48,8 +56,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [messages, setMessages] = useState<Message[]>([]);
   const [logs, setLogs] = useState<SystemLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState<Toast | null>(null);
 
-  // Sync Users
+  const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  }, []);
+
+  const hideToast = useCallback(() => setToast(null), []);
+
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'users'), (snapshot) => {
       const userData = snapshot.docs.map(doc => doc.data() as User);
@@ -62,7 +77,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => unsub();
   }, []);
 
-  // Sync Leads
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'leads'), (snapshot) => {
       const leadData = snapshot.docs.map(doc => doc.data() as StudentLead);
@@ -73,7 +87,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => unsub();
   }, []);
 
-  // Sync Messages
   useEffect(() => {
     try {
       const q = query(collection(db, 'messages'), orderBy('timestamp', 'asc'));
@@ -92,7 +105,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  // Sync Logs
   useEffect(() => {
     try {
       const q = query(collection(db, 'logs'), orderBy('timestamp', 'desc'), limit(100));
@@ -110,6 +122,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addLead = async (lead: StudentLead) => {
     await setDoc(doc(db, 'leads', lead.id), lead);
+    showToast(`Student ${lead.name} has been added to the system.`, 'success');
   };
 
   const batchAddLeads = async (newLeads: StudentLead[], replace: boolean) => {
@@ -118,6 +131,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       batch.set(doc(db, 'leads', lead.id), lead);
     });
     await batch.commit();
+    showToast(`Batch Import Success: ${newLeads.length} leads synchronized.`, 'success');
   };
 
   const updateLead = async (id: string, updates: Partial<StudentLead>) => {
@@ -126,22 +140,27 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deleteLead = async (id: string) => {
     await deleteDoc(doc(db, 'leads', id));
+    showToast("The student record has been permanently deleted.", 'info');
   };
 
   const registerUser = async (user: User) => {
     await setDoc(doc(db, 'users', user.id), { ...user, isApproved: false, registrationStatus: 'pending' });
+    showToast("Registration successful. Access is pending administrative approval.", 'success');
   };
 
   const addUser = async (user: User) => {
     await setDoc(doc(db, 'users', user.id), { ...user, isApproved: true, registrationStatus: 'approved' });
+    showToast(`Account for ${user.name} created and authorized.`, 'success');
   };
 
   const updateUser = async (id: string, updates: Partial<User>) => {
     await setDoc(doc(db, 'users', id), updates, { merge: true });
+    showToast("User profile information has been updated.", 'success');
   };
 
   const deleteUser = async (userId: string) => {
     await deleteDoc(doc(db, 'users', userId));
+    showToast("Staff access and credentials have been revoked.", 'info');
   };
 
   const handleUserApproval = async (userId: string, approverId: string, status: 'approved' | 'rejected') => {
@@ -151,6 +170,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       approvedBy: approverId,
       approvalDate: new Date().toLocaleString()
     }, { merge: true });
+    showToast(`The account has been ${status === 'approved' ? 'authorized' : 'rejected'}.`, 'info');
   };
 
   const assignLeadsToHOD = async (leadIds: string[], hodId: string) => {
@@ -164,9 +184,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }, { merge: true });
     });
     await batch.commit();
+    showToast(`${leadIds.length} leads assigned to ${hod?.name}.`, 'success');
   };
 
   const assignLeadsToTeacher = async (leadIds: string[], teacherId: string) => {
+    const teacher = users.find(u => u.id === teacherId);
     const batch = writeBatch(db);
     leadIds.forEach(id => {
       batch.set(doc(db, 'leads', id), {
@@ -175,6 +197,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }, { merge: true });
     });
     await batch.commit();
+    showToast(`${leadIds.length} leads assigned to faculty member ${teacher?.name}.`, 'success');
   };
 
   const autoDistributeLeadsToHODs = async (leadIds: string[]) => {
@@ -191,6 +214,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }, { merge: true });
     });
     await batch.commit();
+    showToast(`Automatic distribution of ${leadIds.length} leads completed.`, 'success');
   };
 
   const autoDistributeLeadsToTeachers = async (leadIds: string[], department: Department) => {
@@ -206,6 +230,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }, { merge: true });
     });
     await batch.commit();
+    showToast(`Successfully distributed ${leadIds.length} leads to department faculty.`, 'success');
   };
 
   const sendMessage = async (msg: Message) => {
@@ -227,7 +252,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await batch.commit();
     } catch (e) {
-      console.debug("Silent failure in markMessagesAsSeen during sync");
+      console.debug("Silent failure in message synchronization");
     }
   }, [messages]);
 
@@ -256,16 +281,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (data.messages) data.messages.forEach((m: any) => batch.set(doc(db, 'messages', m.id || `m-${Math.random()}`), m));
       if (data.logs) data.logs.forEach((log: any) => batch.set(doc(db, 'logs', log.id || `l-${Math.random()}`), log));
       await batch.commit();
+      showToast("Institutional database import successful.", 'success');
       return true;
     } catch (e) {
-      console.error("Import failed:", e);
+      showToast("Import failed. Please verify the data format.", 'error');
       return false;
     }
   }, []);
 
   return (
     <DataContext.Provider value={{ 
-      leads, messages, users, logs, loading,
+      leads, messages, users, logs, loading, toast, showToast, hideToast,
       addLead, batchAddLeads, updateLead, deleteLead, assignLeadsToHOD, assignLeadsToTeacher, 
       autoDistributeLeadsToHODs, autoDistributeLeadsToTeachers,
       sendMessage, registerUser, addUser, updateUser, deleteUser, handleUserApproval,

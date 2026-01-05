@@ -107,6 +107,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     try {
+      // Use timestamp desc to get the most recent logs first
       const q = query(collection(db, 'logs'), orderBy('timestamp', 'desc'), limit(100));
       const unsub = onSnapshot(q, (snapshot) => {
         const logData = snapshot.docs.map(doc => doc.data() as SystemLog);
@@ -168,7 +169,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       registrationStatus: status,
       isApproved: status === 'approved',
       approvedBy: approverId,
-      approvalDate: new Date().toLocaleString()
+      approvalDate: new Date().toISOString()
     }, { merge: true });
     showToast(`The account has been ${status === 'approved' ? 'authorized' : 'rejected'}.`, 'info');
   };
@@ -258,13 +259,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addLog = async (userId: string, userName: string, action: UserAction, details: string) => {
     const logId = 'log-' + Date.now();
+    // Using ISO string for correct lexicographical sorting in Firestore
     await setDoc(doc(db, 'logs', logId), {
       id: logId,
       userId,
       userName,
       action,
       details,
-      timestamp: new Date().toLocaleString()
+      timestamp: new Date().toISOString()
     });
   };
 

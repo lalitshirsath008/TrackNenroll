@@ -138,6 +138,9 @@ const App: React.FC = () => {
         callVerified: false
       };
       await addLead(newLead);
+      if (currentUser) {
+        addLog(currentUser.id, currentUser.name, UserAction.MANUAL_ADD, `Created manual student record: ${newLead.name}`);
+      }
     }
     setIsManualLeadModalOpen(false);
     setLeadFormData({ name: '', phone: '' });
@@ -176,7 +179,6 @@ const App: React.FC = () => {
         }
 
         const newLeads: StudentLead[] = data.map((row, idx) => {
-          // Flexible key detection for common column names
           const keys = Object.keys(row);
           const nameKey = keys.find(k => /name|student|fullname/i.test(k));
           const phoneKey = keys.find(k => /phone|mobile|contact|number/i.test(k));
@@ -194,10 +196,13 @@ const App: React.FC = () => {
             stage: LeadStage.UNASSIGNED,
             callVerified: false
           };
-        }).filter(l => l.phone.length >= 13); // +91 + 10 digits
+        }).filter(l => l.phone.length >= 13);
 
         if (newLeads.length > 0) {
           await batchAddLeads(newLeads, false);
+          if (currentUser) {
+            addLog(currentUser.id, currentUser.name, UserAction.IMPORT_LEADS, `Imported ${newLeads.length} student records from ${file.name}`);
+          }
           if (fileInputRef.current) fileInputRef.current.value = '';
         } else {
           showToast("No valid student records found. Check column headers.", "error");
@@ -214,6 +219,30 @@ const App: React.FC = () => {
     if (unassignedLeads.length === 0 || hodList.length === 0) return;
     if (window.confirm(`Initiate automatic distribution of leads to Department Heads?`)) {
       await autoDistributeLeadsToHODs(unassignedLeads.map(l => l.id));
+      if (currentUser) {
+        addLog(currentUser.id, currentUser.name, UserAction.MANUAL_ADD, `Triggered automatic distribution of ${unassignedLeads.length} leads.`);
+      }
+    }
+  };
+
+  const formatLogDate = (timestamp: string) => {
+    if (!timestamp) return 'No Date';
+    try {
+      const d = new Date(timestamp);
+      // If parsing fails (legacy non-ISO strings), return the raw string formatted as safely as possible
+      if (isNaN(d.getTime())) {
+        return timestamp.split(',')[0] || timestamp;
+      }
+      return d.toLocaleString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+    } catch {
+      return timestamp;
     }
   };
 
@@ -351,13 +380,16 @@ const App: React.FC = () => {
                   <div className="bg-white rounded-[2rem] border border-slate-100 overflow-hidden shadow-sm h-[500px] overflow-y-auto custom-scroll">
                     {logs.map(log => (
                       <div key={log.id} className="p-5 border-b border-slate-50 hover:bg-slate-50 transition-all flex justify-between items-center">
-                        <div>
+                        <div className="flex-1">
                           <p className="text-[10px] font-black text-slate-800 uppercase leading-none mb-1">{log.userName}</p>
-                          <p className="text-[9px] font-bold text-indigo-600 uppercase">{log.action}: {log.details}</p>
+                          <p className="text-[9px] font-bold text-indigo-600 uppercase">{log.action}: <span className="text-slate-500 normal-case">{log.details}</span></p>
                         </div>
-                        <p className="text-[9px] font-black text-slate-300 uppercase">{log.timestamp}</p>
+                        <p className="text-[9px] font-black text-slate-400 uppercase shrink-0 tabular-nums">{formatLogDate(log.timestamp)}</p>
                       </div>
                     ))}
+                    {logs.length === 0 && (
+                      <div className="py-20 text-center text-slate-300 text-[10px] font-black uppercase tracking-widest">No activity records found.</div>
+                    )}
                   </div>
                 )}
               </div>

@@ -1,10 +1,10 @@
 
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { useData } from '../context/DataContext';
-import { StudentLead, StudentResponse, LeadStage, User, Department } from '../types';
+import { StudentLead, StudentResponse, LeadStage, User, Department, UserAction } from '../types';
 
 const TeacherDashboard: React.FC<{ currentUser: User }> = ({ currentUser }) => {
-  const { leads, updateLead, showToast } = useData();
+  const { leads, updateLead, showToast, addLog } = useData();
   const [activeTab, setActiveTab] = useState<'pending' | 'completed'>('pending');
   const [callingLead, setCallingLead] = useState<StudentLead | null>(null);
   const [callDuration, setCallDuration] = useState(0);
@@ -37,7 +37,7 @@ const TeacherDashboard: React.FC<{ currentUser: User }> = ({ currentUser }) => {
     setIsCallActive(false);
   };
 
-  const handleCategorization = (leadId: string, response: StudentResponse, selectedDept?: Department) => {
+  const handleCategorization = async (leadId: string, response: StudentResponse, selectedDept?: Department) => {
     if (callDuration < MIN_VALID_DURATION) {
       showToast(`A minimum interaction of ${MIN_VALID_DURATION} seconds is required for call verification.`, 'error');
       return;
@@ -66,14 +66,17 @@ const TeacherDashboard: React.FC<{ currentUser: User }> = ({ currentUser }) => {
         newStage = LeadStage.NO_ACTION;
     }
 
-    updateLead(leadId, { 
+    await updateLead(leadId, { 
       response, 
       stage: newStage, 
       callVerified: true, 
-      callTimestamp: new Date().toLocaleString(), 
+      callTimestamp: new Date().toISOString(), 
       callDuration, 
       department: selectedDept || Department.IT 
     });
+
+    const leadName = callingLead?.name || 'Student';
+    addLog(currentUser.id, currentUser.name, UserAction.MANUAL_ADD, `Classified student ${leadName} as ${response}. Duration: ${callDuration}s`);
 
     setCallingLead(null);
     setShowDeptPicker(false);
@@ -88,7 +91,7 @@ const TeacherDashboard: React.FC<{ currentUser: User }> = ({ currentUser }) => {
     <div className="space-y-6 font-['Inter']">
       <div className="bg-[#0f172a] p-8 md:p-12 rounded-[2.5rem] text-white shadow-2xl flex flex-col md:flex-row justify-between items-center gap-8 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
-        <div className="relative z-10">
+        <div className="relative z-10 text-center md:text-left">
           <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tighter leading-none">Counselor Dashboard</h2>
           <p className="text-indigo-400 text-[10px] font-black uppercase tracking-[0.3em] mt-3">Active Session: {currentUser.name}</p>
         </div>
@@ -113,18 +116,33 @@ const TeacherDashboard: React.FC<{ currentUser: User }> = ({ currentUser }) => {
         {(activeTab === 'pending' ? pendingLeads : completedLeads).map(lead => (
           <div key={lead.id} className="bg-white rounded-[2.5rem] border border-slate-100 p-8 flex flex-col shadow-sm hover:shadow-xl transition-all group">
             <div className="flex justify-between items-start mb-6">
-              <div className="w-14 h-14 bg-[#f8fafc] rounded-2xl flex items-center justify-center font-black text-indigo-600 border border-slate-100 group-hover:scale-110 transition-transform">{lead.name.charAt(0)}</div>
+              <div className="w-14 h-14 bg-[#f8fafc] rounded-2xl flex items-center justify-center font-black text-indigo-600 border border-slate-100 group-hover:scale-110 transition-transform uppercase">{lead.name.charAt(0)}</div>
               <span className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest ${lead.callVerified ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>{lead.callVerified ? 'Verified' : 'Pending'}</span>
             </div>
             <h4 className="font-black text-[#0f172a] text-xl uppercase tracking-tighter truncate leading-tight">{lead.name}</h4>
             <p className="text-indigo-600 text-sm font-black tracking-widest mt-1 mb-2">{lead.phone}</p>
-            {lead.stage === LeadStage.ASSIGNED || lead.stage === LeadStage.UNASSIGNED ? (
-              <button onClick={() => startCallSession(lead)} className="w-full py-5 bg-[#0f172a] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-800 transition-all active:scale-[0.98] shadow-lg shadow-slate-100">Initiate Outbound Call</button>
-            ) : (
-              <div className="py-4 px-6 bg-slate-50 rounded-2xl text-center text-[10px] font-black uppercase text-slate-500 border border-slate-100">{lead.response}</div>
-            )}
+            
+            <div className="mt-auto pt-6 space-y-3">
+              {activeTab === 'completed' && (
+                <div className="py-3 px-6 bg-slate-50 rounded-2xl text-center text-[9px] font-black uppercase text-slate-500 border border-slate-100 mb-2">
+                  Last Response: {lead.response}
+                </div>
+              )}
+              
+              <button 
+                onClick={() => startCallSession(lead)} 
+                className={`w-full py-5 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-[0.98] shadow-lg ${activeTab === 'pending' ? 'bg-[#0f172a] text-white hover:bg-slate-800' : 'bg-white border-2 border-indigo-100 text-indigo-600 hover:bg-indigo-50'}`}
+              >
+                {activeTab === 'pending' ? 'Initiate Outbound Call' : 'Call Student Back'}
+              </button>
+            </div>
           </div>
         ))}
+        {(activeTab === 'pending' ? pendingLeads : completedLeads).length === 0 && (
+          <div className="col-span-full py-20 text-center text-slate-300 text-[10px] font-black uppercase tracking-widest">
+            No student records found in this category.
+          </div>
+        )}
       </div>
 
       {callingLead && (

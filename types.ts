@@ -39,7 +39,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  password?: string; // New field for manual reset/set
+  password?: string;
   role: UserRole;
   department?: Department;
   isApproved: boolean;
@@ -62,6 +62,10 @@ export interface StudentLead {
   callTimestamp?: string;
   callDuration?: number;
   notes?: string;
+  // Delegation tracking
+  delegatedFromId?: string;
+  delegatedFromName?: string;
+  delegatedToName?: string;
 }
 
 export interface Message {

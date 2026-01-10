@@ -12,7 +12,6 @@ export enum Department {
   ETC = 'E&TC Engineering',
   IT = 'Information Technology',
   ELECTRICAL = 'Electrical Engineering',
-  SCIENCE_HUMANITIES = 'Science & Humanities',
   AI_ML = 'AI & ML'
 }
 

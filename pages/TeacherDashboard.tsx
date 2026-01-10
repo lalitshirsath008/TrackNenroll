@@ -16,12 +16,10 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
   const timerRef = useRef<number | null>(null);
   const MIN_VALID_DURATION = 20;
 
-  // Sync tab if initialTab changes (e.g., navigating from Sidebar)
   useEffect(() => {
     setActiveTab(initialTab);
   }, [initialTab]);
 
-  // Automatically switch to verification screen if admin triggers a challenge
   useEffect(() => {
     if (currentUser.verification?.status === 'pending' && activeTab !== 'verification') {
       setActiveTab('verification');
@@ -81,15 +79,33 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
     let newStage = LeadStage.NO_ACTION;
     switch (response) {
       case StudentResponse.INTERESTED: 
-      case StudentResponse.CONFUSED: newStage = LeadStage.TARGETED; break;
+      case StudentResponse.CONFUSED: 
+        newStage = LeadStage.TARGETED; 
+        break;
       case StudentResponse.NOT_INTERESTED: 
       case StudentResponse.NOT_RESPONDING:
-      case StudentResponse.NOT_REACHABLE: newStage = LeadStage.DISCARDED; break;
-      case StudentResponse.GRADE_11_12: newStage = LeadStage.FORWARDED; break;
+      case StudentResponse.NOT_REACHABLE: 
+        newStage = LeadStage.DISCARDED; 
+        break;
+      case StudentResponse.GRADE_11_12: 
+        newStage = LeadStage.FORWARDED; 
+        break;
+      case StudentResponse.OTHERS:
+        newStage = LeadStage.NO_ACTION;
+        break;
     }
-    await updateLead(leadId, { response, stage: newStage, callVerified: true, callTimestamp: new Date().toISOString(), callDuration, department: selectedDept || Department.IT });
+    
+    await updateLead(leadId, { 
+      response, 
+      stage: newStage, 
+      callVerified: true, 
+      callTimestamp: new Date().toISOString(), 
+      callDuration, 
+      department: selectedDept || currentUser.department || Department.IT 
+    });
+    
     setCallingLead(null);
-    showToast("Classification recorded.", 'success');
+    showToast("Classification recorded successfully.", 'success');
   };
 
   const isLocked = isCallActive || callDuration < MIN_VALID_DURATION;
@@ -97,7 +113,6 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
 
   return (
     <div className="space-y-6 font-['Inter'] pb-12 animate-in fade-in duration-500">
-      {/* Banner Stats */}
       <div className="bg-[#0f172a] p-8 md:p-12 rounded-[2.5rem] text-white shadow-2xl flex flex-col md:flex-row justify-between items-center gap-8 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
         <div className="relative z-10 text-center md:text-left">
@@ -203,37 +218,96 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
       {callingLead && (
         <div className="fixed inset-0 z-[1000] bg-slate-900/95 backdrop-blur-xl flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-xl rounded-[3.5rem] overflow-hidden shadow-2xl flex flex-col animate-in zoom-in-95 duration-200">
-            <div className="p-10 bg-[#0f172a] text-white text-center relative overflow-hidden">
+            {/* Header / Session Active Area */}
+            <div className="p-10 bg-[#0f172a] text-white text-center relative overflow-hidden shrink-0">
               <div className="absolute top-0 left-0 w-full h-2 bg-white/10">
                 <div className={`h-full transition-all duration-1000 ${progressPercent < 100 ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{ width: `${progressPercent}%` }}></div>
               </div>
               <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.4em] mb-4">Live Session Active</p>
               <h3 className="text-4xl font-black uppercase leading-none mb-4 tracking-tighter">{callingLead.name}</h3>
               <div className="text-6xl font-black tabular-nums my-6 text-white">{Math.floor(callDuration/60)}:{(callDuration%60).toString().padStart(2,'0')}</div>
-              {isCallActive ? (
-                <button onClick={endCallSession} className="px-12 py-5 bg-red-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl active:scale-95 transition-all">End Session</button>
-              ) : (
-                <div className="px-6 py-4 bg-emerald-500/20 border border-emerald-500/30 rounded-2xl">
-                  <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Call Session Verified</p>
+              
+              {!isCallActive ? (
+                <div className="px-6 py-4 bg-emerald-500/20 border border-emerald-500/30 rounded-2xl flex items-center justify-center gap-2">
+                   <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Call Session Verified</p>
                 </div>
+              ) : (
+                <button onClick={endCallSession} className="px-12 py-5 bg-red-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl active:scale-95 transition-all">End Session</button>
               )}
             </div>
             
-            <div className="p-10 space-y-6 bg-white relative">
+            {/* Outcome Selection Area */}
+            <div className="p-10 space-y-6 bg-white relative flex-1">
               {isLocked && (
                 <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center text-center p-8">
                   <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4 text-slate-400 font-bold text-xl">!</div>
                   <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Session in progress...</p>
+                  <p className="text-[8px] font-bold text-slate-400 mt-1 uppercase tracking-tighter">Please complete {MIN_VALID_DURATION}s to unlock</p>
                 </div>
               )}
+              
               <div className="space-y-4">
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Outcome Classification</p>
-                <button onClick={() => handleCategorization(callingLead.id, StudentResponse.INTERESTED)} disabled={isLocked} className="w-full py-6 bg-[#4c47f5] text-white rounded-3xl font-black text-[14px] uppercase tracking-widest shadow-xl transition-all hover:bg-indigo-700 active:scale-98">Interested</button>
+                
+                {/* Primary Action */}
+                <button 
+                  onClick={() => handleCategorization(callingLead.id, StudentResponse.INTERESTED)} 
+                  disabled={isLocked} 
+                  className="w-full py-6 bg-[#4c47f5] text-white rounded-3xl font-black text-[14px] uppercase tracking-widest shadow-xl transition-all hover:bg-indigo-700 active:scale-98 disabled:opacity-50"
+                >
+                  Interested
+                </button>
+                
+                {/* Secondary Grid */}
                 <div className="grid grid-cols-2 gap-3">
-                  <button onClick={() => handleCategorization(callingLead.id, StudentResponse.NOT_INTERESTED)} disabled={isLocked} className="py-4 bg-slate-50 border border-slate-200 rounded-2xl text-[10px] font-black uppercase text-slate-600">Not Interested</button>
-                  <button onClick={() => handleCategorization(callingLead.id, StudentResponse.CONFUSED)} disabled={isLocked} className="py-4 bg-slate-50 border border-slate-200 rounded-2xl text-[10px] font-black uppercase text-slate-600">Confused</button>
+                  <button 
+                    onClick={() => handleCategorization(callingLead.id, StudentResponse.NOT_INTERESTED)} 
+                    disabled={isLocked} 
+                    className="py-5 bg-slate-50 border border-slate-200 rounded-2xl text-[9px] font-black uppercase text-slate-600 hover:bg-slate-100 transition-all disabled:opacity-50"
+                  >
+                    Not Interested
+                  </button>
+                  <button 
+                    onClick={() => handleCategorization(callingLead.id, StudentResponse.CONFUSED)} 
+                    disabled={isLocked} 
+                    className="py-5 bg-slate-50 border border-slate-200 rounded-2xl text-[9px] font-black uppercase text-slate-600 hover:bg-slate-100 transition-all disabled:opacity-50"
+                  >
+                    Confused
+                  </button>
                 </div>
-                <button onClick={() => setCallingLead(null)} className="w-full py-3 text-slate-300 text-[9px] font-black uppercase tracking-widest">Dismiss</button>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <button 
+                    onClick={() => handleCategorization(callingLead.id, StudentResponse.GRADE_11_12)} 
+                    disabled={isLocked} 
+                    className="py-5 bg-slate-50 border border-slate-200 rounded-2xl text-[9px] font-black uppercase text-slate-600 hover:bg-slate-100 transition-all disabled:opacity-50"
+                  >
+                    11th / 12th
+                  </button>
+                  <button 
+                    onClick={() => handleCategorization(callingLead.id, StudentResponse.NOT_RESPONDING)} 
+                    disabled={isLocked} 
+                    className="py-5 bg-slate-50 border border-slate-200 rounded-2xl text-[9px] font-black uppercase text-slate-600 hover:bg-slate-100 transition-all disabled:opacity-50"
+                  >
+                    Not Responding
+                  </button>
+                </div>
+                
+                {/* Others Option */}
+                <button 
+                  onClick={() => handleCategorization(callingLead.id, StudentResponse.OTHERS)} 
+                  disabled={isLocked} 
+                  className="w-full py-4 bg-slate-100 border border-slate-200 text-slate-500 rounded-2xl font-black text-[9px] uppercase tracking-widest hover:bg-slate-200 transition-all disabled:opacity-50"
+                >
+                  Others / Outside Scope
+                </button>
+                
+                <button 
+                  onClick={() => setCallingLead(null)} 
+                  className="w-full py-3 text-slate-300 text-[9px] font-black uppercase tracking-widest hover:text-slate-500"
+                >
+                  Dismiss
+                </button>
               </div>
             </div>
           </div>

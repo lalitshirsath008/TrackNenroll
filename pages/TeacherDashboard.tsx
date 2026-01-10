@@ -190,64 +190,53 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
           )}
         </div>
       ) : (
-        <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden animate-in slide-in-from-bottom-4 duration-500">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead className="bg-[#fcfdfe] text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-50">
-                <tr>
-                  <th className="p-8">Student Identity</th>
-                  <th className="p-8">Contact Information</th>
-                  <th className="p-8">Status</th>
-                  <th className="p-8 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {(activeTab === 'pending' ? pendingLeads : completedLeads).map(lead => {
-                  const isSentByMe = lead.delegatedFromId === currentUser.id;
-                  const isSelected = selectedHistoryIds.includes(lead.id);
-                  
-                  return (
-                    <tr 
-                      key={lead.id} 
-                      onClick={() => activeTab === 'completed' && setSelectedHistoryIds(p => p.includes(lead.id) ? p.filter(x => x !== lead.id) : [...p, lead.id])}
-                      className={`hover:bg-slate-50 transition-all cursor-pointer group ${isSelected ? 'bg-indigo-50/50' : ''}`}
-                    >
-                      <td className="p-8">
-                        <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 bg-[#f8fafc] rounded-xl flex items-center justify-center font-black text-indigo-600 border border-slate-100 text-xs uppercase group-hover:bg-indigo-600 group-hover:text-white transition-all">
-                            {lead.name.charAt(0)}
-                          </div>
-                          <p className="text-[12px] font-black uppercase text-slate-800 tracking-tight">{lead.name}</p>
-                        </div>
-                      </td>
-                      <td className="p-8">
-                        <p className="text-indigo-600 text-[11px] font-black tracking-widest tabular-nums">{lead.phone}</p>
-                      </td>
-                      <td className="p-8">
-                        <span className={`px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest border ${lead.callVerified ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-amber-50 text-amber-700 border-amber-100'}`}>
-                          {lead.callVerified ? 'Verified' : 'Uncalled'}
-                        </span>
-                        {lead.response && (
-                           <span className="ml-2 px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest bg-slate-100 text-slate-500 border border-slate-200">
-                             {lead.response}
-                           </span>
-                        )}
-                      </td>
-                      <td className="p-8 text-right">
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); startCallSession(lead); }} 
-                          disabled={isSentByMe}
-                          className={`px-6 py-3 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all shadow-md active:scale-95 ${activeTab === 'pending' ? 'bg-[#0f172a] text-white hover:bg-slate-800' : 'bg-white border border-indigo-100 text-indigo-600 hover:bg-indigo-50'}`}
-                        >
-                          {activeTab === 'pending' ? 'Initiate Call' : 'Follow Up'}
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-in slide-in-from-bottom-4 duration-500">
+          {(activeTab === 'pending' ? pendingLeads : completedLeads).map(lead => {
+            const isSentByMe = lead.delegatedFromId === currentUser.id;
+            const isSelected = selectedHistoryIds.includes(lead.id);
+            
+            return (
+              <div 
+                key={lead.id} 
+                onClick={() => activeTab === 'completed' && setSelectedHistoryIds(p => p.includes(lead.id) ? p.filter(x => x !== lead.id) : [...p, lead.id])}
+                className={`bg-white rounded-[2.5rem] border-2 p-8 flex flex-col shadow-sm hover:shadow-xl transition-all group relative cursor-pointer select-none ${isSelected ? 'border-indigo-500 bg-indigo-50/20' : 'border-slate-100'}`}
+              >
+                <div className="flex justify-between items-start mb-6">
+                  <div className="w-14 h-14 bg-[#f8fafc] rounded-2xl flex items-center justify-center font-black text-indigo-600 border border-slate-100 uppercase text-lg group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                    {lead.name.charAt(0)}
+                  </div>
+                  <div className="flex flex-col items-end gap-2">
+                    <span className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest ${lead.callVerified ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-700'}`}>
+                      {lead.callVerified ? 'Verified' : 'Uncalled'}
+                    </span>
+                    {lead.response && (
+                      <span className="px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest bg-slate-100 text-slate-500 border border-slate-200">
+                        {lead.response}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                
+                <h4 className="font-black text-[#0f172a] text-xl uppercase tracking-tighter truncate leading-tight mb-1">{lead.name}</h4>
+                <p className="text-indigo-600 text-sm font-black tracking-widest mb-6">{lead.phone}</p>
+                
+                <div className="mt-auto">
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); startCallSession(lead); }} 
+                    disabled={isSentByMe}
+                    className={`w-full py-5 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg active:scale-95 ${activeTab === 'pending' ? 'bg-[#0f172a] text-white hover:bg-slate-800' : 'bg-white border-2 border-indigo-100 text-indigo-600 hover:bg-indigo-50'}`}
+                  >
+                    {activeTab === 'pending' ? 'Initiate Call' : 'Follow Up Call'}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+          {(activeTab === 'pending' ? pendingLeads : completedLeads).length === 0 && (
+            <div className="col-span-full py-24 text-center">
+              <p className="text-slate-300 text-[10px] font-black uppercase tracking-[0.4em]">No leads found in this section.</p>
+            </div>
+          )}
         </div>
       )}
 

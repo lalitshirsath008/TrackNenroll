@@ -10,6 +10,7 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
   const [callDuration, setCallDuration] = useState(0);
   const [isCallActive, setIsCallActive] = useState(false);
   const [verificationInput, setVerificationInput] = useState('');
+  const [showBranchSelection, setShowBranchSelection] = useState(false);
   
   const [selectedHistoryIds, setSelectedHistoryIds] = useState<string[]>([]);
 
@@ -60,6 +61,7 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
     setCallingLead(lead);
     setIsCallActive(true);
     setCallDuration(0);
+    setShowBranchSelection(false);
     window.location.href = `tel:${lead.phone}`;
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = window.setInterval(() => setCallDuration(p => p + 1), 1000);
@@ -105,6 +107,7 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
     });
     
     setCallingLead(null);
+    setShowBranchSelection(false);
     showToast("Classification recorded successfully.", 'success');
   };
 
@@ -216,8 +219,8 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
 
       {/* Live Call Interface */}
       {callingLead && (
-        <div className="fixed inset-0 z-[1000] bg-slate-900/95 backdrop-blur-xl flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-xl rounded-[3.5rem] overflow-hidden shadow-2xl flex flex-col animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-[1000] bg-slate-900/95 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white w-full max-w-xl rounded-[3.5rem] overflow-hidden shadow-2xl flex flex-col animate-in zoom-in-95 duration-200 my-8">
             {/* Header / Session Active Area */}
             <div className="p-10 bg-[#0f172a] text-white text-center relative overflow-hidden shrink-0">
               <div className="absolute top-0 left-0 w-full h-2 bg-white/10">
@@ -246,69 +249,97 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
                 </div>
               )}
               
-              <div className="space-y-4">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Outcome Classification</p>
-                
-                {/* Primary Action */}
-                <button 
-                  onClick={() => handleCategorization(callingLead.id, StudentResponse.INTERESTED)} 
-                  disabled={isLocked} 
-                  className="w-full py-6 bg-[#4c47f5] text-white rounded-3xl font-black text-[14px] uppercase tracking-widest shadow-xl transition-all hover:bg-indigo-700 active:scale-98 disabled:opacity-50"
-                >
-                  Interested
-                </button>
-                
-                {/* Secondary Grid */}
-                <div className="grid grid-cols-2 gap-3">
+              {!showBranchSelection ? (
+                <div className="space-y-4 animate-in fade-in duration-300">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Outcome Classification</p>
+                  
+                  {/* Primary Action */}
                   <button 
-                    onClick={() => handleCategorization(callingLead.id, StudentResponse.NOT_INTERESTED)} 
+                    onClick={() => setShowBranchSelection(true)} 
                     disabled={isLocked} 
-                    className="py-5 bg-slate-50 border border-slate-200 rounded-2xl text-[9px] font-black uppercase text-slate-600 hover:bg-slate-100 transition-all disabled:opacity-50"
+                    className="w-full py-6 bg-[#4c47f5] text-white rounded-3xl font-black text-[14px] uppercase tracking-widest shadow-xl transition-all hover:bg-indigo-700 active:scale-98 disabled:opacity-50"
                   >
-                    Not Interested
+                    Interested
                   </button>
-                  <button 
-                    onClick={() => handleCategorization(callingLead.id, StudentResponse.CONFUSED)} 
-                    disabled={isLocked} 
-                    className="py-5 bg-slate-50 border border-slate-200 rounded-2xl text-[9px] font-black uppercase text-slate-600 hover:bg-slate-100 transition-all disabled:opacity-50"
-                  >
-                    Confused
-                  </button>
-                </div>
+                  
+                  {/* Secondary Grid */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <button 
+                      onClick={() => handleCategorization(callingLead.id, StudentResponse.NOT_INTERESTED)} 
+                      disabled={isLocked} 
+                      className="py-5 bg-slate-50 border border-slate-200 rounded-2xl text-[9px] font-black uppercase text-slate-600 hover:bg-slate-100 transition-all disabled:opacity-50"
+                    >
+                      Not Interested
+                    </button>
+                    <button 
+                      onClick={() => handleCategorization(callingLead.id, StudentResponse.CONFUSED)} 
+                      disabled={isLocked} 
+                      className="py-5 bg-slate-50 border border-slate-200 rounded-2xl text-[9px] font-black uppercase text-slate-600 hover:bg-slate-100 transition-all disabled:opacity-50"
+                    >
+                      Confused
+                    </button>
+                  </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <button 
+                      onClick={() => handleCategorization(callingLead.id, StudentResponse.GRADE_11_12)} 
+                      disabled={isLocked} 
+                      className="py-5 bg-slate-50 border border-slate-200 rounded-2xl text-[9px] font-black uppercase text-slate-600 hover:bg-slate-100 transition-all disabled:opacity-50"
+                    >
+                      11th / 12th
+                    </button>
+                    <button 
+                      onClick={() => handleCategorization(callingLead.id, StudentResponse.NOT_RESPONDING)} 
+                      disabled={isLocked} 
+                      className="py-5 bg-slate-50 border border-slate-200 rounded-2xl text-[9px] font-black uppercase text-slate-600 hover:bg-slate-100 transition-all disabled:opacity-50"
+                    >
+                      Not Responding
+                    </button>
+                  </div>
+                  
+                  {/* Others Option */}
                   <button 
-                    onClick={() => handleCategorization(callingLead.id, StudentResponse.GRADE_11_12)} 
+                    onClick={() => handleCategorization(callingLead.id, StudentResponse.OTHERS)} 
                     disabled={isLocked} 
-                    className="py-5 bg-slate-50 border border-slate-200 rounded-2xl text-[9px] font-black uppercase text-slate-600 hover:bg-slate-100 transition-all disabled:opacity-50"
+                    className="w-full py-4 bg-slate-100 border border-slate-200 text-slate-500 rounded-2xl font-black text-[9px] uppercase tracking-widest hover:bg-slate-200 transition-all disabled:opacity-50"
                   >
-                    11th / 12th
+                    Others / Outside Scope
                   </button>
+                  
                   <button 
-                    onClick={() => handleCategorization(callingLead.id, StudentResponse.NOT_RESPONDING)} 
-                    disabled={isLocked} 
-                    className="py-5 bg-slate-50 border border-slate-200 rounded-2xl text-[9px] font-black uppercase text-slate-600 hover:bg-slate-100 transition-all disabled:opacity-50"
+                    onClick={() => setCallingLead(null)} 
+                    className="w-full py-3 text-slate-300 text-[9px] font-black uppercase tracking-widest hover:text-slate-500"
                   >
-                    Not Responding
+                    Dismiss
                   </button>
                 </div>
-                
-                {/* Others Option */}
-                <button 
-                  onClick={() => handleCategorization(callingLead.id, StudentResponse.OTHERS)} 
-                  disabled={isLocked} 
-                  className="w-full py-4 bg-slate-100 border border-slate-200 text-slate-500 rounded-2xl font-black text-[9px] uppercase tracking-widest hover:bg-slate-200 transition-all disabled:opacity-50"
-                >
-                  Others / Outside Scope
-                </button>
-                
-                <button 
-                  onClick={() => setCallingLead(null)} 
-                  className="w-full py-3 text-slate-300 text-[9px] font-black uppercase tracking-widest hover:text-slate-500"
-                >
-                  Dismiss
-                </button>
-              </div>
+              ) : (
+                <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+                  <div className="text-center">
+                    <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Enrollment Details</p>
+                    <h4 className="text-lg font-black uppercase text-[#0f172a] mt-1 tracking-tight">Select Preferred Branch</h4>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    {Object.values(Department).map(dept => (
+                      <button 
+                        key={dept} 
+                        onClick={() => handleCategorization(callingLead.id, StudentResponse.INTERESTED, dept)}
+                        className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-left hover:bg-indigo-600 hover:text-white transition-all group"
+                      >
+                        <p className="text-[9px] font-black uppercase leading-tight group-hover:text-white">{dept}</p>
+                      </button>
+                    ))}
+                  </div>
+                  
+                  <button 
+                    onClick={() => setShowBranchSelection(false)} 
+                    className="w-full py-4 bg-slate-100 text-slate-500 rounded-2xl text-[9px] font-black uppercase tracking-widest"
+                  >
+                    Back to Outcomes
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

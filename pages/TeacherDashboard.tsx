@@ -291,16 +291,21 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
                     <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Enrollment Details</p>
                     <h4 className="text-lg font-black uppercase text-[#0f172a] mt-1 tracking-tight">Select Preferred Branch</h4>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto custom-scroll pr-1">
                     {Object.values(Department)
                       .filter(dept => dept !== Department.SCIENCE_HUMANITIES)
                       .map(dept => (
-                        <button key={dept} onClick={() => handleCategorization(callingLead.id, StudentResponse.INTERESTED, dept)} className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-left hover:bg-indigo-600 hover:text-white transition-all group">
-                          <p className="text-[9px] font-black uppercase leading-tight group-hover:text-white">{dept}</p>
+                        <button 
+                          key={dept} 
+                          onClick={() => handleCategorization(callingLead.id, StudentResponse.INTERESTED, dept)} 
+                          className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl text-left hover:bg-indigo-600 hover:text-white transition-all group shadow-sm flex items-center justify-between"
+                        >
+                          <p className="text-[11px] font-black uppercase leading-tight group-hover:text-white">{dept}</p>
+                          <svg className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7"/></svg>
                         </button>
                       ))}
                   </div>
-                  <button onClick={() => setShowBranchSelection(false)} className="w-full py-4 bg-slate-100 text-slate-500 rounded-2xl text-[9px] font-black uppercase tracking-widest">Back to Outcomes</button>
+                  <button onClick={() => setShowBranchSelection(false)} className="w-full py-4 bg-slate-100 text-slate-500 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-colors hover:bg-slate-200">Back to Outcomes</button>
                 </div>
               )}
             </div>

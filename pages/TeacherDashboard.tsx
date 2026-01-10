@@ -245,13 +245,6 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
                     </tr>
                   );
                 })}
-                {(activeTab === 'pending' ? pendingLeads : completedLeads).length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="py-24 text-center">
-                      <p className="text-slate-300 text-[10px] font-black uppercase tracking-[0.4em]">No leads found in this section.</p>
-                    </td>
-                  </tr>
-                )}
               </tbody>
             </table>
           </div>
@@ -310,11 +303,13 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
                     <h4 className="text-lg font-black uppercase text-[#0f172a] mt-1 tracking-tight">Select Preferred Branch</h4>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    {Object.values(Department).map(dept => (
-                      <button key={dept} onClick={() => handleCategorization(callingLead.id, StudentResponse.INTERESTED, dept)} className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-left hover:bg-indigo-600 hover:text-white transition-all group">
-                        <p className="text-[9px] font-black uppercase leading-tight group-hover:text-white">{dept}</p>
-                      </button>
-                    ))}
+                    {Object.values(Department)
+                      .filter(dept => dept !== Department.SCIENCE_HUMANITIES)
+                      .map(dept => (
+                        <button key={dept} onClick={() => handleCategorization(callingLead.id, StudentResponse.INTERESTED, dept)} className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-left hover:bg-indigo-600 hover:text-white transition-all group">
+                          <p className="text-[9px] font-black uppercase leading-tight group-hover:text-white">{dept}</p>
+                        </button>
+                      ))}
                   </div>
                   <button onClick={() => setShowBranchSelection(false)} className="w-full py-4 bg-slate-100 text-slate-500 rounded-2xl text-[9px] font-black uppercase tracking-widest">Back to Outcomes</button>
                 </div>

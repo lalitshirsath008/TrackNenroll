@@ -12,7 +12,8 @@ export enum Department {
   ETC = 'E&TC Engineering',
   IT = 'Information Technology',
   ELECTRICAL = 'Electrical Engineering',
-  AI_ML = 'AI & ML'
+  AI_ML = 'AI & ML',
+  SCIENCE_HUMANITIES = 'Science & Humanities'
 }
 
 export enum StudentResponse {

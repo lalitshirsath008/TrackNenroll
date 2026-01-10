@@ -35,6 +35,16 @@ export enum LeadStage {
   NO_ACTION = 'No Action'
 }
 
+export interface StaffVerification {
+  status: 'none' | 'pending' | 'responded';
+  randomLeadId?: string;
+  randomLeadName?: string;
+  randomLeadPhone?: string;
+  actualDuration?: number;
+  teacherResponseDuration?: number;
+  timestamp?: string;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -46,6 +56,7 @@ export interface User {
   registrationStatus: 'pending' | 'approved' | 'rejected';
   approvedBy?: string;
   approvalDate?: string;
+  verification?: StaffVerification;
 }
 
 export interface StudentLead {
@@ -62,7 +73,6 @@ export interface StudentLead {
   callTimestamp?: string;
   callDuration?: number;
   notes?: string;
-  // Delegation tracking
   delegatedFromId?: string;
   delegatedFromName?: string;
   delegatedToName?: string;
@@ -81,7 +91,8 @@ export enum UserAction {
   LOGIN = 'Login',
   LOGOUT = 'Logout',
   IMPORT_LEADS = 'Import Leads',
-  MANUAL_ADD = 'Manual Entry'
+  MANUAL_ADD = 'Manual Entry',
+  VERIFICATION = 'Verification'
 }
 
 export interface SystemLog {

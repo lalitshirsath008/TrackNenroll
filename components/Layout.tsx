@@ -5,7 +5,6 @@ import { User, UserRole } from '../types';
 import { useData } from '../context/DataContext';
 
 interface LayoutProps {
-  // Fixed type error: React.Node changed to React.ReactNode as React.Node is not a valid exported member of React
   children: React.ReactNode;
   user: User;
   onLogout: () => void;
@@ -16,6 +15,7 @@ interface MenuItem {
   label: string;
   icon: React.ReactNode;
   badge?: number;
+  isPriority?: boolean;
 }
 
 const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
@@ -50,8 +50,20 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
     },
   ];
 
-  // Dedicated Student Leads Sidebar Item for Admins ONLY (removed for Super Admin)
-  if (user.role === UserRole.ADMIN) { // Changed condition: removed user.role === UserRole.SUPER_ADMIN
+  // Verification tab for Teachers
+  if (user.role === UserRole.TEACHER) {
+    menuItems.push({
+      path: '/verification',
+      label: 'Verification',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+      ),
+      badge: user.verification?.status === 'pending' ? 1 : 0,
+      isPriority: user.verification?.status === 'pending'
+    });
+  }
+
+  if (user.role === UserRole.ADMIN) {
     menuItems.push({ 
       path: '/student-leads', 
       label: 'Student Leads', 
@@ -79,6 +91,17 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
     label: 'AI Helper', 
     icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg> 
   });
+
+  // Verification tab for Admin in sidebar
+  if (user.role === UserRole.ADMIN) {
+    menuItems.push({
+      path: '/staff-audit',
+      label: 'Staff Verification',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+      )
+    });
+  }
 
   if (user.role === UserRole.ADMIN) {
     menuItems.push({ 
@@ -125,7 +148,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
               key={item.path} 
               onClick={() => { navigate(item.path); setIsSidebarOpen(false); }} 
               className={`
-                w-full text-left px-5 py-3.5 rounded-xl flex items-center gap-4 transition-all duration-300
+                w-full text-left px-5 py-3.5 rounded-xl flex items-center gap-4 transition-all duration-300 relative
                 ${location.pathname === item.path 
                   ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-900/20 font-bold' 
                   : 'text-slate-500 hover:text-white hover:bg-white/5'}
@@ -136,7 +159,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
               </div>
               <span className="text-[10px] font-black uppercase tracking-widest">{item.label}</span>
               {item.badge && item.badge > 0 ? (
-                <span className="ml-auto w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] font-black shadow-lg shadow-red-900/20 animate-pulse">
+                <span className={`ml-auto w-5 h-5 ${item.isPriority ? 'bg-rose-500 animate-pulse' : 'bg-red-500'} text-white rounded-full flex items-center justify-center text-[10px] font-black shadow-lg`}>
                   {item.badge}
                 </span>
               ) : null}

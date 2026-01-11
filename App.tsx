@@ -47,7 +47,6 @@ const CircularProgress: React.FC<{
           viewBox={`0 0 ${viewBoxSize} ${viewBoxSize}`} 
           className="w-full h-full transform -rotate-90 overflow-visible"
         >
-          {/* Background Circle */}
           <circle 
             cx={center} 
             cy={center} 
@@ -56,7 +55,6 @@ const CircularProgress: React.FC<{
             strokeWidth={strokeWidth} 
             fill="transparent" 
           />
-          {/* Progress Circle */}
           <circle
             cx={center}
             cy={center}
@@ -141,7 +139,7 @@ const AdminDashboard: React.FC<{ initialTab?: 'overview' | 'leads' | 'logs' | 'v
       const deptLeads = leads.filter(l => l.department === dept);
       const successful = deptLeads.filter(l => l.stage === LeadStage.TARGETED).length;
       return {
-        name: dept.split(' ')[0], // Short name
+        name: dept.split(' ')[0],
         percentage: deptLeads.length > 0 ? Math.round((successful / deptLeads.length) * 100) : 0
       };
     });
@@ -153,28 +151,34 @@ const AdminDashboard: React.FC<{ initialTab?: 'overview' | 'leads' | 'logs' | 'v
 
   const hods = useMemo(() => users.filter(u => u.role === UserRole.HOD && u.isApproved), [users]);
 
-  // Filter logic for verification staff
-  const teachersWithVerification = useMemo(() => {
-    return users
-      .filter(u => u.role === UserRole.TEACHER && u.isApproved)
-      .map(teacher => ({ teacher }));
-  }, [users]);
+  // NEW: Filter only staff who have actually finished their work
+  const staffStats = useMemo(() => {
+    return users.filter(u => u.role === UserRole.TEACHER && u.isApproved).map(teacher => {
+      const teacherLeads = leads.filter(l => l.assignedToTeacher === teacher.id);
+      const pendingWork = teacherLeads.filter(l => l.stage === LeadStage.ASSIGNED || l.stage === LeadStage.UNASSIGNED).length;
+      // Faculty is only eligible for verification if they have leads AND all are processed
+      const workFinished = teacherLeads.length > 0 && pendingWork === 0;
+      return { teacher, totalLeads: teacherLeads.length, workFinished, pendingWork };
+    });
+  }, [users, leads]);
 
+  // Tab 1: Faculty who finished work but haven't been challenged yet (or were rejected and need retry)
   const completedStaff = useMemo(() => 
-    teachersWithVerification.filter(item => 
-      !item.teacher.verification || 
-      item.teacher.verification.status === 'none' || 
-      item.teacher.verification.status === 'rejected'
+    staffStats.filter(s => 
+      s.workFinished && 
+      (!s.teacher.verification || s.teacher.verification.status === 'none' || s.teacher.verification.status === 'rejected')
     )
-  , [teachersWithVerification]);
+  , [staffStats]);
 
+  // Tab 2: Faculty awaiting review
   const respondedStaff = useMemo(() => 
-    teachersWithVerification.filter(item => item.teacher.verification?.status === 'responded')
-  , [teachersWithVerification]);
+    staffStats.filter(s => s.teacher.verification?.status === 'responded')
+  , [staffStats]);
 
+  // Tab 3: Past audits
   const approvedStaff = useMemo(() => 
-    teachersWithVerification.filter(item => item.teacher.verification?.status === 'approved')
-  , [teachersWithVerification]);
+    staffStats.filter(s => s.teacher.verification?.status === 'approved')
+  , [staffStats]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -344,7 +348,6 @@ const AdminDashboard: React.FC<{ initialTab?: 'overview' | 'leads' | 'logs' | 'v
 
       {adminTab === 'overview' ? (
         <div className="space-y-8 animate-in fade-in duration-500">
-           {/* Stat Cards */}
            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
              {[
                { label: 'TOTAL LEADS', value: dashboardStats.total, color: 'text-slate-800' },
@@ -361,7 +364,6 @@ const AdminDashboard: React.FC<{ initialTab?: 'overview' | 'leads' | 'logs' | 'v
 
            {isPrincipal ? (
              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Lead Conversion Funnel */}
                 <div className="bg-white p-10 md:p-12 rounded-[3.5rem] border border-slate-50 shadow-sm flex flex-col items-center">
                    <h3 className="text-xl font-black uppercase tracking-tighter text-slate-800 mb-12 self-start">Lead Conversion Funnel</h3>
                    <div className="flex flex-wrap justify-center gap-10 md:gap-12 w-full">
@@ -371,7 +373,6 @@ const AdminDashboard: React.FC<{ initialTab?: 'overview' | 'leads' | 'logs' | 'v
                    </div>
                 </div>
 
-                {/* Department Performance */}
                 <div className="bg-white p-10 md:p-12 rounded-[3.5rem] border border-slate-50 shadow-sm flex flex-col">
                    <h3 className="text-xl font-black uppercase tracking-tighter text-slate-800 mb-12">Department Performance</h3>
                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-y-12 gap-x-6">
@@ -482,7 +483,7 @@ const AdminDashboard: React.FC<{ initialTab?: 'overview' | 'leads' | 'logs' | 'v
                  <div className="flex justify-between items-start mb-8">
                    <div className="w-16 h-16 bg-indigo-50 rounded-[1.5rem] flex items-center justify-center font-black text-indigo-600 border border-indigo-100 uppercase text-lg">{item.teacher.name.charAt(0)}</div>
                    <span className="px-5 py-2 rounded-2xl text-[9px] font-black uppercase tracking-widest bg-amber-50 text-amber-500 border border-amber-100">
-                     {item.teacher.verification?.status || 'Active'}
+                     {item.teacher.verification?.status || 'Work Completed'}
                    </span>
                  </div>
                  <h4 className="text-lg font-black text-slate-800 uppercase tracking-tight mb-1">{item.teacher.name}</h4>
@@ -521,11 +522,15 @@ const AdminDashboard: React.FC<{ initialTab?: 'overview' | 'leads' | 'logs' | 'v
                  </div>
                </div>
              ))}
+             {(verificationSubTab === 'completed' ? completedStaff : verificationSubTab === 'responded' ? respondedStaff : approvedStaff).length === 0 && (
+               <div className="col-span-full py-40 text-center bg-white rounded-[3.5rem] border-2 border-dashed border-slate-100">
+                  <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">No faculty members found in this category.</p>
+               </div>
+             )}
            </div>
         </div>
       )}
 
-      {/* Modals */}
       {showManualEntryModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[2000] flex items-center justify-center p-4">
           <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">

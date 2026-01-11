@@ -120,41 +120,42 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
         <div className="bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-slate-100 p-10">
           {authMode === 'login' ? (
             <div className="animate-in fade-in slide-in-from-bottom-2 duration-400">
-              <h2 className="text-2xl font-black text-[#0f172a] uppercase text-center mb-8 tracking-tighter">Authentication</h2>
+              <h2 className="text-2xl font-black text-[#0f172a] uppercase text-center mb-8 tracking-tighter text-indigo-600">Authentication</h2>
               <form onSubmit={handleLoginSubmit} className="space-y-5">
                 {error && <div className="p-4 bg-red-50 text-red-600 text-[10px] font-black uppercase text-center rounded-2xl border border-red-100">{error}</div>}
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Institutional Email</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Work Email Address</label>
                   <input type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-500 focus:bg-white text-sm font-bold transition-all" placeholder="name@college.edu" required />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Secure Password</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Access Password</label>
                   <input type="password" value={loginPass} onChange={e => setLoginPass(e.target.value)} className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:border-indigo-500 focus:bg-white text-sm font-bold transition-all" placeholder="••••••••" required />
                 </div>
                 <button type="submit" disabled={loading} className="w-full py-5 bg-[#0f172a] hover:bg-slate-800 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-slate-200 mt-6 transition-all active:scale-[0.98]">
-                  {loading ? 'Authenticating...' : 'Sign In'}
+                  {loading ? 'Validating...' : 'Sign In'}
                 </button>
               </form>
-              <button onClick={() => setAuthMode('register')} className="w-full text-center text-[10px] font-black text-indigo-600 uppercase mt-8 tracking-widest hover:text-indigo-700 transition-colors">Create Institutional Account</button>
+              <button onClick={() => setAuthMode('register')} className="w-full text-center text-[10px] font-black text-indigo-600 uppercase mt-8 tracking-widest hover:text-indigo-700 transition-colors">Create Staff Account</button>
             </div>
           ) : (
             <div className="animate-in fade-in slide-in-from-bottom-2 duration-400">
-              <h2 className="text-2xl font-black text-[#0f172a] uppercase text-center mb-8 tracking-tighter">Registration</h2>
+              <h2 className="text-2xl font-black text-[#0f172a] uppercase text-center mb-8 tracking-tighter text-indigo-600">Registration</h2>
               <form onSubmit={handleRegisterSubmit} className="space-y-4">
                 {success && <div className="p-4 bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase text-center rounded-2xl border border-emerald-100">{success}</div>}
                 {error && <div className="p-4 bg-red-50 text-red-600 text-[10px] font-black uppercase text-center rounded-2xl border border-red-100">{error}</div>}
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Designated Role</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Institutional Role</label>
                   <select value={regRole} onChange={e => setRegRole(e.target.value as UserRole)} className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-xs font-bold appearance-none" required>
-                    <option value="" disabled>Select System Role</option>
-                    <option value={UserRole.ADMIN}>Administrator</option>
-                    <option value={UserRole.HOD}>Department Head</option>
+                    <option value="" disabled>Select User Role</option>
+                    <option value={UserRole.SUPER_ADMIN}>Super Admin (Principal)</option>
+                    <option value={UserRole.ADMIN}>Admin (Student Section)</option>
+                    <option value={UserRole.HOD}>Head of Department</option>
                     <option value={UserRole.TEACHER}>Faculty Member</option>
                   </select>
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Legal Full Name</label>
-                  <input type="text" value={regName} onChange={e => setRegName(e.target.value)} className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-xs font-bold" placeholder="Dr. John Doe" required />
+                  <input type="text" value={regName} onChange={e => setRegName(e.target.value)} className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-xs font-bold" placeholder="Full Name" required />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Work Email</label>
@@ -162,7 +163,7 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
                 </div>
                 {(regRole === UserRole.HOD || regRole === UserRole.TEACHER) && (
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Institutional Department</label>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Assigned Department</label>
                     <select value={regDept} onChange={e => setRegDept(e.target.value as Department)} className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-xs font-bold appearance-none" required>
                       <option value="" disabled>Select Department</option>
                       {Object.values(Department).map(d => <option key={d} value={d}>{d}</option>)}
@@ -171,12 +172,12 @@ const AuthHub: React.FC<LoginProps> = ({ onLogin }) => {
                 )}
                 <div className="grid grid-cols-2 gap-3">
                   <input type="password" value={regPass} onChange={e => setRegPass(e.target.value)} className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-xs font-bold" placeholder="Password" required />
-                  <input type="password" value={regConfirmPass} onChange={e => setRegConfirmPass(e.target.value)} className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-xs font-bold" placeholder="Verify" required />
+                  <input type="password" value={regConfirmPass} onChange={e => setRegConfirmPass(e.target.value)} className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-xs font-bold" placeholder="Confirm" required />
                 </div>
                 <button type="submit" disabled={loading} className="w-full py-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl shadow-indigo-100 mt-4 transition-all active:scale-[0.98]">
-                  {loading ? 'Processing...' : 'Complete Registration'}
+                  {loading ? 'Processing...' : 'Register Profile'}
                 </button>
-                <button type="button" onClick={() => setAuthMode('login')} className="w-full text-center text-[10px] font-black text-slate-400 uppercase mt-4 tracking-widest">Back to Login</button>
+                <button type="button" onClick={() => setAuthMode('login')} className="w-full text-center text-[10px] font-black text-slate-400 uppercase mt-4 tracking-widest">Return to Login</button>
               </form>
             </div>
           )}

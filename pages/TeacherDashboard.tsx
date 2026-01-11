@@ -99,13 +99,17 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
   };
 
   const startCallSession = (lead: StudentLead) => {
-    setCallingLead(lead);
-    setIsCallActive(true);
-    setCallDuration(0);
-    setShowBranchSelection(false);
-    window.location.href = `tel:${lead.phone}`;
-    if (timerRef.current) clearInterval(timerRef.current);
-    timerRef.current = window.setInterval(() => setCallDuration(p => p + 1), 1000);
+    // Force reset all session states to ensure the overlay appears correctly
+    setCallingLead(null);
+    setTimeout(() => {
+      setCallingLead(lead);
+      setIsCallActive(true);
+      setCallDuration(0);
+      setShowBranchSelection(false);
+      window.location.href = `tel:${lead.phone}`;
+      if (timerRef.current) clearInterval(timerRef.current);
+      timerRef.current = window.setInterval(() => setCallDuration(p => p + 1), 1000);
+    }, 50);
   };
 
   const endCallSession = () => {
@@ -376,7 +380,10 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
                 
                 <div className="mt-auto">
                   <button 
-                    onClick={(e) => { e.stopPropagation(); startCallSession(lead); }} 
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      startCallSession(lead); 
+                    }} 
                     disabled={isSentByMe}
                     className={`w-full py-4 md:py-5 rounded-xl md:rounded-2xl font-black text-[9px] md:text-[10px] uppercase tracking-widest transition-all shadow-lg active:scale-95 ${activeTab === 'pending' ? 'bg-[#0f172a] text-white hover:bg-slate-800' : 'bg-white border-2 border-indigo-100 text-indigo-600 hover:bg-indigo-50'}`}
                   >

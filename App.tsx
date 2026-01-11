@@ -79,8 +79,8 @@ const AdminDashboard: React.FC<{ initialTab?: 'overview' | 'leads' | 'logs' | 'v
   const [viewingScreenshot, setViewingScreenshot] = useState<string | null>(null);
   const [showManualEntryModal, setShowManualEntryModal] = useState(false);
   const [showEditLeadModal, setShowEditLeadModal] = useState(false);
-  const [editingLead, setEditingLead] = useState<StudentLead | null>(null);
   const [showHODPickerModal, setShowHODPickerModal] = useState(false);
+  const [editingLead, setEditingLead] = useState<StudentLead | null>(null);
   const [manualLead, setManualLead] = useState({ name: '', phone: '' });
   const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -119,8 +119,6 @@ const AdminDashboard: React.FC<{ initialTab?: 'overview' | 'leads' | 'logs' | 'v
     return leads.filter(l => !l.assignedToHOD && (l.name.toLowerCase().includes(searchTerm.toLowerCase()) || l.phone.includes(searchTerm)));
   }, [leads, searchTerm]);
 
-  const hods = useMemo(() => users.filter(u => u.role === UserRole.HOD && u.isApproved), [users]);
-
   const staffStats = useMemo(() => {
     return users.filter(u => u.role === UserRole.TEACHER && u.isApproved).map(teacher => {
       const teacherLeads = leads.filter(l => l.assignedToTeacher === teacher.id);
@@ -130,8 +128,10 @@ const AdminDashboard: React.FC<{ initialTab?: 'overview' | 'leads' | 'logs' | 'v
     });
   }, [users, leads]);
 
-  const completedStaff = staffStats.filter(s => s.workFinished && (!s.teacher.verification || s.teacher.verification.status === 'none' || s.teacher.verification.status === 'rejected'));
-  const respondedStaff = staffStats.filter(s => s.teacher.verification?.status === 'responded');
+  const hods = useMemo(() => users.filter(u => u.role === UserRole.HOD && u.isApproved), [users]);
+
+  const completedStaff = staffStats.filter(s => s.workFinished && (!s.teacher.verification || s.teacher.verification.status === 'none'));
+  const respondedStaff = staffStats.filter(s => s.teacher.verification?.status === 'responded' || s.teacher.verification?.status === 'rejected');
   const approvedStaff = staffStats.filter(s => s.teacher.verification?.status === 'approved');
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -164,12 +164,48 @@ const AdminDashboard: React.FC<{ initialTab?: 'overview' | 'leads' | 'logs' | 'v
 
   const handleManualEntrySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!manualLead.name || !manualLead.phone) return;
-    if (manualLead.phone.length !== 10) { showToast("Please enter a valid 10-digit mobile number.", "error"); return; }
-    await addLead({ id: `l-${Date.now()}`, name: manualLead.name.toUpperCase(), phone: manualLead.phone, sourceFile: 'Manual Entry', stage: LeadStage.UNASSIGNED, department: Department.IT, callVerified: false });
-    addLog(currentUser.id, currentUser.name, UserAction.MANUAL_ADD, `Manually added student: ${manualLead.name}`);
-    setManualLead({ name: '', phone: '' });
-    setShowManualEntryModal(false);
+    if (!manualLead.name || !manualLead.phone) {
+      showToast("Identity and contact details are required.", "error");
+      return;
+    }
+    if (manualLead.phone.length !== 10) { 
+      showToast("Please enter a valid 10-digit mobile number.", "error"); 
+      return; 
+    }
+    
+    try {
+      await addLead({ 
+        id: `l-${Date.now()}`, 
+        name: manualLead.name.toUpperCase(), 
+        phone: manualLead.phone, 
+        sourceFile: 'Manual Entry', 
+        stage: LeadStage.UNASSIGNED, 
+        department: Department.IT, 
+        callVerified: false 
+      });
+      addLog(currentUser.id, currentUser.name, UserAction.MANUAL_ADD, `Manually added student: ${manualLead.name}`);
+      showToast(`${manualLead.name} added to inflow pool.`, "success");
+      setManualLead({ name: '', phone: '' });
+      setShowManualEntryModal(false);
+    } catch (err) {
+      showToast("Failed to add lead. Check database connection.", "error");
+    }
+  };
+
+  const handleEditLeadSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingLead) return;
+    if (editingLead.phone.length !== 10) { showToast("Please enter a valid 10-digit mobile number.", "error"); return; }
+    
+    await updateLead(editingLead.id, { 
+      name: editingLead.name.toUpperCase(), 
+      phone: editingLead.phone 
+    });
+    
+    addLog(currentUser.id, currentUser.name, UserAction.MANUAL_ADD, `Modified record: ${editingLead.name}`);
+    showToast("Record updated successfully.", "success");
+    setShowEditLeadModal(false);
+    setEditingLead(null);
   };
 
   const handleAutoDistribute = async () => {
@@ -181,6 +217,20 @@ const AdminDashboard: React.FC<{ initialTab?: 'overview' | 'leads' | 'logs' | 'v
       await autoDistributeLeadsToHODs(inflowLeads.map(l => l.id));
       addLog(currentUser.id, currentUser.name, UserAction.IMPORT_LEADS, `Distributed ${inflowLeads.length} leads to HODs.`);
       showToast("Leads distributed successfully.", "success");
+    }
+  };
+
+  const handleManualDelegate = async (hodId: string) => {
+    if (selectedLeadIds.length === 0) return;
+    const targetHOD = hods.find(h => h.id === hodId);
+    if (!targetHOD) return;
+
+    if (window.confirm(`Delegate ${selectedLeadIds.length} selected leads to ${targetHOD.name}?`)) {
+      await assignLeadsToHOD(selectedLeadIds, hodId);
+      addLog(currentUser.id, currentUser.name, UserAction.MANUAL_ADD, `Manually delegated ${selectedLeadIds.length} leads to HOD: ${targetHOD.name}`);
+      showToast(`Delegated ${selectedLeadIds.length} leads to ${targetHOD.name}.`, "success");
+      setSelectedLeadIds([]);
+      setShowHODPickerModal(false);
     }
   };
 
@@ -204,8 +254,18 @@ const AdminDashboard: React.FC<{ initialTab?: 'overview' | 'leads' | 'logs' | 'v
     if (!teacher || !teacher.verification) return;
     const reason = window.prompt("Institutional Reason for Rejection:", "Evidence provided is insufficient.");
     if (reason !== null) {
-      await updateUser(teacherId, { verification: { ...teacher.verification, status: 'rejected', rejectionReason: reason, screenshotURL: undefined, teacherResponseDuration: undefined } });
-      showToast("Audit rejected. Staff notified.", "info");
+      // Correctly reset the status to 'rejected' and clear old values to force resubmission
+      await updateUser(teacherId, { 
+        verification: { 
+          ...teacher.verification, 
+          status: 'rejected', 
+          rejectionReason: reason, 
+          screenshotURL: '', 
+          teacherResponseDuration: 0,
+          verificationDate: ''
+        } 
+      });
+      showToast("Audit rejected. Staff notified for resubmission.", "info");
     }
   };
 
@@ -226,6 +286,73 @@ const AdminDashboard: React.FC<{ initialTab?: 'overview' | 'leads' | 'logs' | 'v
               <button className="absolute top-4 right-4 bg-black/50 text-white w-10 h-10 rounded-full flex items-center justify-center font-black" onClick={() => setViewingScreenshot(null)}>×</button>
               <img src={viewingScreenshot} alt="Evidence" className="w-full h-auto max-h-[85vh] object-contain rounded-2xl" />
            </div>
+        </div>
+      )}
+
+      {showHODPickerModal && (
+        <div className="fixed inset-0 z-[4000] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-8 bg-[#0f172a] text-white flex justify-between items-center">
+              <h3 className="text-xl font-black uppercase tracking-tighter">Target HOD</h3>
+              <button onClick={() => setShowHODPickerModal(false)} className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">×</button>
+            </div>
+            <div className="p-6 space-y-2 max-h-80 overflow-y-auto custom-scroll">
+               {hods.map(hod => (
+                 <button key={hod.id} onClick={() => handleManualDelegate(hod.id)} className="w-full p-5 bg-slate-50 hover:bg-indigo-600 hover:text-white rounded-2xl text-left border border-slate-100 transition-all flex justify-between items-center group shadow-sm">
+                    <div>
+                      <p className="text-[11px] font-black uppercase leading-tight group-hover:text-white">{hod.name}</p>
+                      <p className="text-[9px] font-bold text-slate-400 group-hover:text-white/70 uppercase mt-1">{hod.department}</p>
+                    </div>
+                    <svg className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7"/></svg>
+                 </button>
+               ))}
+               {hods.length === 0 && <p className="p-8 text-center text-slate-400 text-[10px] font-black uppercase tracking-widest">No Active HODs Available</p>}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showEditLeadModal && editingLead && (
+        <div className="fixed inset-0 z-[4000] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-8 bg-[#0f172a] text-white flex justify-between items-center">
+              <h3 className="text-xl font-black uppercase tracking-tighter">Modify Record</h3>
+              <button onClick={() => { setShowEditLeadModal(false); setEditingLead(null); }} className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">×</button>
+            </div>
+            <form onSubmit={handleEditLeadSubmit} className="p-10 space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Student Full Name</label>
+                <input type="text" value={editingLead.name} onChange={e => setEditingLead({...editingLead, name: e.target.value})} className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold focus:border-indigo-500 focus:bg-white transition-all" placeholder="Enter Name" required />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Contact Number</label>
+                <input type="text" maxLength={10} value={editingLead.phone} onChange={e => setEditingLead({...editingLead, phone: e.target.value.replace(/\D/g, '')})} className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold focus:border-indigo-500 focus:bg-white transition-all" placeholder="10-digit number" required />
+              </div>
+              <button type="submit" className="w-full py-5 bg-indigo-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl shadow-indigo-100 active:scale-95 transition-all">Save Institutional Update</button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showManualEntryModal && (
+        <div className="fixed inset-0 z-[4000] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-8 bg-[#0f172a] text-white flex justify-between items-center">
+              <h3 className="text-xl font-black uppercase tracking-tighter">Manual Admission</h3>
+              <button onClick={() => setShowManualEntryModal(false)} className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">×</button>
+            </div>
+            <form onSubmit={handleManualEntrySubmit} className="p-10 space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Student Full Name</label>
+                <input type="text" value={manualLead.name} onChange={e => setManualLead({...manualLead, name: e.target.value})} className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold focus:border-indigo-500 focus:bg-white transition-all" placeholder="Enter Name" required />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Contact Number</label>
+                <input type="text" maxLength={10} value={manualLead.phone} onChange={e => setManualLead({...manualLead, phone: e.target.value.replace(/\D/g, '')})} className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold focus:border-indigo-500 focus:bg-white transition-all" placeholder="10-digit number" required />
+              </div>
+              <button type="submit" className="w-full py-5 bg-indigo-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl shadow-indigo-100 active:scale-95 transition-all">Add to System Pool</button>
+            </form>
+          </div>
         </div>
       )}
 
@@ -296,7 +423,16 @@ const AdminDashboard: React.FC<{ initialTab?: 'overview' | 'leads' | 'logs' | 'v
         <div className="space-y-4">
           <div className="flex flex-col md:flex-row gap-3 items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
             <input type="text" placeholder="Search pool..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full md:flex-1 px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-[11px] font-bold outline-none" />
-            <button onClick={handleAutoDistribute} className="w-full md:w-auto px-8 py-3.5 bg-indigo-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg">Smart Distribute</button>
+            <div className="flex gap-2 w-full md:w-auto">
+              <button 
+                onClick={() => setShowHODPickerModal(true)} 
+                disabled={selectedLeadIds.length === 0}
+                className="flex-1 md:flex-none px-6 py-3.5 bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg disabled:opacity-20 transition-all"
+              >
+                Delegate ({selectedLeadIds.length})
+              </button>
+              <button onClick={handleAutoDistribute} className="flex-1 md:flex-none px-8 py-3.5 bg-indigo-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg">Smart Distribute</button>
+            </div>
           </div>
           <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
@@ -310,9 +446,19 @@ const AdminDashboard: React.FC<{ initialTab?: 'overview' | 'leads' | 'logs' | 'v
                       <td className="p-5 text-center"><input type="checkbox" checked={selectedLeadIds.includes(lead.id)} onChange={() => setSelectedLeadIds(p => p.includes(lead.id) ? p.filter(i => i !== lead.id) : [...p, lead.id])} className="w-4 h-4 rounded" /></td>
                       <td className="p-5"><p className="text-[11px] font-black uppercase text-slate-800 leading-none mb-1">{lead.name}</p><p className="text-[9px] font-bold text-indigo-600/60">{lead.phone}</p></td>
                       <td className="p-5 text-[9px] font-bold text-slate-400 uppercase">{lead.sourceFile}</td>
-                      <td className="p-5 text-right"><button onClick={() => { if(window.confirm('Erase this record?')) deleteLead(lead.id); }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg">×</button></td>
+                      <td className="p-5 text-right space-x-2">
+                        <button onClick={() => { setEditingLead(lead); setShowEditLeadModal(true); }} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                        </button>
+                        <button onClick={() => { if(window.confirm('Erase this record?')) deleteLead(lead.id); }} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg">×</button>
+                      </td>
                     </tr>
                   ))}
+                  {inflowLeads.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="p-12 text-center text-slate-400 text-[9px] font-black uppercase tracking-[0.3em]">Institutional inflow pool is currently empty</td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -350,12 +496,14 @@ const AdminDashboard: React.FC<{ initialTab?: 'overview' | 'leads' | 'logs' | 'v
                <div key={item.teacher.id} className="bg-white rounded-[2rem] p-8 border border-slate-100 shadow-sm flex flex-col hover:shadow-xl transition-all">
                  <div className="flex justify-between items-start mb-6">
                    <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center font-black text-indigo-600 uppercase text-base">{item.teacher.name.charAt(0)}</div>
-                   <span className="px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest bg-amber-50 text-amber-500">{item.teacher.verification?.status || 'Awaiting'}</span>
+                   <span className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest ${item.teacher.verification?.status === 'rejected' ? 'bg-amber-50 text-amber-600 border border-amber-200' : 'bg-amber-50 text-amber-500'}`}>
+                     {item.teacher.verification?.status === 'rejected' ? 'Resubmission Pending' : item.teacher.verification?.status || 'Awaiting'}
+                   </span>
                  </div>
                  <h4 className="text-base font-black text-slate-800 uppercase tracking-tight mb-1 truncate">{item.teacher.name}</h4>
                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-8">{item.teacher.department}</p>
                  <div className="border-t border-slate-50 pt-8 space-y-4">
-                   {verificationSubTab === 'responded' && item.teacher.verification && (
+                   {(verificationSubTab === 'responded') && item.teacher.verification && (
                      <>
                        <div className="bg-slate-50 p-4 rounded-xl">
                           <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1">Target Subject</p>
@@ -384,11 +532,19 @@ const AdminDashboard: React.FC<{ initialTab?: 'overview' | 'leads' | 'logs' | 'v
                          </div>
                        </div>
 
-                       <button onClick={() => setViewingScreenshot(item.teacher.verification?.screenshotURL || null)} className="w-full py-3 bg-white border border-slate-200 rounded-xl text-[8px] font-black uppercase text-indigo-600 hover:bg-indigo-50 transition-colors">Inspect Evidence Attachment</button>
-                       <div className="grid grid-cols-2 gap-2">
-                          <button onClick={() => handleRejectVerification(item.teacher.id)} className="py-4 bg-rose-500 text-white rounded-xl font-black text-[9px] uppercase shadow-lg active:scale-95 transition-all">Reject Proof</button>
-                          <button onClick={() => handleApproveVerification(item.teacher.id)} className="py-4 bg-emerald-500 text-white rounded-xl font-black text-[9px] uppercase shadow-lg active:scale-95 transition-all">Approve Session</button>
-                       </div>
+                       {item.teacher.verification.status === 'responded' ? (
+                         <>
+                           <button onClick={() => setViewingScreenshot(item.teacher.verification?.screenshotURL || null)} className="w-full py-3 bg-white border border-slate-200 rounded-xl text-[8px] font-black uppercase text-indigo-600 hover:bg-indigo-50 transition-colors">Inspect Evidence Attachment</button>
+                           <div className="grid grid-cols-2 gap-2">
+                              <button onClick={() => handleRejectVerification(item.teacher.id)} className="py-4 bg-rose-500 text-white rounded-xl font-black text-[9px] uppercase shadow-lg active:scale-95 transition-all">Reject Proof</button>
+                              <button onClick={() => handleApproveVerification(item.teacher.id)} className="py-4 bg-emerald-500 text-white rounded-xl font-black text-[9px] uppercase shadow-lg active:scale-95 transition-all">Approve Session</button>
+                           </div>
+                         </>
+                       ) : (
+                         <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 text-center">
+                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Awaiting Resubmission</p>
+                         </div>
+                       )}
                      </>
                    )}
                    {verificationSubTab === 'completed' && <button onClick={() => handleTriggerVerification(item.teacher.id)} className="w-full py-4 bg-[#0f172a] text-white rounded-xl font-black text-[9px] uppercase tracking-widest shadow-xl">Initiate Audit</button>}

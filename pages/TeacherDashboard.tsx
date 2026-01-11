@@ -4,7 +4,7 @@ import { useData } from '../context/DataContext';
 import { StudentLead, StudentResponse, LeadStage, User, Department } from '../types';
 
 const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | 'completed' | 'verification' }> = ({ currentUser, initialTab = 'pending' }) => {
-  const { leads, updateLead, showToast, updateUser, uploadProfileImage } = useData();
+  const { leads, updateLead, showToast, updateUser, uploadFile } = useData();
   const [activeTab, setActiveTab] = useState<'pending' | 'completed' | 'verification'>(initialTab);
   const [callingLead, setCallingLead] = useState<StudentLead | null>(null);
   const [callDuration, setCallDuration] = useState(0);
@@ -36,14 +36,22 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Reset URL if new file is selected
+    setUploadedURL(null);
+    setScreenshotPreview(null);
     setUploadingScreenshot(true);
+
     try {
-      const url = await uploadProfileImage(`verification/${currentUser.id}`, file);
+      const fileName = `${Date.now()}_verification_${currentUser.id}.png`;
+      const path = `verifications/${currentUser.id}/${fileName}`;
+      const url = await uploadFile(path, file);
+      
       setUploadedURL(url);
       setScreenshotPreview(URL.createObjectURL(file));
-      showToast("Proof screenshot uploaded.", "success");
+      showToast("Proof screenshot uploaded successfully.", "success");
     } catch (err) {
-      showToast("Failed to upload image.", "error");
+      console.error("Upload error:", err);
+      showToast("Upload failed. Please check your connection and try again.", "error");
     } finally {
       setUploadingScreenshot(false);
     }
@@ -51,28 +59,35 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
 
   const handleVerificationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!verificationInput || !currentUser.verification || !verificationDate) return;
-    
-    if (!uploadedURL) {
-      showToast("Please upload a call proof screenshot.", "error");
+    if (!verificationInput || !currentUser.verification || !verificationDate) {
+      showToast("Please fill all fields.", "error");
       return;
     }
     
-    await updateUser(currentUser.id, {
-      verification: {
-        ...currentUser.verification,
-        status: 'responded',
-        teacherResponseDuration: parseInt(verificationInput),
-        screenshotURL: uploadedURL,
-        verificationDate: verificationDate,
-      }
-    });
+    if (!uploadedURL) {
+      showToast("Please wait for the screenshot to finish uploading.", "error");
+      return;
+    }
     
-    setVerificationInput('');
-    setScreenshotPreview(null);
-    setUploadedURL(null);
-    showToast("Verification proof submitted successfully.", "success");
-    setActiveTab('completed');
+    try {
+      await updateUser(currentUser.id, {
+        verification: {
+          ...currentUser.verification,
+          status: 'responded',
+          teacherResponseDuration: parseInt(verificationInput),
+          screenshotURL: uploadedURL,
+          verificationDate: verificationDate,
+        }
+      });
+      
+      setVerificationInput('');
+      setScreenshotPreview(null);
+      setUploadedURL(null);
+      showToast("Verification submitted successfully.", "success");
+      setActiveTab('completed');
+    } catch (err) {
+      showToast("Failed to submit verification.", "error");
+    }
   };
 
   const startCallSession = (lead: StudentLead) => {
@@ -204,7 +219,7 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
                       type="number" 
                       value={verificationInput}
                       onChange={e => setVerificationInput(e.target.value)}
-                      placeholder="Duration"
+                      placeholder="e.g. 120"
                       className="w-full px-8 py-5 bg-[#f8fafc] border border-slate-200 rounded-3xl text-xl font-black outline-none focus:border-rose-500 focus:bg-white transition-all text-center"
                       required
                     />
@@ -224,17 +239,25 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Call Proof Screenshot</label>
                   <div 
-                    onClick={() => fileInputRef.current?.click()}
-                    className={`w-full aspect-video rounded-[2.5rem] border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all overflow-hidden bg-slate-50 group ${screenshotPreview ? 'border-emerald-500' : 'border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/30'}`}
+                    onClick={() => !uploadingScreenshot && fileInputRef.current?.click()}
+                    className={`w-full aspect-video rounded-[2.5rem] border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all overflow-hidden bg-slate-50 group relative ${screenshotPreview ? 'border-emerald-500' : 'border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/30'}`}
                   >
                     {uploadingScreenshot ? (
-                      <div className="animate-spin w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full"></div>
+                      <div className="flex flex-col items-center justify-center">
+                         <div className="animate-spin w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full mb-4"></div>
+                         <p className="text-[9px] font-black text-indigo-600 uppercase tracking-widest animate-pulse">Uploading Proof...</p>
+                      </div>
                     ) : screenshotPreview ? (
-                      <img src={screenshotPreview} alt="Preview" className="w-full h-full object-cover" />
+                      <div className="w-full h-full relative">
+                         <img src={screenshotPreview} alt="Preview" className="w-full h-full object-cover" />
+                         <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-all flex items-center justify-center">
+                            <p className="text-white text-[10px] font-black uppercase opacity-0 group-hover:opacity-100 tracking-widest">Change Image</p>
+                         </div>
+                      </div>
                     ) : (
                       <>
                         <svg className="w-12 h-12 text-slate-300 group-hover:text-indigo-400 mb-4 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                        <p className="text-[11px] font-black text-slate-400 group-hover:text-indigo-600 uppercase tracking-widest">Click to Upload Screenshot</p>
+                        <p className="text-[11px] font-black text-slate-400 group-hover:text-indigo-600 uppercase tracking-widest text-center px-6">Click to Browse & Upload Proof Screenshot</p>
                       </>
                     )}
                   </div>
@@ -243,10 +266,10 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
 
                 <button 
                   type="submit" 
-                  disabled={uploadingScreenshot}
-                  className="w-full py-6 bg-[#0f172a] text-white rounded-[2rem] font-black text-[12px] uppercase tracking-[0.3em] shadow-2xl active:scale-95 transition-all disabled:opacity-50"
+                  disabled={uploadingScreenshot || !uploadedURL}
+                  className={`w-full py-6 rounded-[2rem] font-black text-[12px] uppercase tracking-[0.3em] shadow-2xl transition-all ${uploadingScreenshot || !uploadedURL ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-[#0f172a] text-white active:scale-95'}`}
                 >
-                  Complete Verification
+                  {uploadingScreenshot ? 'Upload in Progress...' : 'Complete Verification'}
                 </button>
               </form>
             </div>

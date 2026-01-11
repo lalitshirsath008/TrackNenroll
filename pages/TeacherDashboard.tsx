@@ -6,6 +6,7 @@ import { StudentLead, StudentResponse, LeadStage, User, Department } from '../ty
 const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | 'completed' | 'verification' }> = ({ currentUser, initialTab = 'pending' }) => {
   const { leads, updateLead, showToast, updateUser, uploadFile } = useData();
   const [activeTab, setActiveTab] = useState<'pending' | 'completed' | 'verification'>(initialTab);
+  const [historyFilter, setHistoryFilter] = useState<string>('All');
   const [callingLead, setCallingLead] = useState<StudentLead | null>(null);
   const [callDuration, setCallDuration] = useState(0);
   const [isCallActive, setIsCallActive] = useState(false);
@@ -81,7 +82,7 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
           teacherResponseDuration: parseInt(verificationInput),
           screenshotURL: uploadedURL,
           verificationDate: verificationDate,
-          rejectionReason: undefined // Clear previous rejection reason
+          rejectionReason: undefined 
         }
       });
       
@@ -157,11 +158,19 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
     l.assignedToTeacher === currentUser.id && (l.stage === LeadStage.ASSIGNED || l.stage === LeadStage.UNASSIGNED)
   ), [myLeads, currentUser.id]);
 
-  const completedLeads = useMemo(() => myLeads.filter(l => {
-    const isProcessedByMe = l.assignedToTeacher === currentUser.id && l.stage !== LeadStage.ASSIGNED && l.stage !== LeadStage.UNASSIGNED;
-    const isSentByMe = l.delegatedFromId === currentUser.id;
-    return isProcessedByMe || isSentByMe;
-  }), [myLeads, currentUser.id]);
+  const completedLeads = useMemo(() => {
+    let filtered = myLeads.filter(l => {
+      const isProcessedByMe = l.assignedToTeacher === currentUser.id && l.stage !== LeadStage.ASSIGNED && l.stage !== LeadStage.UNASSIGNED;
+      const isSentByMe = l.delegatedFromId === currentUser.id;
+      return isProcessedByMe || isSentByMe;
+    });
+
+    if (historyFilter !== 'All') {
+      filtered = filtered.filter(l => l.response === historyFilter);
+    }
+
+    return filtered;
+  }, [myLeads, currentUser.id, historyFilter]);
 
   const isLocked = isCallActive || callDuration < MIN_VALID_DURATION;
   const progressPercent = Math.min((callDuration / MIN_VALID_DURATION) * 100, 100);
@@ -195,6 +204,26 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
             {isVerificationVisible && <span className="absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full animate-ping"></span>}
           </button>
         </div>
+
+        {activeTab === 'completed' && (
+          <div className="flex items-center gap-3 bg-white p-2 px-4 rounded-2xl border border-slate-100 shadow-sm w-full md:w-auto">
+            <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest whitespace-nowrap">Filter Outcome:</span>
+            <select 
+              value={historyFilter} 
+              onChange={e => setHistoryFilter(e.target.value)}
+              className="bg-transparent border-none outline-none text-[10px] font-black uppercase text-indigo-600 cursor-pointer w-full md:w-40"
+            >
+              <option value="All">All Categories</option>
+              <option value={StudentResponse.INTERESTED}>Interested</option>
+              <option value={StudentResponse.NOT_INTERESTED}>Not Interested</option>
+              <option value={StudentResponse.CONFUSED}>Confused</option>
+              <option value={StudentResponse.GRADE_11_12}>11th / 12th</option>
+              <option value={StudentResponse.NOT_RESPONDING}>Not Responding</option>
+              <option value={StudentResponse.NOT_REACHABLE}>Not Reachable</option>
+              <option value={StudentResponse.OTHERS}>Others</option>
+            </select>
+          </div>
+        )}
       </div>
 
       {activeTab === 'verification' ? (

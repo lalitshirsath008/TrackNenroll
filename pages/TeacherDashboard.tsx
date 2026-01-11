@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { useData } from '../context/DataContext';
 import { StudentLead, StudentResponse, LeadStage, User, Department } from '../types';
@@ -19,6 +18,7 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
   
   const [selectedHistoryIds, setSelectedHistoryIds] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const dateInputRef = useRef<HTMLInputElement>(null);
 
   const timerRef = useRef<number | null>(null);
   const MIN_VALID_DURATION = 20;
@@ -53,9 +53,9 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
       const finalURL = await uploadFile(path, file);
       
       setUploadedURL(finalURL);
-      showToast("Proof ready for submission.", "success");
+      showToast("Verification proof prepared successfully.", "success");
     } catch (err: any) {
-      showToast("Could not prepare image. Try a smaller file.", "error");
+      showToast("Could not process image. Please try a different screenshot.", "error");
       setScreenshotPreview(null);
     } finally {
       setUploadingScreenshot(false);
@@ -65,34 +65,39 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
   const handleVerificationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!verificationInput || !currentUser.verification || !verificationDate) {
-      showToast("Please complete all required fields.", "error");
+      showToast("Please provide all required audit details.", "error");
       return;
     }
     
     if (!uploadedURL) {
-      showToast("Verification proof screenshot is mandatory.", "error");
+      showToast("Call evidence screenshot is required to proceed.", "error");
       return;
     }
     
     try {
+      // Create a clean verification object without any 'undefined' values
+      const baseVerification = { ...currentUser.verification };
+      // Remove rejectionReason if it exists to clean the record for new submission
+      const { rejectionReason, ...cleanVerification } = baseVerification as any;
+
       await updateUser(currentUser.id, {
         verification: {
-          ...currentUser.verification,
+          ...cleanVerification,
           status: 'responded',
           teacherResponseDuration: parseInt(verificationInput),
           screenshotURL: uploadedURL,
-          verificationDate: verificationDate,
-          rejectionReason: undefined 
+          verificationDate: verificationDate
         }
       });
       
       setVerificationInput('');
       setScreenshotPreview(null);
       setUploadedURL(null);
-      showToast("Verification data submitted for administrative review.", "success");
+      showToast("Audit data submitted for administrative review.", "success");
       setActiveTab('completed');
     } catch (err) {
-      showToast("Internal system error. Please try again.", "error");
+      console.error("Verification Submission Error:", err);
+      showToast("Network error. Please check your connection and try again.", "error");
     }
   };
 
@@ -147,7 +152,7 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
     
     setCallingLead(null);
     setShowBranchSelection(false);
-    showToast("Student feedback successfully categorized.", 'success');
+    showToast("Feedback recorded successfully.", 'success');
   };
 
   const myLeads = useMemo(() => leads.filter(l => 
@@ -197,17 +202,17 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
 
       <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
         <div className="flex bg-slate-100 p-1.5 rounded-2xl w-full md:w-max shadow-inner border border-slate-200">
-          <button onClick={() => setActiveTab('pending')} className={`px-10 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'pending' ? 'bg-white text-indigo-600 shadow-sm border border-slate-100' : 'text-slate-500'}`}>Current Assigned</button>
+          <button onClick={() => setActiveTab('pending')} className={`px-10 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'pending' ? 'bg-white text-indigo-600 shadow-sm border border-slate-100' : 'text-slate-500'}`}>Assigned</button>
           <button onClick={() => setActiveTab('completed')} className={`px-10 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'completed' ? 'bg-white text-indigo-600 shadow-sm border border-slate-100' : 'text-slate-500'}`}>Lead History</button>
           <button onClick={() => setActiveTab('verification')} className={`px-10 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all relative ${activeTab === 'verification' ? 'bg-white text-rose-500 shadow-sm border border-slate-100' : 'text-slate-500'}`}>
-            Audit Verification
+            Audit Proof
             {isVerificationVisible && <span className="absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full animate-ping"></span>}
           </button>
         </div>
 
         {activeTab === 'completed' && (
           <div className="flex items-center gap-3 bg-white p-2 px-4 rounded-2xl border border-slate-100 shadow-sm w-full md:w-auto">
-            <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest whitespace-nowrap">Outcome:</span>
+            <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest whitespace-nowrap">Status Filter:</span>
             <select 
               value={historyFilter} 
               onChange={e => setHistoryFilter(e.target.value)}
@@ -226,21 +231,20 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
       </div>
 
       {activeTab === 'verification' ? (
-        <div className="animate-in slide-in-from-bottom-6 duration-400 max-w-2xl mx-auto py-12">
+        <div className="animate-in slide-in-from-bottom-6 duration-400 max-w-2xl mx-auto py-12 px-4">
           {isVerificationVisible ? (
-            <div className="bg-white rounded-[3.5rem] p-10 shadow-2xl border-2 border-slate-100 overflow-hidden relative">
+            <div className="bg-white rounded-[3.5rem] p-8 md:p-12 shadow-2xl border-2 border-slate-100 overflow-hidden relative">
               <div className={`absolute top-0 left-0 w-full h-2 ${currentUser.verification?.status === 'rejected' ? 'bg-rose-500' : 'bg-[#ff4d6d]'}`}></div>
               
               {currentUser.verification?.status === 'rejected' && (
                 <div className="mb-8 p-6 bg-rose-50 border border-rose-100 rounded-3xl animate-in fade-in zoom-in duration-300">
                    <div className="flex items-center gap-4 mb-2">
                      <div className="w-8 h-8 bg-rose-500 text-white rounded-full flex items-center justify-center shrink-0 shadow-lg font-black italic">!</div>
-                     <p className="text-[11px] font-black text-rose-600 uppercase tracking-widest">Rejection Notice</p>
+                     <p className="text-[11px] font-black text-rose-600 uppercase tracking-widest">Resubmission Required</p>
                    </div>
                    <div className="ml-12">
                      <p className="text-[10px] font-black text-slate-800 uppercase tracking-tight">System Feedback:</p>
-                     <p className="text-[12px] font-bold text-rose-500 uppercase leading-relaxed tracking-tight mt-0.5">{currentUser.verification?.rejectionReason || "Submitted details do not match system logs."}</p>
-                     <p className="text-[9px] font-bold text-slate-400 uppercase mt-3 italic tracking-tighter">* Correct the duration or date and resubmit.</p>
+                     <p className="text-[12px] font-bold text-rose-500 uppercase leading-relaxed tracking-tight mt-0.5">{currentUser.verification?.rejectionReason || "Verification details were incorrect."}</p>
                    </div>
                 </div>
               )}
@@ -249,48 +253,51 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
                 <div className="w-20 h-20 bg-rose-50 text-[#ff4d6d] rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm border border-rose-100">
                   <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
                 </div>
-                <h3 className="text-3xl font-black uppercase tracking-tighter text-[#0f172a]">Institutional Audit</h3>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">Verify session data for compliance</p>
+                <h3 className="text-3xl font-black uppercase tracking-tighter text-[#0f172a]">Integrity Audit</h3>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">Submit session proof for administrative compliance</p>
               </div>
 
-              <div className="bg-[#f8fafc] p-10 rounded-[2.5rem] border border-slate-100 mb-8 text-center shadow-inner">
-                <p className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.3em] mb-3">Audit Target Reference</p>
-                <h4 className="text-3xl font-black text-[#0f172a] uppercase tracking-tighter leading-none">{currentUser.verification?.randomLeadName}</h4>
+              <div className="bg-[#f8fafc] p-8 rounded-[2.5rem] border border-slate-100 mb-8 text-center shadow-inner">
+                <p className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.3em] mb-3">Audit Reference Subject</p>
+                <h4 className="text-2xl font-black text-[#0f172a] uppercase tracking-tighter leading-none">{currentUser.verification?.randomLeadName}</h4>
                 <p className="text-slate-500 font-bold text-lg mt-2 tracking-widest">{currentUser.verification?.randomLeadPhone}</p>
               </div>
 
               <form onSubmit={handleVerificationSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Exact Call Duration (Seconds)</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Call Duration (Seconds)</label>
                     <input 
                       type="number" 
                       value={verificationInput}
                       onChange={e => setVerificationInput(e.target.value)}
-                      placeholder="e.g. 145"
-                      className="w-full px-8 py-5 bg-[#f8fafc] border border-slate-200 rounded-3xl text-xl font-black outline-none focus:border-rose-500 focus:bg-white transition-all text-center"
+                      placeholder="e.g. 120"
+                      className="w-full px-8 py-5 bg-[#f8fafc] border border-slate-200 rounded-[2rem] text-xl font-black outline-none focus:border-indigo-600 focus:bg-white transition-all text-center"
                       required
                     />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Calling Date Selection</label>
-                    <div className="relative group">
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Date of Call Selection</label>
+                    <div 
+                      onClick={() => dateInputRef.current?.showPicker()}
+                      className="w-full px-8 py-5 bg-[#f8fafc] border border-slate-200 rounded-[2rem] flex flex-col items-center justify-center cursor-pointer hover:border-indigo-600 hover:bg-white transition-all group"
+                    >
+                      <p className="text-lg font-black text-[#0f172a] tracking-tight">{new Date(verificationDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                      <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mt-1 group-hover:underline">Tap to Change Date</p>
                       <input 
+                        ref={dateInputRef}
                         type="date" 
                         value={verificationDate}
                         onChange={e => setVerificationDate(e.target.value)}
-                        className="w-full px-8 py-5 bg-[#f8fafc] border border-slate-200 rounded-3xl text-sm font-black outline-none focus:border-indigo-600 focus:bg-white transition-all text-center cursor-pointer appearance-none"
+                        className="opacity-0 absolute pointer-events-none"
                         required
                       />
-                      <div className="absolute inset-y-0 right-6 flex items-center pointer-events-none opacity-20 group-hover:opacity-100">
-                        <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                      </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Call Evidence Screenshot</label>
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Evidence Attachment</label>
                   <div 
                     onClick={() => !uploadingScreenshot && fileInputRef.current?.click()}
                     className={`w-full aspect-video rounded-[2.5rem] border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all overflow-hidden bg-slate-50 group relative ${screenshotPreview ? 'border-emerald-500' : 'border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/30'}`}
@@ -298,19 +305,19 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
                     {uploadingScreenshot ? (
                       <div className="flex flex-col items-center justify-center">
                          <div className="animate-spin w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full mb-4"></div>
-                         <p className="text-[9px] font-black text-indigo-600 uppercase tracking-widest animate-pulse">Syncing Image Data...</p>
+                         <p className="text-[9px] font-black text-indigo-600 uppercase tracking-widest">Encrypting Proof...</p>
                       </div>
                     ) : screenshotPreview ? (
                       <div className="w-full h-full relative">
                          <img src={screenshotPreview} alt="Preview" className="w-full h-full object-cover" />
-                         <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-all flex items-center justify-center">
-                            <p className="text-white text-[10px] font-black uppercase opacity-0 group-hover:opacity-100 tracking-widest">Replace Evidence</p>
+                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
+                            <p className="text-white text-[10px] font-black uppercase tracking-[0.2em]">Change Screenshot</p>
                          </div>
                       </div>
                     ) : (
                       <>
                         <svg className="w-12 h-12 text-slate-300 group-hover:text-indigo-400 mb-4 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                        <p className="text-[11px] font-black text-slate-400 group-hover:text-indigo-600 uppercase tracking-widest text-center px-6">Click to Upload Session Evidence</p>
+                        <p className="text-[11px] font-black text-slate-400 group-hover:text-indigo-600 uppercase tracking-widest text-center px-6">Tap to Upload Call Proof Screenshot</p>
                       </>
                     )}
                   </div>
@@ -322,7 +329,7 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
                   disabled={uploadingScreenshot || !uploadedURL}
                   className={`w-full py-6 rounded-[2rem] font-black text-[12px] uppercase tracking-[0.3em] shadow-2xl transition-all ${uploadingScreenshot || !uploadedURL ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-[#0f172a] text-white active:scale-95'}`}
                 >
-                  {uploadingScreenshot ? 'Processing...' : currentUser.verification?.status === 'rejected' ? 'Resubmit Audit Data' : 'Finalize Verification'}
+                  {uploadingScreenshot ? 'Synchronizing Data...' : 'Submit Verification Data'}
                 </button>
               </form>
             </div>
@@ -331,16 +338,16 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
                 <div className="w-24 h-24 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-8">
                    <svg className="w-10 h-10 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 </div>
-                <h3 className="text-xl font-black uppercase text-slate-800 tracking-tighter">Under Administrative Review</h3>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-4 leading-relaxed max-w-xs mx-auto">Awaiting confirmation from the Student Section. Access will be fully restored upon approval.</p>
+                <h3 className="text-xl font-black uppercase text-slate-800 tracking-tighter">Under Review</h3>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-4 leading-relaxed max-w-xs mx-auto text-center">Your submission is awaiting approval from the Student Section. Access will be restored shortly.</p>
              </div>
           ) : (
             <div className="bg-white rounded-[3.5rem] p-20 text-center border-2 border-dashed border-slate-200 shadow-sm">
                <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-8">
                   <svg className="w-10 h-10 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                </div>
-               <h3 className="text-xl font-black uppercase text-slate-300 tracking-tighter">Compliance Status: Clear</h3>
-               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-4 leading-relaxed">No pending audit requests at this time.</p>
+               <h3 className="text-xl font-black uppercase text-slate-300 tracking-tighter text-center">Compliance Status: Clear</h3>
+               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-4 leading-relaxed text-center">No pending audit requests. You will be notified if a random audit is triggered.</p>
             </div>
           )}
         </div>
@@ -381,7 +388,7 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
                     disabled={isSentByMe}
                     className={`w-full py-5 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg active:scale-95 ${activeTab === 'pending' ? 'bg-[#0f172a] text-white hover:bg-slate-800' : 'bg-white border-2 border-indigo-100 text-indigo-600 hover:bg-indigo-50'}`}
                   >
-                    {activeTab === 'pending' ? 'Start Session' : 'Re-Initiate Call'}
+                    {activeTab === 'pending' ? 'Initiate Session' : 'Re-Call Student'}
                   </button>
                 </div>
               </div>
@@ -402,16 +409,16 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
               <div className="absolute top-0 left-0 w-full h-2 bg-white/10">
                 <div className={`h-full transition-all duration-1000 ${progressPercent < 100 ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{ width: `${progressPercent}%` }}></div>
               </div>
-              <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.4em] mb-4">Live Counseling Active</p>
+              <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.4em] mb-4">Live Session Active</p>
               <h3 className="text-4xl font-black uppercase leading-none mb-4 tracking-tighter">{callingLead.name}</h3>
               <div className="text-6xl font-black tabular-nums my-6 text-white">{Math.floor(callDuration/60)}:{(callDuration%60).toString().padStart(2,'0')}</div>
               
               {!isCallActive ? (
                 <div className="px-6 py-4 bg-emerald-500/20 border border-emerald-500/30 rounded-2xl flex items-center justify-center gap-2">
-                   <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Session Logic Verified</p>
+                   <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Counseling Verified</p>
                 </div>
               ) : (
-                <button onClick={endCallSession} className="px-12 py-5 bg-red-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl active:scale-95 transition-all">End Call</button>
+                <button onClick={endCallSession} className="px-12 py-5 bg-red-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl active:scale-95 transition-all">End Session</button>
               )}
             </div>
             
@@ -419,8 +426,8 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
               {isLocked && (
                 <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center text-center p-8">
                   <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4 text-slate-400 font-bold text-xl">!</div>
-                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Counseling in progress...</p>
-                  <p className="text-[8px] font-bold text-slate-400 mt-1 uppercase tracking-tighter">Maintain interaction for {MIN_VALID_DURATION}s to unlock outcomes</p>
+                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Session in progress...</p>
+                  <p className="text-[8px] font-bold text-slate-400 mt-1 uppercase tracking-tighter">Minimum interaction: {MIN_VALID_DURATION} seconds</p>
                 </div>
               )}
               
@@ -436,14 +443,14 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
                     <button onClick={() => handleCategorization(callingLead.id, StudentResponse.GRADE_11_12)} disabled={isLocked} className="py-5 bg-slate-50 border border-slate-200 rounded-2xl text-[9px] font-black uppercase text-slate-600 hover:bg-slate-100 transition-all disabled:opacity-50">11th / 12th</button>
                     <button onClick={() => handleCategorization(callingLead.id, StudentResponse.NOT_RESPONDING)} disabled={isLocked} className="py-5 bg-slate-50 border border-slate-200 rounded-2xl text-[9px] font-black uppercase text-slate-600 hover:bg-slate-100 transition-all disabled:opacity-50">Not Answered</button>
                   </div>
-                  <button onClick={() => handleCategorization(callingLead.id, StudentResponse.OTHERS)} disabled={isLocked} className="w-full py-4 bg-slate-100 border border-slate-200 text-slate-500 rounded-2xl font-black text-[9px] uppercase tracking-widest hover:bg-slate-200 transition-all disabled:opacity-50">Other Outcome</button>
-                  <button onClick={() => setCallingLead(null)} className="w-full py-3 text-slate-300 text-[9px] font-black uppercase tracking-widest hover:text-slate-500">Exit Session</button>
+                  <button onClick={() => handleCategorization(callingLead.id, StudentResponse.OTHERS)} disabled={isLocked} className="w-full py-4 bg-slate-100 border border-slate-200 text-slate-500 rounded-2xl font-black text-[9px] uppercase tracking-widest hover:bg-slate-200 transition-all disabled:opacity-50">Other / Outside Scope</button>
+                  <button onClick={() => setCallingLead(null)} className="w-full py-3 text-slate-300 text-[9px] font-black uppercase tracking-widest hover:text-slate-500 text-center">Dismiss Overlay</button>
                 </div>
               ) : (
                 <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
                   <div className="text-center">
-                    <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Enrollment Selection</p>
-                    <h4 className="text-lg font-black uppercase text-[#0f172a] mt-1 tracking-tight">Select Targeted Branch</h4>
+                    <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Enrollment Details</p>
+                    <h4 className="text-lg font-black uppercase text-[#0f172a] mt-1 tracking-tight">Preferred Institutional Branch</h4>
                   </div>
                   <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto custom-scroll pr-1">
                     {Object.values(Department)
@@ -459,7 +466,7 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
                         </button>
                       ))}
                   </div>
-                  <button onClick={() => setShowBranchSelection(false)} className="w-full py-4 bg-slate-100 text-slate-500 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-colors hover:bg-slate-200">Return to Outcomes</button>
+                  <button onClick={() => setShowBranchSelection(false)} className="w-full py-4 bg-slate-100 text-slate-500 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-colors hover:bg-slate-200">Back to Outcomes</button>
                 </div>
               )}
             </div>

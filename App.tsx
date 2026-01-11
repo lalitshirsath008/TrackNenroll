@@ -172,7 +172,6 @@ const AdminDashboard: React.FC<{ initialTab?: 'overview' | 'leads' | 'logs' | 'v
     setShowManualEntryModal(false);
   };
 
-  // Fixed error: handleAutoDistribute was not defined
   const handleAutoDistribute = async () => {
     if (inflowLeads.length === 0) {
       showToast("No leads available to distribute.", "info");
@@ -189,7 +188,7 @@ const AdminDashboard: React.FC<{ initialTab?: 'overview' | 'leads' | 'logs' | 'v
     const teacherLeads = leads.filter(l => l.assignedToTeacher === teacherId && l.callVerified);
     if (teacherLeads.length === 0) { showToast("Teacher has no verified calls to audit.", "error"); return; }
     const randomLead = teacherLeads[Math.floor(Math.random() * teacherLeads.length)];
-    await updateUser(teacherId, { verification: { status: 'pending', randomLeadId: randomLead.id, randomLeadName: randomLead.name, randomLeadPhone: randomLead.phone, actualDuration: randomLead.callDuration || 0, timestamp: new Date().toISOString() } });
+    await updateUser(teacherId, { verification: { status: 'pending', randomLeadId: randomLead.id, randomLeadName: randomLead.name, randomLeadPhone: randomLead.phone, actualDuration: randomLead.callDuration || 0, timestamp: randomLead.callTimestamp || new Date().toISOString() } });
     showToast("Audit challenge sent successfully.", "success");
   };
 
@@ -210,8 +209,26 @@ const AdminDashboard: React.FC<{ initialTab?: 'overview' | 'leads' | 'logs' | 'v
     }
   };
 
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'N/A';
+    try {
+      return new Date(dateString).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    } catch {
+      return 'Invalid';
+    }
+  };
+
   return (
     <div className="space-y-6 md:space-y-8">
+      {viewingScreenshot && (
+        <div className="fixed inset-0 z-[5000] bg-black/90 flex items-center justify-center p-4" onClick={() => setViewingScreenshot(null)}>
+           <div className="max-w-4xl w-full bg-white rounded-3xl overflow-hidden p-2 relative">
+              <button className="absolute top-4 right-4 bg-black/50 text-white w-10 h-10 rounded-full flex items-center justify-center font-black" onClick={() => setViewingScreenshot(null)}>×</button>
+              <img src={viewingScreenshot} alt="Evidence" className="w-full h-auto max-h-[85vh] object-contain rounded-2xl" />
+           </div>
+        </div>
+      )}
+
       <header className="flex flex-col gap-4">
         <div>
           <p className="text-[9px] font-black text-indigo-600 uppercase tracking-widest">Administrative Center</p>
@@ -344,20 +361,33 @@ const AdminDashboard: React.FC<{ initialTab?: 'overview' | 'leads' | 'logs' | 'v
                           <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1">Target Subject</p>
                           <p className="text-[11px] font-black text-slate-800 uppercase">{item.teacher.verification.randomLeadName}</p>
                        </div>
+                       
                        <div className="grid grid-cols-2 gap-3">
-                         <div className="p-3 bg-indigo-50/50 rounded-xl">
-                           <p className="text-[7px] font-black text-indigo-400 uppercase tracking-widest mb-0.5">Actual</p>
-                           <p className="text-base font-black text-indigo-600">{item.teacher.verification.actualDuration}s</p>
+                         <div className="p-3 bg-indigo-50/50 rounded-xl border border-indigo-100">
+                           <p className="text-[7px] font-black text-indigo-400 uppercase tracking-widest mb-0.5">Actual Duration</p>
+                           <p className="text-sm font-black text-indigo-600">{item.teacher.verification.actualDuration}s</p>
                          </div>
-                         <div className="p-3 bg-rose-50/50 rounded-xl">
-                           <p className="text-[7px] font-black text-rose-400 uppercase tracking-widest mb-0.5">Reported</p>
-                           <p className="text-base font-black text-rose-600">{item.teacher.verification.teacherResponseDuration}s</p>
+                         <div className="p-3 bg-rose-50/50 rounded-xl border border-rose-100">
+                           <p className="text-[7px] font-black text-rose-400 uppercase tracking-widest mb-0.5">Reported Duration</p>
+                           <p className="text-sm font-black text-rose-600">{item.teacher.verification.teacherResponseDuration}s</p>
                          </div>
                        </div>
-                       <button onClick={() => setViewingScreenshot(item.teacher.verification?.screenshotURL || null)} className="w-full py-3 bg-white border border-slate-200 rounded-xl text-[8px] font-black uppercase text-indigo-600">Inspect Evidence</button>
+
+                       <div className="grid grid-cols-2 gap-3">
+                         <div className="p-3 bg-indigo-50/50 rounded-xl border border-indigo-100">
+                           <p className="text-[7px] font-black text-indigo-400 uppercase tracking-widest mb-0.5">Actual Date</p>
+                           <p className="text-[10px] font-black text-indigo-600 uppercase">{formatDate(item.teacher.verification.timestamp)}</p>
+                         </div>
+                         <div className="p-3 bg-rose-50/50 rounded-xl border border-rose-100">
+                           <p className="text-[7px] font-black text-rose-400 uppercase tracking-widest mb-0.5">Reported Date</p>
+                           <p className="text-[10px] font-black text-rose-600 uppercase">{formatDate(item.teacher.verification.verificationDate)}</p>
+                         </div>
+                       </div>
+
+                       <button onClick={() => setViewingScreenshot(item.teacher.verification?.screenshotURL || null)} className="w-full py-3 bg-white border border-slate-200 rounded-xl text-[8px] font-black uppercase text-indigo-600 hover:bg-indigo-50 transition-colors">Inspect Evidence Attachment</button>
                        <div className="grid grid-cols-2 gap-2">
-                          <button onClick={() => handleRejectVerification(item.teacher.id)} className="py-4 bg-rose-500 text-white rounded-xl font-black text-[9px] uppercase shadow-lg">Reject</button>
-                          <button onClick={() => handleApproveVerification(item.teacher.id)} className="py-4 bg-emerald-500 text-white rounded-xl font-black text-[9px] uppercase shadow-lg">Approve</button>
+                          <button onClick={() => handleRejectVerification(item.teacher.id)} className="py-4 bg-rose-500 text-white rounded-xl font-black text-[9px] uppercase shadow-lg active:scale-95 transition-all">Reject Proof</button>
+                          <button onClick={() => handleApproveVerification(item.teacher.id)} className="py-4 bg-emerald-500 text-white rounded-xl font-black text-[9px] uppercase shadow-lg active:scale-95 transition-all">Approve Session</button>
                        </div>
                      </>
                    )}
@@ -373,7 +403,6 @@ const AdminDashboard: React.FC<{ initialTab?: 'overview' | 'leads' | 'logs' | 'v
   );
 };
 
-// Fixed error: App component was missing
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(() => {
     const saved = localStorage.getItem('ten_logged_in_user');

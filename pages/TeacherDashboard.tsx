@@ -289,6 +289,7 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
 
                 <div className="space-y-2">
                   <label className="text-[8px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Evidence Attachment</label>
+                  <p className="text-[9px] font-bold text-rose-500 uppercase tracking-tight ml-4 mb-2">Note : Student contact No and duration must be visible!</p>
                   <div 
                     onClick={() => !uploadingScreenshot && fileInputRef.current?.click()}
                     className={`w-full aspect-video rounded-[1.5rem] md:rounded-[2.5rem] border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all overflow-hidden bg-slate-50 group relative ${screenshotPreview ? 'border-emerald-500' : 'border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/30'}`}

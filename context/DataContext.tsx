@@ -123,15 +123,58 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
+  // Helper to compress image and convert to Base64 as fallback
+  const compressImage = (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 800; // Optimal for Firestore strings
+          const scaleSize = MAX_WIDTH / img.width;
+          canvas.width = MAX_WIDTH;
+          canvas.height = img.height * scaleSize;
+
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+          
+          // Use JPEG compression to keep it under 1MB Firestore limit
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+          resolve(dataUrl);
+        };
+      };
+    });
+  };
+
   const uploadFile = async (path: string, file: File): Promise<string> => {
-    const storageRef = ref(storage, path);
-    const metadata = { contentType: file.type };
-    const snapshot = await uploadBytes(storageRef, file, metadata);
-    return await getDownloadURL(snapshot.ref);
+    const base64Data = await compressImage(file);
+    
+    try {
+      console.log(`Attempting Firebase Storage upload to: ${path}`);
+      const storageRef = ref(storage, path);
+      const metadata = { contentType: 'image/jpeg' };
+      
+      // Convert base64 back to blob for Firebase Storage
+      const response = await fetch(base64Data);
+      const blob = await response.blob();
+      
+      const snapshot = await uploadBytes(storageRef, blob, metadata);
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      return downloadURL;
+    } catch (error: any) {
+      console.warn("Storage upload failed or project needs upgrade. Falling back to Firestore Base64 storage.", error);
+      // Return the compressed base64 string itself as the URL
+      // Firestore can store strings up to 1MB, compressed JPEG is usually 50KB-200KB
+      return base64Data;
+    }
   };
 
   const uploadProfileImage = async (userId: string, file: File): Promise<string> => {
-    return await uploadFile(`profiles/${userId}/${Date.now()}_${file.name}`, file);
+    const timestamp = Date.now();
+    return await uploadFile(`profiles/${userId}/${timestamp}.jpg`, file);
   };
 
   const addLead = async (lead: StudentLead) => {
@@ -201,7 +244,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const assignLeadsToTeacher = async (leadIds: string[], teacherId: string) => {
-    const teacher = users.find(u => u.id === teacherId);
     const batch = writeBatch(db);
     leadIds.forEach(id => {
       batch.set(doc(db, 'leads', id), {

@@ -36,22 +36,28 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Reset URL if new file is selected
-    setUploadedURL(null);
-    setScreenshotPreview(null);
+    if (!file.type.startsWith('image/')) {
+      showToast("Please select a valid image file.", "error");
+      return;
+    }
+
+    // Set immediate local preview
+    setScreenshotPreview(URL.createObjectURL(file));
     setUploadingScreenshot(true);
 
     try {
-      const fileName = `${Date.now()}_verification_${currentUser.id}.png`;
+      const fileName = `verify_${Date.now()}.jpg`;
       const path = `verifications/${currentUser.id}/${fileName}`;
-      const url = await uploadFile(path, file);
       
-      setUploadedURL(url);
-      setScreenshotPreview(URL.createObjectURL(file));
-      showToast("Proof screenshot uploaded successfully.", "success");
-    } catch (err) {
-      console.error("Upload error:", err);
-      showToast("Upload failed. Please check your connection and try again.", "error");
+      // uploadFile now handles compression and billing fallback internally
+      const finalURL = await uploadFile(path, file);
+      
+      setUploadedURL(finalURL);
+      showToast("Proof ready for submission.", "success");
+    } catch (err: any) {
+      console.error("Upload error details:", err);
+      showToast("Could not prepare image. Try a smaller file.", "error");
+      setScreenshotPreview(null);
     } finally {
       setUploadingScreenshot(false);
     }
@@ -65,7 +71,7 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
     }
     
     if (!uploadedURL) {
-      showToast("Please wait for the screenshot to finish uploading.", "error");
+      showToast("Please upload a proof screenshot first.", "error");
       return;
     }
     
@@ -83,10 +89,10 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
       setVerificationInput('');
       setScreenshotPreview(null);
       setUploadedURL(null);
-      showToast("Verification submitted successfully.", "success");
+      showToast("Verification data submitted successfully.", "success");
       setActiveTab('completed');
     } catch (err) {
-      showToast("Failed to submit verification.", "error");
+      showToast("System error. Please try again.", "error");
     }
   };
 
@@ -245,7 +251,7 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
                     {uploadingScreenshot ? (
                       <div className="flex flex-col items-center justify-center">
                          <div className="animate-spin w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full mb-4"></div>
-                         <p className="text-[9px] font-black text-indigo-600 uppercase tracking-widest animate-pulse">Uploading Proof...</p>
+                         <p className="text-[9px] font-black text-indigo-600 uppercase tracking-widest animate-pulse">Processing Image...</p>
                       </div>
                     ) : screenshotPreview ? (
                       <div className="w-full h-full relative">
@@ -257,7 +263,7 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
                     ) : (
                       <>
                         <svg className="w-12 h-12 text-slate-300 group-hover:text-indigo-400 mb-4 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                        <p className="text-[11px] font-black text-slate-400 group-hover:text-indigo-600 uppercase tracking-widest text-center px-6">Click to Browse & Upload Proof Screenshot</p>
+                        <p className="text-[11px] font-black text-slate-400 group-hover:text-indigo-600 uppercase tracking-widest text-center px-6">Click to Upload Proof Screenshot</p>
                       </>
                     )}
                   </div>
@@ -269,7 +275,7 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
                   disabled={uploadingScreenshot || !uploadedURL}
                   className={`w-full py-6 rounded-[2rem] font-black text-[12px] uppercase tracking-[0.3em] shadow-2xl transition-all ${uploadingScreenshot || !uploadedURL ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-[#0f172a] text-white active:scale-95'}`}
                 >
-                  {uploadingScreenshot ? 'Upload in Progress...' : 'Complete Verification'}
+                  {uploadingScreenshot ? 'Preparing Data...' : 'Complete Verification'}
                 </button>
               </form>
             </div>

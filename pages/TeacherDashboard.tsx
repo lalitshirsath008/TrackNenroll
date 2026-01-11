@@ -81,6 +81,7 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
           teacherResponseDuration: parseInt(verificationInput),
           screenshotURL: uploadedURL,
           verificationDate: verificationDate,
+          rejectionReason: undefined // Clear previous rejection reason
         }
       });
       
@@ -205,10 +206,14 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
               {currentUser.verification?.status === 'rejected' && (
                 <div className="mb-8 p-6 bg-rose-50 border border-rose-100 rounded-3xl animate-in fade-in zoom-in duration-300">
                    <div className="flex items-center gap-4 mb-2">
-                     <div className="w-8 h-8 bg-rose-500 text-white rounded-full flex items-center justify-center shrink-0 shadow-lg">!</div>
-                     <p className="text-[11px] font-black text-rose-600 uppercase tracking-widest">Submission Rejected by Admin</p>
+                     <div className="w-8 h-8 bg-rose-500 text-white rounded-full flex items-center justify-center shrink-0 shadow-lg font-black italic">!</div>
+                     <p className="text-[11px] font-black text-rose-600 uppercase tracking-widest">Rejection Alert: Resubmission Needed</p>
                    </div>
-                   <p className="text-[10px] font-bold text-rose-400 uppercase ml-12 leading-relaxed tracking-tight">Your previous submission was not approved. Please provide accurate details and re-submit the verification form.</p>
+                   <div className="ml-12">
+                     <p className="text-[10px] font-black text-slate-800 uppercase tracking-tight">Reason:</p>
+                     <p className="text-[12px] font-bold text-rose-500 uppercase leading-relaxed tracking-tight mt-0.5">{currentUser.verification?.rejectionReason || "Verification details were incorrect."}</p>
+                     <p className="text-[9px] font-bold text-slate-400 uppercase mt-3 italic tracking-tighter">* Please provide the correct duration and screenshot below.</p>
+                   </div>
                 </div>
               )}
 
@@ -284,7 +289,7 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
                   disabled={uploadingScreenshot || !uploadedURL}
                   className={`w-full py-6 rounded-[2rem] font-black text-[12px] uppercase tracking-[0.3em] shadow-2xl transition-all ${uploadingScreenshot || !uploadedURL ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-[#0f172a] text-white active:scale-95'}`}
                 >
-                  {uploadingScreenshot ? 'Preparing Data...' : 'Complete Verification'}
+                  {uploadingScreenshot ? 'Preparing Data...' : currentUser.verification?.status === 'rejected' ? 'Resubmit Verification' : 'Complete Verification'}
                 </button>
               </form>
             </div>

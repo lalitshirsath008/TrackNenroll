@@ -47,6 +47,7 @@ const CircularProgress: React.FC<{
           viewBox={`0 0 ${viewBoxSize} ${viewBoxSize}`} 
           className="w-full h-full transform -rotate-90 overflow-visible"
         >
+          {/* Background Circle */}
           <circle 
             cx={center} 
             cy={center} 
@@ -55,6 +56,7 @@ const CircularProgress: React.FC<{
             strokeWidth={strokeWidth} 
             fill="transparent" 
           />
+          {/* Progress Circle */}
           <circle
             cx={center}
             cy={center}
@@ -151,18 +153,15 @@ const AdminDashboard: React.FC<{ initialTab?: 'overview' | 'leads' | 'logs' | 'v
 
   const hods = useMemo(() => users.filter(u => u.role === UserRole.HOD && u.isApproved), [users]);
 
-  // NEW: Filter only staff who have actually finished their work
   const staffStats = useMemo(() => {
     return users.filter(u => u.role === UserRole.TEACHER && u.isApproved).map(teacher => {
       const teacherLeads = leads.filter(l => l.assignedToTeacher === teacher.id);
       const pendingWork = teacherLeads.filter(l => l.stage === LeadStage.ASSIGNED || l.stage === LeadStage.UNASSIGNED).length;
-      // Faculty is only eligible for verification if they have leads AND all are processed
       const workFinished = teacherLeads.length > 0 && pendingWork === 0;
       return { teacher, totalLeads: teacherLeads.length, workFinished, pendingWork };
     });
   }, [users, leads]);
 
-  // Tab 1: Faculty who finished work but haven't been challenged yet (or were rejected and need retry)
   const completedStaff = useMemo(() => 
     staffStats.filter(s => 
       s.workFinished && 
@@ -170,12 +169,10 @@ const AdminDashboard: React.FC<{ initialTab?: 'overview' | 'leads' | 'logs' | 'v
     )
   , [staffStats]);
 
-  // Tab 2: Faculty awaiting review
   const respondedStaff = useMemo(() => 
     staffStats.filter(s => s.teacher.verification?.status === 'responded')
   , [staffStats]);
 
-  // Tab 3: Past audits
   const approvedStaff = useMemo(() => 
     staffStats.filter(s => s.teacher.verification?.status === 'approved')
   , [staffStats]);
@@ -312,17 +309,21 @@ const AdminDashboard: React.FC<{ initialTab?: 'overview' | 'leads' | 'logs' | 'v
   const handleRejectVerification = async (teacherId: string) => {
     const teacher = users.find(u => u.id === teacherId);
     if (!teacher || !teacher.verification) return;
-    if (window.confirm(`Reject this verification? Staff member ${teacher.name} will have to re-submit the form.`)) {
+    
+    const reason = window.prompt("Explain the reason for rejection (e.g., Duration mismatch, Blurry screenshot):", "Invalid proof details.");
+    
+    if (reason !== null) {
       await updateUser(teacherId, {
         verification: {
           ...teacher.verification,
           status: 'rejected',
+          rejectionReason: reason,
           screenshotURL: undefined,
           teacherResponseDuration: undefined
         }
       });
       showToast("Verification rejected. Request sent back to staff.", "info");
-      addLog(currentUser.id, currentUser.name, UserAction.VERIFICATION, `Rejected verification for ${teacher.name}`);
+      addLog(currentUser.id, currentUser.name, UserAction.VERIFICATION, `Rejected verification for ${teacher.name}: ${reason}`);
     }
   };
 
@@ -348,6 +349,7 @@ const AdminDashboard: React.FC<{ initialTab?: 'overview' | 'leads' | 'logs' | 'v
 
       {adminTab === 'overview' ? (
         <div className="space-y-8 animate-in fade-in duration-500">
+           {/* Stat Cards */}
            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
              {[
                { label: 'TOTAL LEADS', value: dashboardStats.total, color: 'text-slate-800' },
@@ -364,6 +366,7 @@ const AdminDashboard: React.FC<{ initialTab?: 'overview' | 'leads' | 'logs' | 'v
 
            {isPrincipal ? (
              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Lead Conversion Funnel */}
                 <div className="bg-white p-10 md:p-12 rounded-[3.5rem] border border-slate-50 shadow-sm flex flex-col items-center">
                    <h3 className="text-xl font-black uppercase tracking-tighter text-slate-800 mb-12 self-start">Lead Conversion Funnel</h3>
                    <div className="flex flex-wrap justify-center gap-10 md:gap-12 w-full">
@@ -373,6 +376,7 @@ const AdminDashboard: React.FC<{ initialTab?: 'overview' | 'leads' | 'logs' | 'v
                    </div>
                 </div>
 
+                {/* Department Performance */}
                 <div className="bg-white p-10 md:p-12 rounded-[3.5rem] border border-slate-50 shadow-sm flex flex-col">
                    <h3 className="text-xl font-black uppercase tracking-tighter text-slate-800 mb-12">Department Performance</h3>
                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-y-12 gap-x-6">
@@ -434,7 +438,8 @@ const AdminDashboard: React.FC<{ initialTab?: 'overview' | 'leads' | 'logs' | 'v
                       <td className="p-8 text-center"><input type="checkbox" checked={selectedLeadIds.includes(lead.id)} onChange={() => setSelectedLeadIds(p => p.includes(lead.id) ? p.filter(i => i !== lead.id) : [...p, lead.id])} className="w-4 h-4 rounded border-slate-300 accent-indigo-600 cursor-pointer" /></td>
                       <td className="p-8"><p className="text-[12px] font-black uppercase text-slate-800 leading-tight mb-1">{lead.name}</p><p className="text-[10px] font-bold text-indigo-600/60 tabular-nums">{lead.phone}</p></td>
                       <td className="p-8 text-[10px] font-bold text-slate-500 uppercase">{lead.sourceFile}</td>
-                      <td className="p-8 text-right space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {/* FIXED: Removed hover-only opacity to keep actions visible by default */}
+                      <td className="p-8 text-right space-x-2 transition-all">
                          <button onClick={() => { setEditingLead({...lead}); setShowEditLeadModal(true); }} className="p-2.5 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg></button>
                          <button onClick={() => { if(window.confirm('Erase this lead record permanently?')) deleteLead(lead.id); }} className="p-2.5 text-rose-500 hover:bg-rose-50 rounded-xl transition-all"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
                       </td>
@@ -531,6 +536,7 @@ const AdminDashboard: React.FC<{ initialTab?: 'overview' | 'leads' | 'logs' | 'v
         </div>
       )}
 
+      {/* Modals */}
       {showManualEntryModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[2000] flex items-center justify-center p-4">
           <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">

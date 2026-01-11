@@ -36,7 +36,7 @@ export enum LeadStage {
 }
 
 export interface StaffVerification {
-  status: 'none' | 'pending' | 'responded';
+  status: 'none' | 'pending' | 'responded' | 'approved' | 'rejected';
   randomLeadId?: string;
   randomLeadName?: string;
   randomLeadPhone?: string;
@@ -45,6 +45,7 @@ export interface StaffVerification {
   timestamp?: string;
   screenshotURL?: string;
   verificationDate?: string;
+  rejectionReason?: string;
 }
 
 export interface User {

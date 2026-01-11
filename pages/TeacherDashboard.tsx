@@ -22,15 +22,17 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
   const timerRef = useRef<number | null>(null);
   const MIN_VALID_DURATION = 20;
 
+  const isVerificationVisible = currentUser.verification?.status === 'pending' || currentUser.verification?.status === 'rejected';
+
   useEffect(() => {
     setActiveTab(initialTab);
   }, [initialTab]);
 
   useEffect(() => {
-    if (currentUser.verification?.status === 'pending' && activeTab !== 'verification') {
+    if (isVerificationVisible && activeTab !== 'verification') {
       setActiveTab('verification');
     }
-  }, [currentUser.verification?.status, activeTab]);
+  }, [isVerificationVisible, activeTab]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -41,21 +43,17 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
       return;
     }
 
-    // Set immediate local preview
     setScreenshotPreview(URL.createObjectURL(file));
     setUploadingScreenshot(true);
 
     try {
       const fileName = `verify_${Date.now()}.jpg`;
       const path = `verifications/${currentUser.id}/${fileName}`;
-      
-      // uploadFile now handles compression and billing fallback internally
       const finalURL = await uploadFile(path, file);
       
       setUploadedURL(finalURL);
       showToast("Proof ready for submission.", "success");
     } catch (err: any) {
-      console.error("Upload error details:", err);
       showToast("Could not prepare image. Try a smaller file.", "error");
       setScreenshotPreview(null);
     } finally {
@@ -89,7 +87,7 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
       setVerificationInput('');
       setScreenshotPreview(null);
       setUploadedURL(null);
-      showToast("Verification data submitted successfully.", "success");
+      showToast("Verification submitted for Admin review.", "success");
       setActiveTab('completed');
     } catch (err) {
       showToast("System error. Please try again.", "error");
@@ -193,16 +191,27 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
           <button onClick={() => setActiveTab('completed')} className={`px-10 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'completed' ? 'bg-white text-indigo-600 shadow-sm border border-slate-100' : 'text-slate-500'}`}>History</button>
           <button onClick={() => setActiveTab('verification')} className={`px-10 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all relative ${activeTab === 'verification' ? 'bg-white text-rose-500 shadow-sm border border-slate-100' : 'text-slate-500'}`}>
             Verification
-            {currentUser.verification?.status === 'pending' && <span className="absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full animate-ping"></span>}
+            {isVerificationVisible && <span className="absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full animate-ping"></span>}
           </button>
         </div>
       </div>
 
       {activeTab === 'verification' ? (
         <div className="animate-in slide-in-from-bottom-6 duration-400 max-w-2xl mx-auto py-12">
-          {currentUser.verification?.status === 'pending' ? (
+          {isVerificationVisible ? (
             <div className="bg-white rounded-[3.5rem] p-10 shadow-2xl border-2 border-slate-100 overflow-hidden relative">
-              <div className="absolute top-0 left-0 w-full h-2 bg-[#ff4d6d]"></div>
+              <div className={`absolute top-0 left-0 w-full h-2 ${currentUser.verification?.status === 'rejected' ? 'bg-rose-500' : 'bg-[#ff4d6d]'}`}></div>
+              
+              {currentUser.verification?.status === 'rejected' && (
+                <div className="mb-8 p-6 bg-rose-50 border border-rose-100 rounded-3xl animate-in fade-in zoom-in duration-300">
+                   <div className="flex items-center gap-4 mb-2">
+                     <div className="w-8 h-8 bg-rose-500 text-white rounded-full flex items-center justify-center shrink-0 shadow-lg">!</div>
+                     <p className="text-[11px] font-black text-rose-600 uppercase tracking-widest">Submission Rejected by Admin</p>
+                   </div>
+                   <p className="text-[10px] font-bold text-rose-400 uppercase ml-12 leading-relaxed tracking-tight">Your previous submission was not approved. Please provide accurate details and re-submit the verification form.</p>
+                </div>
+              )}
+
               <div className="text-center mb-10">
                 <div className="w-20 h-20 bg-rose-50 text-[#ff4d6d] rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm border border-rose-100">
                   <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
@@ -213,14 +222,14 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
 
               <div className="bg-[#f8fafc] p-10 rounded-[2.5rem] border border-slate-100 mb-8 text-center shadow-inner">
                 <p className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.3em] mb-3">Staff Target Reference</p>
-                <h4 className="text-3xl font-black text-[#0f172a] uppercase tracking-tighter leading-none">{currentUser.verification.randomLeadName}</h4>
-                <p className="text-slate-500 font-bold text-lg mt-2 tracking-widest">{currentUser.verification.randomLeadPhone}</p>
+                <h4 className="text-3xl font-black text-[#0f172a] uppercase tracking-tighter leading-none">{currentUser.verification?.randomLeadName}</h4>
+                <p className="text-slate-500 font-bold text-lg mt-2 tracking-widest">{currentUser.verification?.randomLeadPhone}</p>
               </div>
 
               <form onSubmit={handleVerificationSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Exact Duration (Seconds)</label>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Exact Call Duration (Secs)</label>
                     <input 
                       type="number" 
                       value={verificationInput}
@@ -231,7 +240,7 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Call Verification Date</label>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Date of calling (Kis din call kiya tha?)</label>
                     <input 
                       type="date" 
                       value={verificationDate}
@@ -279,6 +288,14 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
                 </button>
               </form>
             </div>
+          ) : currentUser.verification?.status === 'responded' ? (
+             <div className="bg-white rounded-[3.5rem] p-20 text-center border-2 border-slate-200 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="w-24 h-24 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-8">
+                   <svg className="w-10 h-10 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+                <h3 className="text-xl font-black uppercase text-slate-800 tracking-tighter">Under Admin Review</h3>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-4 leading-relaxed max-w-xs mx-auto">Awaiting approval from the Student Section. You will be notified if any further action is required.</p>
+             </div>
           ) : (
             <div className="bg-white rounded-[3.5rem] p-20 text-center border-2 border-dashed border-slate-200 shadow-sm">
                <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-8">

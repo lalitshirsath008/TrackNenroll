@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { StudentLead, Message, User, LeadStage, SystemLog, UserAction, Department, UserRole } from '../types';
-import { db } from '../lib/firebase';
+import { db, storage } from '../lib/firebase';
 import { 
   collection, 
   onSnapshot, 
@@ -13,6 +13,7 @@ import {
   writeBatch,
   limit
 } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 export interface Toast {
   message: string;
@@ -46,6 +47,7 @@ interface DataContextType {
   addLog: (userId: string, userName: string, action: UserAction, details: string) => Promise<void>;
   exportSystemData: () => string;
   importSystemData: (content: string) => Promise<boolean>;
+  uploadProfileImage: (userId: string, file: File) => Promise<string>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -107,7 +109,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     try {
-      // Use timestamp desc to get the most recent logs first
       const q = query(collection(db, 'logs'), orderBy('timestamp', 'desc'), limit(100));
       const unsub = onSnapshot(q, (snapshot) => {
         const logData = snapshot.docs.map(doc => doc.data() as SystemLog);
@@ -120,6 +121,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error("Failed to setup logs query:", e);
     }
   }, []);
+
+  const uploadProfileImage = async (userId: string, file: File): Promise<string> => {
+    const storageRef = ref(storage, `profiles/${userId}/${file.name}`);
+    await uploadBytes(storageRef, file);
+    return await getDownloadURL(storageRef);
+  };
 
   const addLead = async (lead: StudentLead) => {
     await setDoc(doc(db, 'leads', lead.id), lead);
@@ -259,7 +266,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addLog = async (userId: string, userName: string, action: UserAction, details: string) => {
     const logId = 'log-' + Date.now();
-    // Using ISO string for correct lexicographical sorting in Firestore
     await setDoc(doc(db, 'logs', logId), {
       id: logId,
       userId,
@@ -297,7 +303,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       addLead, batchAddLeads, updateLead, deleteLead, assignLeadsToHOD, assignLeadsToTeacher, 
       autoDistributeLeadsToHODs, autoDistributeLeadsToTeachers,
       sendMessage, registerUser, addUser, updateUser, deleteUser, handleUserApproval,
-      markMessagesAsSeen, addLog, exportSystemData, importSystemData
+      markMessagesAsSeen, addLog, exportSystemData, importSystemData, uploadProfileImage
     }}>
       {children}
     </DataContext.Provider>

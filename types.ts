@@ -43,6 +43,8 @@ export interface StaffVerification {
   actualDuration?: number;
   teacherResponseDuration?: number;
   timestamp?: string;
+  screenshotURL?: string;
+  verificationDate?: string;
 }
 
 export interface User {
@@ -57,6 +59,7 @@ export interface User {
   approvedBy?: string;
   approvalDate?: string;
   verification?: StaffVerification;
+  photoURL?: string;
 }
 
 export interface StudentLead {

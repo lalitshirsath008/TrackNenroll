@@ -4,15 +4,20 @@ import { useData } from '../context/DataContext';
 import { StudentLead, StudentResponse, LeadStage, User, Department } from '../types';
 
 const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | 'completed' | 'verification' }> = ({ currentUser, initialTab = 'pending' }) => {
-  const { leads, updateLead, showToast, updateUser } = useData();
+  const { leads, updateLead, showToast, updateUser, uploadProfileImage } = useData();
   const [activeTab, setActiveTab] = useState<'pending' | 'completed' | 'verification'>(initialTab);
   const [callingLead, setCallingLead] = useState<StudentLead | null>(null);
   const [callDuration, setCallDuration] = useState(0);
   const [isCallActive, setIsCallActive] = useState(false);
   const [verificationInput, setVerificationInput] = useState('');
+  const [verificationDate, setVerificationDate] = useState(new Date().toISOString().split('T')[0]);
   const [showBranchSelection, setShowBranchSelection] = useState(false);
+  const [uploadingScreenshot, setUploadingScreenshot] = useState(false);
+  const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
+  const [uploadedURL, setUploadedURL] = useState<string | null>(null);
   
   const [selectedHistoryIds, setSelectedHistoryIds] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const timerRef = useRef<number | null>(null);
   const MIN_VALID_DURATION = 20;
@@ -27,33 +32,46 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
     }
   }, [currentUser.verification?.status, activeTab]);
 
-  const myLeads = useMemo(() => leads.filter(l => 
-    l.assignedToTeacher === currentUser.id || l.delegatedFromId === currentUser.id
-  ), [leads, currentUser.id]);
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  const pendingLeads = useMemo(() => myLeads.filter(l => 
-    l.assignedToTeacher === currentUser.id && (l.stage === LeadStage.ASSIGNED || l.stage === LeadStage.UNASSIGNED)
-  ), [myLeads, currentUser.id]);
-
-  const completedLeads = useMemo(() => myLeads.filter(l => {
-    const isProcessedByMe = l.assignedToTeacher === currentUser.id && l.stage !== LeadStage.ASSIGNED && l.stage !== LeadStage.UNASSIGNED;
-    const isSentByMe = l.delegatedFromId === currentUser.id;
-    return isProcessedByMe || isSentByMe;
-  }), [myLeads, currentUser.id]);
+    setUploadingScreenshot(true);
+    try {
+      const url = await uploadProfileImage(`verification/${currentUser.id}`, file);
+      setUploadedURL(url);
+      setScreenshotPreview(URL.createObjectURL(file));
+      showToast("Proof screenshot uploaded.", "success");
+    } catch (err) {
+      showToast("Failed to upload image.", "error");
+    } finally {
+      setUploadingScreenshot(false);
+    }
+  };
 
   const handleVerificationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!verificationInput || !currentUser.verification) return;
+    if (!verificationInput || !currentUser.verification || !verificationDate) return;
+    
+    if (!uploadedURL) {
+      showToast("Please upload a call proof screenshot.", "error");
+      return;
+    }
     
     await updateUser(currentUser.id, {
       verification: {
         ...currentUser.verification,
         status: 'responded',
         teacherResponseDuration: parseInt(verificationInput),
+        screenshotURL: uploadedURL,
+        verificationDate: verificationDate,
       }
     });
+    
     setVerificationInput('');
-    showToast("Verification response submitted to admin.", "success");
+    setScreenshotPreview(null);
+    setUploadedURL(null);
+    showToast("Verification proof submitted successfully.", "success");
     setActiveTab('completed');
   };
 
@@ -111,6 +129,20 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
     showToast("Classification recorded successfully.", 'success');
   };
 
+  const myLeads = useMemo(() => leads.filter(l => 
+    l.assignedToTeacher === currentUser.id || l.delegatedFromId === currentUser.id
+  ), [leads, currentUser.id]);
+
+  const pendingLeads = useMemo(() => myLeads.filter(l => 
+    l.assignedToTeacher === currentUser.id && (l.stage === LeadStage.ASSIGNED || l.stage === LeadStage.UNASSIGNED)
+  ), [myLeads, currentUser.id]);
+
+  const completedLeads = useMemo(() => myLeads.filter(l => {
+    const isProcessedByMe = l.assignedToTeacher === currentUser.id && l.stage !== LeadStage.ASSIGNED && l.stage !== LeadStage.UNASSIGNED;
+    const isSentByMe = l.delegatedFromId === currentUser.id;
+    return isProcessedByMe || isSentByMe;
+  }), [myLeads, currentUser.id]);
+
   const isLocked = isCallActive || callDuration < MIN_VALID_DURATION;
   const progressPercent = Math.min((callDuration / MIN_VALID_DURATION) * 100, 100);
 
@@ -165,18 +197,57 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
               </div>
 
               <form onSubmit={handleVerificationSubmit} className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Exact Call Duration (Seconds)</label>
-                  <input 
-                    type="number" 
-                    value={verificationInput}
-                    onChange={e => setVerificationInput(e.target.value)}
-                    placeholder="Duration"
-                    className="w-full px-10 py-6 bg-[#f8fafc] border border-slate-200 rounded-3xl text-2xl font-black outline-none focus:border-rose-500 focus:bg-white transition-all text-center placeholder:text-slate-200"
-                    required
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Exact Duration (Seconds)</label>
+                    <input 
+                      type="number" 
+                      value={verificationInput}
+                      onChange={e => setVerificationInput(e.target.value)}
+                      placeholder="Duration"
+                      className="w-full px-8 py-5 bg-[#f8fafc] border border-slate-200 rounded-3xl text-xl font-black outline-none focus:border-rose-500 focus:bg-white transition-all text-center"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Call Verification Date</label>
+                    <input 
+                      type="date" 
+                      value={verificationDate}
+                      onChange={e => setVerificationDate(e.target.value)}
+                      className="w-full px-8 py-5 bg-[#f8fafc] border border-slate-200 rounded-3xl text-sm font-black outline-none focus:border-rose-500 focus:bg-white transition-all text-center"
+                      required
+                    />
+                  </div>
                 </div>
-                <button type="submit" className="w-full py-6 bg-[#0f172a] text-white rounded-[2rem] font-black text-[12px] uppercase tracking-[0.3em] shadow-2xl active:scale-95 transition-all">Complete Verification</button>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Call Proof Screenshot</label>
+                  <div 
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`w-full aspect-video rounded-[2.5rem] border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all overflow-hidden bg-slate-50 group ${screenshotPreview ? 'border-emerald-500' : 'border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/30'}`}
+                  >
+                    {uploadingScreenshot ? (
+                      <div className="animate-spin w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full"></div>
+                    ) : screenshotPreview ? (
+                      <img src={screenshotPreview} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <>
+                        <svg className="w-12 h-12 text-slate-300 group-hover:text-indigo-400 mb-4 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        <p className="text-[11px] font-black text-slate-400 group-hover:text-indigo-600 uppercase tracking-widest">Click to Upload Screenshot</p>
+                      </>
+                    )}
+                  </div>
+                  <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
+                </div>
+
+                <button 
+                  type="submit" 
+                  disabled={uploadingScreenshot}
+                  className="w-full py-6 bg-[#0f172a] text-white rounded-[2rem] font-black text-[12px] uppercase tracking-[0.3em] shadow-2xl active:scale-95 transition-all disabled:opacity-50"
+                >
+                  Complete Verification
+                </button>
               </form>
             </div>
           ) : (
@@ -240,7 +311,6 @@ const TeacherDashboard: React.FC<{ currentUser: User, initialTab?: 'pending' | '
         </div>
       )}
 
-      {/* Live Call Interface */}
       {callingLead && (
         <div className="fixed inset-0 z-[1000] bg-slate-900/95 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white w-full max-w-xl rounded-[3.5rem] overflow-hidden shadow-2xl flex flex-col animate-in zoom-in-95 duration-200 my-8">

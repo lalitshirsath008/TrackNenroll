@@ -1,12 +1,14 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useData } from '../context/DataContext';
 import { User, UserRole, Department, UserAction } from '../types';
 
 const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
-  const { users, deleteUser, addUser, updateUser, showToast, addLog } = useData();
+  const { users, deleteUser, addUser, updateUser, showToast, addLog, uploadProfileImage } = useData();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState<{
     name: string;
@@ -14,11 +16,11 @@ const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
     password?: string;
     role: UserRole | '';
     department: Department | '';
-  }>({ name: '', email: '', password: '', role: '', department: '' });
+    photoURL?: string;
+  }>({ name: '', email: '', password: '', role: '', department: '', photoURL: '' });
 
   const isCentralRole = formData.role === UserRole.ADMIN || formData.role === UserRole.SUPER_ADMIN;
 
-  // Ensure branch selection is hidden/reset when a central role is selected in the form
   useEffect(() => {
     if (isCentralRole) {
       setFormData(prev => ({ ...prev, department: '' }));
@@ -33,13 +35,31 @@ const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
         email: user.email, 
         password: user.password || '',
         role: user.role, 
-        department: (user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN) ? '' : (user.department || '') 
+        department: (user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN) ? '' : (user.department || ''),
+        photoURL: user.photoURL || ''
       });
     } else {
       setEditingUser(null);
-      setFormData({ name: '', email: '', password: '', role: '', department: '' });
+      setFormData({ name: '', email: '', password: '', role: '', department: '', photoURL: '' });
     }
     setIsModalOpen(true);
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      const tempId = editingUser?.id || `temp-${Date.now()}`;
+      const url = await uploadProfileImage(tempId, file);
+      setFormData(prev => ({ ...prev, photoURL: url }));
+      showToast("Profile image uploaded successfully.", "success");
+    } catch (err) {
+      showToast("Failed to upload image.", "error");
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -55,7 +75,6 @@ const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
       return;
     }
 
-    // Explicitly handle department as null/undefined for Central roles to clean up database
     const finalDepartment = isCentralRole ? null : (formData.department as Department);
 
     const payload = {
@@ -63,11 +82,11 @@ const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
       email: formData.email,
       password: formData.password,
       role: formData.role as UserRole,
-      department: finalDepartment
+      department: finalDepartment,
+      photoURL: formData.photoURL
     };
 
     if (editingUser) {
-      // Use any to allow null for clearing the field in Firestore if necessary
       await updateUser(editingUser.id, payload as any);
       addLog(currentUser.id, currentUser.name, UserAction.MANUAL_ADD, `Updated staff profile: ${editingUser.name}`);
     } else {
@@ -77,7 +96,7 @@ const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
         isApproved: true, 
         registrationStatus: 'approved' 
       };
-      await addUser(newUser as User);
+      await addUser(newUser as any as User);
       addLog(currentUser.id, currentUser.name, UserAction.MANUAL_ADD, `Created new staff account: ${newUser.name} (${newUser.role})`);
     }
     setIsModalOpen(false);
@@ -109,9 +128,18 @@ const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
                 return (
                   <tr key={u.id} className="hover:bg-slate-50 transition-all group">
                     <td className="px-8 py-4">
-                      <div className="flex flex-col">
-                        <p className="font-black text-slate-800 text-[11px] uppercase truncate tracking-tight">{u.name}</p>
-                        <p className="text-[9px] font-bold text-slate-400 lowercase">{u.email}</p>
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-slate-100 overflow-hidden flex items-center justify-center shrink-0 border border-slate-100">
+                          {u.photoURL ? (
+                            <img src={u.photoURL} alt={u.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="font-black text-indigo-600 text-[10px] uppercase">{u.name.charAt(0)}</span>
+                          )}
+                        </div>
+                        <div className="flex flex-col">
+                          <p className="font-black text-slate-800 text-[11px] uppercase truncate tracking-tight">{u.name}</p>
+                          <p className="text-[9px] font-bold text-slate-400 lowercase">{u.email}</p>
+                        </div>
                       </div>
                     </td>
                     <td className="px-8 py-4">
@@ -154,7 +182,26 @@ const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
               <h3 className="text-xl font-black uppercase tracking-tighter">{editingUser ? 'Update Profile' : 'Add New Faculty'}</h3>
               <button onClick={() => setIsModalOpen(false)} className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">×</button>
             </div>
-            <form onSubmit={handleSubmit} className="p-10 space-y-6">
+            <form onSubmit={handleSubmit} className="p-10 space-y-6 max-h-[70vh] overflow-y-auto custom-scroll">
+              <div className="flex flex-col items-center mb-6">
+                <div 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-24 h-24 rounded-[2rem] bg-slate-50 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500 hover:bg-indigo-50 transition-all group overflow-hidden relative"
+                >
+                  {isUploading ? (
+                    <div className="animate-spin w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full"></div>
+                  ) : formData.photoURL ? (
+                    <img src={formData.photoURL} alt="Preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <>
+                      <svg className="w-6 h-6 text-slate-300 group-hover:text-indigo-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                      <span className="text-[8px] font-black uppercase text-slate-400 group-hover:text-indigo-600">Upload Photo</span>
+                    </>
+                  )}
+                </div>
+                <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
+              </div>
+
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Legal Name</label>
                 <input type="text" className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-xs font-bold focus:border-indigo-500 focus:bg-white transition-all" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="Full Name" required />
@@ -167,33 +214,31 @@ const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Account Password</label>
                 <input type="text" className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-xs font-bold focus:border-indigo-500 focus:bg-white transition-all" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} placeholder="Enter Password" />
               </div>
+              
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Account Role</label>
                   <select className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-[10px] font-bold appearance-none" value={formData.role} onChange={e => setFormData({...formData, role: e.target.value as UserRole})} required>
                     <option value="" disabled>Select Role</option>
-                    <option value={UserRole.SUPER_ADMIN}>Super Administrator</option>
-                    <option value={UserRole.ADMIN}>Administrator</option>
+                    <option value={UserRole.SUPER_ADMIN}>Super Admin</option>
+                    <option value={UserRole.ADMIN}>Admin</option>
                     <option value={UserRole.HOD}>Department Head</option>
                     <option value={UserRole.TEACHER}>Faculty Staff</option>
                   </select>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Branch</label>
-                  {isCentralRole ? (
-                    <div className="w-full px-5 py-3.5 bg-slate-100 border border-slate-200 rounded-2xl text-[10px] font-black text-indigo-600 uppercase flex items-center">
-                      Central Administration
-                    </div>
-                  ) : (
+                {!isCentralRole && (
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Assigned Branch</label>
                     <select className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-[10px] font-bold appearance-none" value={formData.department} onChange={e => setFormData({...formData, department: e.target.value as Department})} required>
                       <option value="" disabled>Select Branch</option>
                       {Object.values(Department).map(d => <option key={d} value={d}>{d}</option>)}
                     </select>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
-              <button type="submit" className="w-full py-5 bg-[#5c4df2] text-white rounded-[1.5rem] font-black text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-indigo-100 mt-6 transition-all hover:bg-indigo-700">
-                Confirm Profile Update
+
+              <button type="submit" className="w-full py-5 bg-indigo-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl shadow-indigo-100 active:scale-95 transition-all mt-6">
+                {editingUser ? 'Save Profile Changes' : 'Initialize Account'}
               </button>
             </form>
           </div>

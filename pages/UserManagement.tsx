@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useData } from '../context/DataContext';
 import { User, UserRole, Department, UserAction } from '../types';
 
+// Updated high-quality SVG URLs that strictly follow the visual reference (Flat style, specific colors)
 const MALE_AVATAR = 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix&top=shortHair&hairColor=4a312c&clothing=sweater&clothingColor=3b82f6&backgroundColor=e0f2fe&backgroundType=circle';
 const FEMALE_AVATAR = 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sophia&top=longHair&hairColor=4a312c&clothing=sweater&clothingColor=ec4899&backgroundColor=e0f2fe&backgroundType=circle';
 
@@ -196,25 +197,27 @@ const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
               <button onClick={() => setIsModalOpen(false)} className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">×</button>
             </div>
             
-            <form onSubmit={handleSubmit} className="p-10 space-y-6 max-h-[75vh] overflow-y-auto custom-scroll">
+            <form onSubmit={handleSubmit} className="p-10 space-y-8 max-h-[75vh] overflow-y-auto custom-scroll">
               {/* Profile Photo Area */}
-              <div className="space-y-4">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Staff Identity Photo</label>
-                <div className="flex flex-col items-center gap-6">
-                  <div className="flex items-center gap-8 w-full justify-center">
+              <div className="space-y-6">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 text-center block w-full">Staff Identity Photo</label>
+                
+                <div className="flex flex-col items-center gap-8">
+                  {/* Preview and Remove Row */}
+                  <div className="flex items-center justify-center gap-8 w-full">
                     <div 
                       onClick={() => !isUploading && fileInputRef.current?.click()}
-                      className={`w-28 h-28 rounded-[2.5rem] bg-slate-50 border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all overflow-hidden relative group ${formData.photoURL ? 'border-indigo-500 ring-4 ring-indigo-50' : 'border-slate-200 hover:border-indigo-500 hover:bg-indigo-50'}`}
+                      className={`w-32 h-32 rounded-[2.5rem] bg-slate-50 border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all overflow-hidden relative group ${formData.photoURL ? 'border-indigo-500 ring-4 ring-indigo-50 shadow-inner' : 'border-slate-200 hover:border-indigo-500 hover:bg-indigo-50'}`}
                     >
                       {isUploading ? (
-                        <div className="animate-spin w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full"></div>
+                        <div className="animate-spin w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full"></div>
                       ) : formData.photoURL ? (
                         <img src={formData.photoURL} alt="Preview" className="w-full h-full object-cover" />
                       ) : (
-                        <>
-                          <svg className="w-6 h-6 text-slate-300 group-hover:text-indigo-500 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4"/></svg>
-                          <span className="text-[7px] font-black uppercase text-slate-400 group-hover:text-indigo-600">Upload Photo</span>
-                        </>
+                        <div className="flex flex-col items-center gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
+                          <svg className="w-8 h-8 text-slate-400 group-hover:text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4"/></svg>
+                          <span className="text-[8px] font-black uppercase">Upload Photo</span>
+                        </div>
                       )}
                     </div>
                     
@@ -222,40 +225,40 @@ const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
                       <button 
                         type="button" 
                         onClick={removePhoto} 
-                        className="px-5 py-2.5 bg-rose-50 text-rose-600 rounded-xl text-[9px] font-black uppercase tracking-widest border border-rose-100 hover:bg-rose-100 transition-all shadow-sm"
+                        className="px-6 py-3 bg-rose-50 text-rose-600 rounded-2xl text-[9px] font-black uppercase tracking-widest border border-rose-100 hover:bg-rose-100 transition-all shadow-sm active:scale-95"
                       >
                         Remove Photo
                       </button>
                     )}
                   </div>
 
-                  {/* Simplified Professional Avatar Picker */}
-                  <div className="w-full space-y-4">
+                  {/* Clean Selection Library */}
+                  <div className="w-full space-y-4 pt-4 border-t border-slate-50">
                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Select Institutional Persona</p>
                     
-                    <div className="flex justify-center gap-8">
-                      {/* Male Avatar Selection */}
-                      <div className="flex flex-col items-center gap-2">
+                    <div className="flex justify-center gap-12">
+                      {/* Male Option */}
+                      <div className="flex flex-col items-center gap-3">
                         <button 
                           type="button" 
                           onClick={() => selectAvatar(MALE_AVATAR)}
-                          className={`w-16 h-16 rounded-2xl overflow-hidden border-4 transition-all hover:scale-110 active:scale-90 ${formData.photoURL === MALE_AVATAR ? 'border-indigo-500 ring-4 ring-indigo-50' : 'border-slate-100 bg-slate-50'}`}
+                          className={`w-20 h-20 rounded-3xl overflow-hidden border-4 transition-all hover:scale-110 active:scale-90 shadow-md ${formData.photoURL === MALE_AVATAR ? 'border-indigo-500 ring-8 ring-indigo-50' : 'border-white bg-slate-50 hover:border-slate-200'}`}
                         >
                           <img src={MALE_AVATAR} alt="Male Faculty" className="w-full h-full" />
                         </button>
-                        <p className="text-[8px] font-black text-indigo-500 uppercase tracking-widest">Male</p>
+                        <p className={`text-[10px] font-black uppercase tracking-widest ${formData.photoURL === MALE_AVATAR ? 'text-indigo-600' : 'text-slate-400'}`}>Male</p>
                       </div>
 
-                      {/* Female Avatar Selection */}
-                      <div className="flex flex-col items-center gap-2">
+                      {/* Female Option */}
+                      <div className="flex flex-col items-center gap-3">
                         <button 
                           type="button" 
                           onClick={() => selectAvatar(FEMALE_AVATAR)}
-                          className={`w-16 h-16 rounded-2xl overflow-hidden border-4 transition-all hover:scale-110 active:scale-90 ${formData.photoURL === FEMALE_AVATAR ? 'border-rose-500 ring-4 ring-rose-50' : 'border-slate-100 bg-slate-50'}`}
+                          className={`w-20 h-20 rounded-3xl overflow-hidden border-4 transition-all hover:scale-110 active:scale-90 shadow-md ${formData.photoURL === FEMALE_AVATAR ? 'border-rose-500 ring-8 ring-rose-50' : 'border-white bg-slate-50 hover:border-slate-200'}`}
                         >
                           <img src={FEMALE_AVATAR} alt="Female Faculty" className="w-full h-full" />
                         </button>
-                        <p className="text-[8px] font-black text-rose-500 uppercase tracking-widest">Female</p>
+                        <p className={`text-[10px] font-black uppercase tracking-widest ${formData.photoURL === FEMALE_AVATAR ? 'text-rose-600' : 'text-slate-400'}`}>Female</p>
                       </div>
                     </div>
                   </div>
@@ -264,46 +267,58 @@ const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
               </div>
 
               {/* Form Fields */}
-              <div className="space-y-2 pt-4 border-t border-slate-50">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Legal Name</label>
-                <input type="text" className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-xs font-bold focus:border-indigo-500 focus:bg-white transition-all" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="Full Name" required />
-              </div>
-              
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Work Email Address</label>
-                <input type="email" className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-xs font-bold focus:border-indigo-500 focus:bg-white transition-all" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} placeholder="name@college.edu" required />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Account Password</label>
-                <input type="text" className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-xs font-bold focus:border-indigo-500 focus:bg-white transition-all" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} placeholder="Enter Password" />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-5 pt-4 border-t border-slate-50">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Account Role</label>
-                  <select className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-[10px] font-bold appearance-none" value={formData.role} onChange={e => setFormData({...formData, role: e.target.value as UserRole})} required>
-                    <option value="" disabled>Select Role</option>
-                    <option value={UserRole.SUPER_ADMIN}>Super Admin</option>
-                    <option value={UserRole.ADMIN}>Admin</option>
-                    <option value={UserRole.HOD}>Department Head</option>
-                    <option value={UserRole.TEACHER}>Faculty Staff</option>
-                  </select>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Legal Name</label>
+                  <input type="text" className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-sm font-bold focus:border-indigo-500 focus:bg-white transition-all" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="Enter Full Name" required />
                 </div>
-                {!isCentralRole && (
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Assigned Branch</label>
-                    <select className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-[10px] font-bold appearance-none" value={formData.department} onChange={e => setFormData({...formData, department: e.target.value as Department})} required>
-                      <option value="" disabled>Select Branch</option>
-                      {Object.values(Department).map(d => <option key={d} value={d}>{d}</option>)}
-                    </select>
-                  </div>
-                )}
-              </div>
+                
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Work Email Address</label>
+                  <input type="email" className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-sm font-bold focus:border-indigo-500 focus:bg-white transition-all" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} placeholder="name@college.edu" required />
+                </div>
 
-              <button type="submit" className="w-full py-5 bg-indigo-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl shadow-indigo-100 active:scale-95 transition-all mt-6">
-                {editingUser ? 'Save Profile Changes' : 'Initialize Account'}
-              </button>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Account Password</label>
+                  <input type="text" className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-sm font-bold focus:border-indigo-500 focus:bg-white transition-all" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} placeholder="••••••••" />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Account Role</label>
+                    <div className="relative">
+                      <select className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-[10px] font-bold appearance-none cursor-pointer" value={formData.role} onChange={e => setFormData({...formData, role: e.target.value as UserRole})} required>
+                        <option value="" disabled>Select Role</option>
+                        <option value={UserRole.SUPER_ADMIN}>Super Admin</option>
+                        <option value={UserRole.ADMIN}>Admin</option>
+                        <option value={UserRole.HOD}>Department Head</option>
+                        <option value={UserRole.TEACHER}>Faculty Staff</option>
+                      </select>
+                      <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-slate-400">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7"/></svg>
+                      </div>
+                    </div>
+                  </div>
+                  {!isCentralRole && (
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Assigned Branch</label>
+                      <div className="relative">
+                        <select className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-[10px] font-bold appearance-none cursor-pointer" value={formData.department} onChange={e => setFormData({...formData, department: e.target.value as Department})} required>
+                          <option value="" disabled>Select Branch</option>
+                          {Object.values(Department).map(d => <option key={d} value={d}>{d}</option>)}
+                        </select>
+                        <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-slate-400">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7"/></svg>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <button type="submit" className="w-full py-5 bg-indigo-600 text-white rounded-3xl font-black text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-indigo-100 active:scale-95 transition-all mt-6">
+                  {editingUser ? 'Save Profile Changes' : 'Initialize Account'}
+                </button>
+              </div>
             </form>
           </div>
         </div>

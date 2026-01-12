@@ -2,11 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useData } from '../context/DataContext';
 import { User, UserRole, Department, UserAction } from '../types';
 
-// High-quality Faceless (No eyes, mouth, nose) SVG URLs specifically designed for institutional use
-// We use DiceBear Avataaars with 'blank' features to achieve the minimalist faceless look
-const MALE_AVATAR = 'https://api.dicebear.com/7.x/avataaars/svg?seed=M&top=shortHair&hairColor=4a312c&eyes=blank&eyebrows=blank&mouth=blank&clothing=sweater&clothingColor=3b82f6&backgroundColor=e0f2fe&backgroundType=circle';
-const FEMALE_AVATAR = 'https://api.dicebear.com/7.x/avataaars/svg?seed=F&top=longHair&hairColor=4a312c&eyes=blank&eyebrows=blank&mouth=blank&clothing=sweater&clothingColor=ec4899&backgroundColor=e0f2fe&backgroundType=circle';
-
 const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
   const { users, deleteUser, addUser, updateUser, showToast, addLog, uploadProfileImage } = useData();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -69,10 +64,6 @@ const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
   const removePhoto = () => {
     setFormData(prev => ({ ...prev, photoURL: '' }));
     showToast("Profile image removed locally. Save to confirm.", "info");
-  };
-
-  const selectAvatar = (url: string) => {
-    setFormData(prev => ({ ...prev, photoURL: url }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -231,37 +222,6 @@ const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
                         Remove Photo
                       </button>
                     )}
-                  </div>
-
-                  {/* Strictly 2 Faceless Avatars Library */}
-                  <div className="w-full space-y-4 pt-4 border-t border-slate-50">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Select Faculty Persona (Faceless)</p>
-                    
-                    <div className="flex justify-center gap-12">
-                      {/* Male Faceless Option */}
-                      <div className="flex flex-col items-center gap-3">
-                        <button 
-                          type="button" 
-                          onClick={() => selectAvatar(MALE_AVATAR)}
-                          className={`w-20 h-20 rounded-3xl overflow-hidden border-4 transition-all hover:scale-110 active:scale-90 shadow-md ${formData.photoURL === MALE_AVATAR ? 'border-indigo-500 ring-8 ring-indigo-50' : 'border-white bg-slate-50 hover:border-slate-200'}`}
-                        >
-                          <img src={MALE_AVATAR} alt="Male Faculty" className="w-full h-full" />
-                        </button>
-                        <p className={`text-[10px] font-black uppercase tracking-widest ${formData.photoURL === MALE_AVATAR ? 'text-indigo-600' : 'text-slate-400'}`}>Male</p>
-                      </div>
-
-                      {/* Female Faceless Option */}
-                      <div className="flex flex-col items-center gap-3">
-                        <button 
-                          type="button" 
-                          onClick={() => selectAvatar(FEMALE_AVATAR)}
-                          className={`w-20 h-20 rounded-3xl overflow-hidden border-4 transition-all hover:scale-110 active:scale-90 shadow-md ${formData.photoURL === FEMALE_AVATAR ? 'border-rose-500 ring-8 ring-rose-50' : 'border-white bg-slate-50 hover:border-slate-200'}`}
-                        >
-                          <img src={FEMALE_AVATAR} alt="Female Faculty" className="w-full h-full" />
-                        </button>
-                        <p className={`text-[10px] font-black uppercase tracking-widest ${formData.photoURL === FEMALE_AVATAR ? 'text-rose-600' : 'text-slate-400'}`}>Female</p>
-                      </div>
-                    </div>
                   </div>
                 </div>
                 <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />

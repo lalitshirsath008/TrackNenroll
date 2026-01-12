@@ -2,9 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useData } from '../context/DataContext';
 import { User, UserRole, Department, UserAction } from '../types';
 
-// Updated high-quality SVG URLs that strictly follow the visual reference (Flat style, specific colors)
-const MALE_AVATAR = 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix&top=shortHair&hairColor=4a312c&clothing=sweater&clothingColor=3b82f6&backgroundColor=e0f2fe&backgroundType=circle';
-const FEMALE_AVATAR = 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sophia&top=longHair&hairColor=4a312c&clothing=sweater&clothingColor=ec4899&backgroundColor=e0f2fe&backgroundType=circle';
+// High-quality Faceless (No eyes, mouth, nose) SVG URLs specifically designed for institutional use
+// We use DiceBear Avataaars with 'blank' features to achieve the minimalist faceless look
+const MALE_AVATAR = 'https://api.dicebear.com/7.x/avataaars/svg?seed=M&top=shortHair&hairColor=4a312c&eyes=blank&eyebrows=blank&mouth=blank&clothing=sweater&clothingColor=3b82f6&backgroundColor=e0f2fe&backgroundType=circle';
+const FEMALE_AVATAR = 'https://api.dicebear.com/7.x/avataaars/svg?seed=F&top=longHair&hairColor=4a312c&eyes=blank&eyebrows=blank&mouth=blank&clothing=sweater&clothingColor=ec4899&backgroundColor=e0f2fe&backgroundType=circle';
 
 const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
   const { users, deleteUser, addUser, updateUser, showToast, addLog, uploadProfileImage } = useData();
@@ -232,12 +233,12 @@ const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
                     )}
                   </div>
 
-                  {/* Clean Selection Library */}
+                  {/* Strictly 2 Faceless Avatars Library */}
                   <div className="w-full space-y-4 pt-4 border-t border-slate-50">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Select Institutional Persona</p>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Select Faculty Persona (Faceless)</p>
                     
                     <div className="flex justify-center gap-12">
-                      {/* Male Option */}
+                      {/* Male Faceless Option */}
                       <div className="flex flex-col items-center gap-3">
                         <button 
                           type="button" 
@@ -249,7 +250,7 @@ const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
                         <p className={`text-[10px] font-black uppercase tracking-widest ${formData.photoURL === MALE_AVATAR ? 'text-indigo-600' : 'text-slate-400'}`}>Male</p>
                       </div>
 
-                      {/* Female Option */}
+                      {/* Female Faceless Option */}
                       <div className="flex flex-col items-center gap-3">
                         <button 
                           type="button" 

@@ -254,7 +254,6 @@ const AdminDashboard: React.FC<{ initialTab?: 'overview' | 'leads' | 'logs' | 'v
     if (!teacher || !teacher.verification) return;
     const reason = window.prompt("Institutional Reason for Rejection:", "Evidence provided is insufficient.");
     if (reason !== null) {
-      // Correctly reset the status to 'rejected' and clear old values to force resubmission
       await updateUser(teacherId, { 
         verification: { 
           ...teacher.verification, 
@@ -275,6 +274,21 @@ const AdminDashboard: React.FC<{ initialTab?: 'overview' | 'leads' | 'logs' | 'v
       return new Date(dateString).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
     } catch {
       return 'Invalid';
+    }
+  };
+
+  // Improved formatter for Activity Logs
+  const formatLogDateTime = (dateString?: string) => {
+    if (!dateString) return 'NO TIMESTAMP';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'TIMESTAMP ERROR';
+      
+      const d = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+      const t = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      return `${d} | ${t}`;
+    } catch {
+      return 'CORRUPT DATE';
     }
   };
 
@@ -344,11 +358,11 @@ const AdminDashboard: React.FC<{ initialTab?: 'overview' | 'leads' | 'logs' | 'v
             <form onSubmit={handleManualEntrySubmit} className="p-10 space-y-6">
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Student Full Name</label>
-                <input type="text" value={manualLead.name} onChange={e => setManualLead({...manualLead, name: e.target.value})} className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold focus:border-indigo-500 focus:bg-white transition-all" placeholder="Enter Name" required />
+                <input type="text" value={manualLead.name} onChange={e => setManualLead({...manualLead, name: e.target.value})} className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-xs font-bold focus:border-indigo-500 focus:bg-white transition-all" placeholder="Enter Name" required />
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Contact Number</label>
-                <input type="text" maxLength={10} value={manualLead.phone} onChange={e => setManualLead({...manualLead, phone: e.target.value.replace(/\D/g, '')})} className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold focus:border-indigo-500 focus:bg-white transition-all" placeholder="10-digit number" required />
+                <input type="text" maxLength={10} value={manualLead.phone} onChange={e => setManualLead({...manualLead, phone: e.target.value.replace(/\D/g, '')})} className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-xs font-bold focus:border-indigo-500 focus:bg-white transition-all" placeholder="10-digit number" required />
               </div>
               <button type="submit" className="w-full py-5 bg-indigo-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl shadow-indigo-100 active:scale-95 transition-all">Add to System Pool</button>
             </form>
@@ -469,7 +483,7 @@ const AdminDashboard: React.FC<{ initialTab?: 'overview' | 'leads' | 'logs' | 'v
            <div className="overflow-x-auto">
              <table className="w-full text-left min-w-[600px]">
                <thead className="bg-[#fcfdfe] text-[8px] font-black text-slate-400 uppercase border-b border-slate-50 tracking-widest">
-                 <tr><th className="p-6">Staff Personnel</th><th className="p-6">Transaction</th><th className="p-6">Details</th><th className="p-6 text-right">Time</th></tr>
+                 <tr><th className="p-6">Staff Personnel</th><th className="p-6">Transaction</th><th className="p-6">Details</th><th className="p-6 text-right">Date & Time</th></tr>
                </thead>
                <tbody className="divide-y divide-slate-50">
                  {logs.map(log => (
@@ -477,9 +491,14 @@ const AdminDashboard: React.FC<{ initialTab?: 'overview' | 'leads' | 'logs' | 'v
                      <td className="p-6"><p className="text-[10px] font-black text-slate-800 uppercase leading-none">{log.userName}</p></td>
                      <td className="p-6"><span className="text-[8px] font-black uppercase px-2 py-1 rounded bg-indigo-50 text-indigo-600">{log.action}</span></td>
                      <td className="p-6 text-[10px] font-bold text-slate-500">{log.details}</td>
-                     <td className="p-6 text-right text-[9px] font-black text-slate-300 uppercase">{new Date(log.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
+                     <td className="p-6 text-right text-[9px] font-black text-slate-300 uppercase whitespace-nowrap">{formatLogDateTime(log.timestamp)}</td>
                    </tr>
                  ))}
+                 {logs.length === 0 && (
+                   <tr>
+                     <td colSpan={4} className="p-20 text-center text-slate-300 text-[9px] font-black uppercase tracking-[0.3em]">No activity logs found</td>
+                   </tr>
+                 )}
                </tbody>
              </table>
            </div>

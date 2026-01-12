@@ -2,21 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useData } from '../context/DataContext';
 import { User, UserRole, Department, UserAction } from '../types';
 
-const MALE_FACULTY = [
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Liam&backgroundColor=b6e3f4&eyebrows=default&mouth=smile&top=shortHair',
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Noah&backgroundColor=c0aede&eyebrows=default&mouth=smile&top=shortFlat',
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=James&backgroundColor=d1d4f9&eyebrows=up&mouth=smile&top=turban',
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Lucas&backgroundColor=ffd5dc&eyebrows=default&mouth=smile&top=shortCurly',
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Ethan&backgroundColor=ffdfbf&eyebrows=default&mouth=smile&top=shortWaved'
-];
-
-const FEMALE_FACULTY = [
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Emma&backgroundColor=b6e3f4&eyebrows=default&mouth=smile&top=longHair',
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Ava&backgroundColor=c0aede&eyebrows=default&mouth=smile&top=bob',
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Sophia&backgroundColor=d1d4f9&eyebrows=up&mouth=smile&top=hijab',
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Isabella&backgroundColor=ffd5dc&eyebrows=default&mouth=smile&top=bun',
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Mia&backgroundColor=ffdfbf&eyebrows=default&mouth=smile&top=curly'
-];
+const MALE_AVATAR = 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix&top=shortHair&hairColor=4a312c&clothing=sweater&clothingColor=3b82f6&backgroundColor=e0f2fe&backgroundType=circle';
+const FEMALE_AVATAR = 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sophia&top=longHair&hairColor=4a312c&clothing=sweater&clothingColor=ec4899&backgroundColor=e0f2fe&backgroundType=circle';
 
 const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
   const { users, deleteUser, addUser, updateUser, showToast, addLog, uploadProfileImage } = useData();
@@ -242,41 +229,33 @@ const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
                     )}
                   </div>
 
-                  {/* Professional Avatar Picker */}
+                  {/* Simplified Professional Avatar Picker */}
                   <div className="w-full space-y-4">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Institutional Avatar Library</p>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Select Institutional Persona</p>
                     
-                    {/* Male Avatars */}
-                    <div className="space-y-2">
-                      <p className="text-[8px] font-black text-indigo-500 uppercase tracking-widest ml-1">Male Faculty</p>
-                      <div className="flex gap-2.5 overflow-x-auto pb-2 px-1 custom-scroll no-scrollbar justify-start">
-                        {MALE_FACULTY.map((url, idx) => (
-                          <button 
-                            key={idx} 
-                            type="button" 
-                            onClick={() => selectAvatar(url)}
-                            className={`w-12 h-12 rounded-[1.2rem] overflow-hidden shrink-0 border-2 transition-all hover:scale-110 active:scale-90 ${formData.photoURL === url ? 'border-indigo-500 ring-4 ring-indigo-50' : 'border-slate-100 shadow-sm bg-slate-50'}`}
-                          >
-                            <img src={url} alt={`Male Avatar ${idx}`} className="w-full h-full" />
-                          </button>
-                        ))}
+                    <div className="flex justify-center gap-8">
+                      {/* Male Avatar Selection */}
+                      <div className="flex flex-col items-center gap-2">
+                        <button 
+                          type="button" 
+                          onClick={() => selectAvatar(MALE_AVATAR)}
+                          className={`w-16 h-16 rounded-2xl overflow-hidden border-4 transition-all hover:scale-110 active:scale-90 ${formData.photoURL === MALE_AVATAR ? 'border-indigo-500 ring-4 ring-indigo-50' : 'border-slate-100 bg-slate-50'}`}
+                        >
+                          <img src={MALE_AVATAR} alt="Male Faculty" className="w-full h-full" />
+                        </button>
+                        <p className="text-[8px] font-black text-indigo-500 uppercase tracking-widest">Male</p>
                       </div>
-                    </div>
 
-                    {/* Female Avatars */}
-                    <div className="space-y-2">
-                      <p className="text-[8px] font-black text-rose-500 uppercase tracking-widest ml-1">Female Faculty</p>
-                      <div className="flex gap-2.5 overflow-x-auto pb-2 px-1 custom-scroll no-scrollbar justify-start">
-                        {FEMALE_FACULTY.map((url, idx) => (
-                          <button 
-                            key={idx} 
-                            type="button" 
-                            onClick={() => selectAvatar(url)}
-                            className={`w-12 h-12 rounded-[1.2rem] overflow-hidden shrink-0 border-2 transition-all hover:scale-110 active:scale-90 ${formData.photoURL === url ? 'border-rose-500 ring-4 ring-rose-50' : 'border-slate-100 shadow-sm bg-slate-50'}`}
-                          >
-                            <img src={url} alt={`Female Avatar ${idx}`} className="w-full h-full" />
-                          </button>
-                        ))}
+                      {/* Female Avatar Selection */}
+                      <div className="flex flex-col items-center gap-2">
+                        <button 
+                          type="button" 
+                          onClick={() => selectAvatar(FEMALE_AVATAR)}
+                          className={`w-16 h-16 rounded-2xl overflow-hidden border-4 transition-all hover:scale-110 active:scale-90 ${formData.photoURL === FEMALE_AVATAR ? 'border-rose-500 ring-4 ring-rose-50' : 'border-slate-100 bg-slate-50'}`}
+                        >
+                          <img src={FEMALE_AVATAR} alt="Female Faculty" className="w-full h-full" />
+                        </button>
+                        <p className="text-[8px] font-black text-rose-500 uppercase tracking-widest">Female</p>
                       </div>
                     </div>
                   </div>
@@ -285,7 +264,7 @@ const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
               </div>
 
               {/* Form Fields */}
-              <div className="space-y-2 pt-4">
+              <div className="space-y-2 pt-4 border-t border-slate-50">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Legal Name</label>
                 <input type="text" className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-xs font-bold focus:border-indigo-500 focus:bg-white transition-all" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="Full Name" required />
               </div>

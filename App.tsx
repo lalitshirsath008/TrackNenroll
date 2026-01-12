@@ -277,18 +277,27 @@ const AdminDashboard: React.FC<{ initialTab?: 'overview' | 'leads' | 'logs' | 'v
     }
   };
 
-  // Improved formatter for Activity Logs
-  const formatLogDateTime = (dateString?: string) => {
-    if (!dateString) return 'NO TIMESTAMP';
+  // Robust formatter for Activity Logs that handles Firestore Timestamps or Strings
+  const formatLogDateTime = (ts: any) => {
+    if (!ts) return { d: '---', t: '---' };
     try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return 'TIMESTAMP ERROR';
+      let date: Date;
+      // Handle Firestore Timestamp object if it exists
+      if (ts && typeof ts === 'object' && ts.seconds !== undefined) {
+        date = new Date(ts.seconds * 1000);
+      } else {
+        // Handle ISO string or normal Date object
+        date = new Date(ts);
+      }
       
-      const d = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
-      const t = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      return `${d} | ${t}`;
+      if (isNaN(date.getTime())) return { d: 'INVALID', t: 'TIMESTAMP' };
+      
+      return {
+        d: date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase(),
+        t: date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase()
+      };
     } catch {
-      return 'CORRUPT DATE';
+      return { d: 'ERROR', t: 'DATE' };
     }
   };
 
@@ -486,14 +495,22 @@ const AdminDashboard: React.FC<{ initialTab?: 'overview' | 'leads' | 'logs' | 'v
                  <tr><th className="p-6">Staff Personnel</th><th className="p-6">Transaction</th><th className="p-6">Details</th><th className="p-6 text-right">Date & Time</th></tr>
                </thead>
                <tbody className="divide-y divide-slate-50">
-                 {logs.map(log => (
-                   <tr key={log.id} className="hover:bg-slate-50/50">
-                     <td className="p-6"><p className="text-[10px] font-black text-slate-800 uppercase leading-none">{log.userName}</p></td>
-                     <td className="p-6"><span className="text-[8px] font-black uppercase px-2 py-1 rounded bg-indigo-50 text-indigo-600">{log.action}</span></td>
-                     <td className="p-6 text-[10px] font-bold text-slate-500">{log.details}</td>
-                     <td className="p-6 text-right text-[9px] font-black text-slate-300 uppercase whitespace-nowrap">{formatLogDateTime(log.timestamp)}</td>
-                   </tr>
-                 ))}
+                 {logs.map(log => {
+                   const { d, t } = formatLogDateTime(log.timestamp);
+                   return (
+                     <tr key={log.id} className="hover:bg-slate-50/50">
+                       <td className="p-6"><p className="text-[10px] font-black text-slate-800 uppercase leading-none">{log.userName}</p></td>
+                       <td className="p-6"><span className="text-[8px] font-black uppercase px-2 py-1 rounded bg-indigo-50 text-indigo-600">{log.action}</span></td>
+                       <td className="p-6 text-[10px] font-bold text-slate-500">{log.details}</td>
+                       <td className="p-6 text-right whitespace-nowrap">
+                          <div className="flex flex-col items-end">
+                            <p className="text-[10px] font-black text-slate-800 uppercase leading-none mb-1">{d}</p>
+                            <p className="text-[9px] font-bold text-indigo-500 uppercase tracking-widest">{t}</p>
+                          </div>
+                       </td>
+                     </tr>
+                   );
+                 })}
                  {logs.length === 0 && (
                    <tr>
                      <td colSpan={4} className="p-20 text-center text-slate-300 text-[9px] font-black uppercase tracking-[0.3em]">No activity logs found</td>

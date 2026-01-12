@@ -1,7 +1,17 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useData } from '../context/DataContext';
 import { User, UserRole, Department, UserAction } from '../types';
+
+const DEFAULT_AVATARS = [
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka',
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Tigger',
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Jasper',
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Midnight',
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Luna',
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Oliver',
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Caleb'
+];
 
 const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
   const { users, deleteUser, addUser, updateUser, showToast, addLog, uploadProfileImage } = useData();
@@ -62,6 +72,15 @@ const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
     }
   };
 
+  const removePhoto = () => {
+    setFormData(prev => ({ ...prev, photoURL: '' }));
+    showToast("Profile image removed locally. Save to confirm.", "info");
+  };
+
+  const selectAvatar = (url: string) => {
+    setFormData(prev => ({ ...prev, photoURL: url }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -83,7 +102,7 @@ const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
       password: formData.password,
       role: formData.role as UserRole,
       department: finalDepartment,
-      photoURL: formData.photoURL
+      photoURL: formData.photoURL || ''
     };
 
     if (editingUser) {
@@ -111,6 +130,7 @@ const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
         </div>
         <button onClick={() => handleOpenModal()} className="px-6 py-2.5 bg-[#0f172a] text-white rounded-xl font-black text-[9px] uppercase tracking-widest shadow-lg hover:bg-slate-800 transition-all active:scale-95">Add Faculty Member</button>
       </header>
+      
       <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
@@ -129,7 +149,7 @@ const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
                   <tr key={u.id} className="hover:bg-slate-50 transition-all group">
                     <td className="px-8 py-4">
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-slate-100 overflow-hidden flex items-center justify-center shrink-0 border border-slate-100">
+                        <div className="w-10 h-10 rounded-xl bg-slate-100 overflow-hidden flex items-center justify-center shrink-0 border border-slate-100 shadow-sm">
                           {u.photoURL ? (
                             <img src={u.photoURL} alt={u.name} className="w-full h-full object-cover" />
                           ) : (
@@ -175,6 +195,7 @@ const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
           </table>
         </div>
       </div>
+
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[2000] flex items-center justify-center p-4">
           <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
@@ -182,34 +203,71 @@ const UserManagement: React.FC<{ currentUser: User }> = ({ currentUser }) => {
               <h3 className="text-xl font-black uppercase tracking-tighter">{editingUser ? 'Update Profile' : 'Add New Faculty'}</h3>
               <button onClick={() => setIsModalOpen(false)} className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">×</button>
             </div>
-            <form onSubmit={handleSubmit} className="p-10 space-y-6 max-h-[70vh] overflow-y-auto custom-scroll">
-              <div className="flex flex-col items-center mb-6">
-                <div 
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-24 h-24 rounded-[2rem] bg-slate-50 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500 hover:bg-indigo-50 transition-all group overflow-hidden relative"
-                >
-                  {isUploading ? (
-                    <div className="animate-spin w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full"></div>
-                  ) : formData.photoURL ? (
-                    <img src={formData.photoURL} alt="Preview" className="w-full h-full object-cover" />
-                  ) : (
-                    <>
-                      <svg className="w-6 h-6 text-slate-300 group-hover:text-indigo-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                      <span className="text-[8px] font-black uppercase text-slate-400 group-hover:text-indigo-600">Upload Photo</span>
-                    </>
-                  )}
+            
+            <form onSubmit={handleSubmit} className="p-10 space-y-6 max-h-[75vh] overflow-y-auto custom-scroll">
+              {/* Profile Photo Area */}
+              <div className="space-y-4">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Staff Identity Photo</label>
+                <div className="flex flex-col items-center gap-6">
+                  <div className="flex items-center gap-8 w-full justify-center">
+                    <div 
+                      onClick={() => !isUploading && fileInputRef.current?.click()}
+                      className={`w-24 h-24 rounded-[2rem] bg-slate-50 border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all overflow-hidden relative group ${formData.photoURL ? 'border-indigo-500 ring-4 ring-indigo-50' : 'border-slate-200 hover:border-indigo-500 hover:bg-indigo-50'}`}
+                    >
+                      {isUploading ? (
+                        <div className="animate-spin w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full"></div>
+                      ) : formData.photoURL ? (
+                        <img src={formData.photoURL} alt="Preview" className="w-full h-full object-cover" />
+                      ) : (
+                        <>
+                          <svg className="w-6 h-6 text-slate-300 group-hover:text-indigo-500 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4"/></svg>
+                          <span className="text-[7px] font-black uppercase text-slate-400 group-hover:text-indigo-600">Upload</span>
+                        </>
+                      )}
+                    </div>
+                    
+                    {formData.photoURL && (
+                      <button 
+                        type="button" 
+                        onClick={removePhoto} 
+                        className="px-4 py-2 bg-rose-50 text-rose-600 rounded-xl text-[8px] font-black uppercase tracking-widest border border-rose-100 hover:bg-rose-100 transition-all"
+                      >
+                        Remove Photo
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Avatar Picker */}
+                  <div className="w-full space-y-3">
+                    <p className="text-[8px] font-black text-slate-300 uppercase tracking-[0.2em] text-center">Or select institutional avatar</p>
+                    <div className="flex gap-2 overflow-x-auto pb-2 px-1 custom-scroll no-scrollbar justify-center">
+                      {DEFAULT_AVATARS.map((url, idx) => (
+                        <button 
+                          key={idx} 
+                          type="button" 
+                          onClick={() => selectAvatar(url)}
+                          className={`w-10 h-10 rounded-xl overflow-hidden shrink-0 border-2 transition-all hover:scale-110 active:scale-90 ${formData.photoURL === url ? 'border-indigo-500 ring-2 ring-indigo-100' : 'border-slate-100'}`}
+                        >
+                          <img src={url} alt={`Avatar ${idx}`} className="w-full h-full" />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
                 <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
               </div>
 
+              {/* Form Fields */}
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Legal Name</label>
                 <input type="text" className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-xs font-bold focus:border-indigo-500 focus:bg-white transition-all" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="Full Name" required />
               </div>
+              
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Work Email Address</label>
                 <input type="email" className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-xs font-bold focus:border-indigo-500 focus:bg-white transition-all" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} placeholder="name@college.edu" required />
               </div>
+
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Account Password</label>
                 <input type="text" className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-xs font-bold focus:border-indigo-500 focus:bg-white transition-all" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} placeholder="Enter Password" />
